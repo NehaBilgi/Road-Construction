@@ -7,7 +7,9 @@ import {
   Trash2,
   Edit2,
   Truck,
-  Store
+  Store,
+  Printer,
+  FileSpreadsheet
 } from 'lucide-react';
 
 export interface HaulageTripRecord {
@@ -63,7 +65,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
 
   // Resolve active site based on global header selection
   const currentActiveSite = siteSheets.find((s: any) => s.siteId === selectedSiteId);
-  const activeSiteName = currentActiveSite?.siteName || siteSheets[0]?.siteName || 'SINDAGI - ALMEL ROAD';
+  const activeSiteName = currentActiveSite?.siteName || siteSheets[0]?.siteName || 'MULWAD';
 
   // Load Trips safely
   const [trips, setTrips] = useState<HaulageTripRecord[]>(() => {
@@ -95,9 +97,9 @@ export const MaterialHaulageTripsModule: React.FC = () => {
     try {
       const saved = localStorage.getItem(STORAGE_VENDORS_KEY);
       if (saved) return JSON.parse(saved);
-      return ['Mahalaxmi Stone Crusher', 'Bilgi Hot Mix Plant Quarry #1', 'Shanti Aggregates'];
+      return ['gigaonkar', 'Mahalaxmi Stone Crusher', 'Bilgi Hot Mix Plant Quarry #1'];
     } catch {
-      return ['Mahalaxmi Stone Crusher', 'Bilgi Hot Mix Plant Quarry #1', 'Shanti Aggregates'];
+      return ['gigaonkar', 'Mahalaxmi Stone Crusher', 'Bilgi Hot Mix Plant Quarry #1'];
     }
   });
 
@@ -106,7 +108,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
   const [editingId, setEditingId] = useState<string | null>(null);
 
   // Form States
-  const [tripDate, setTripDate] = useState('2026-08-19');
+  const [tripDate, setTripDate] = useState(new Date().toISOString().split('T')[0]);
   const [siteName, setSiteName] = useState(activeSiteName);
   const [vehicleNumber, setVehicleNumber] = useState('TOTAL TRIPS');
   const [purchasedFrom, setPurchasedFrom] = useState('');
@@ -130,7 +132,6 @@ export const MaterialHaulageTripsModule: React.FC = () => {
     }
   };
 
-  // Re-fetch categories and vendors when modal opens
   useEffect(() => {
     if (isModalOpen) {
       try {
@@ -175,7 +176,10 @@ export const MaterialHaulageTripsModule: React.FC = () => {
   // Dynamically filter trips by active site
   const filtered = useMemo(() => {
     return trips.filter((t) => {
-      const matchSite = t.siteName === activeSiteName;
+      const matchSite =
+        !activeSiteName ||
+        t.siteName === activeSiteName ||
+        t.siteName.toLowerCase().includes(activeSiteName.toLowerCase());
       const q = searchQuery.toLowerCase();
       const matchQuery =
         !q ||
@@ -186,6 +190,39 @@ export const MaterialHaulageTripsModule: React.FC = () => {
       return matchSite && matchQuery;
     });
   }, [trips, activeSiteName, searchQuery]);
+
+  // Totals Aggregations
+  const overallTotals = useMemo(() => {
+    return filtered.reduce(
+      (acc, t) => {
+        const tr = Number(t.dayTrips) || 0;
+        const totalBrass = tr * (Number(t.brassPerTrip) || 0);
+        const amount = Number(t.totalAmount) || 0;
+        return {
+          trips: acc.trips + tr,
+          brass: acc.brass + totalBrass,
+          amount: acc.amount + amount
+        };
+      },
+      { trips: 0, brass: 0, amount: 0 }
+    );
+  }, [filtered]);
+
+  // Supplier-Wise Aggregation
+  const vendorBreakdown = useMemo(() => {
+    const map: Record<string, { trips: number; brass: number; amount: number }> = {};
+    filtered.forEach((t) => {
+      const v = t.purchasedFrom?.trim() || 'Direct / Unspecified';
+      if (!map[v]) {
+        map[v] = { trips: 0, brass: 0, amount: 0 };
+      }
+      const tr = Number(t.dayTrips) || 0;
+      map[v].trips += tr;
+      map[v].brass += tr * (Number(t.brassPerTrip) || 0);
+      map[v].amount += Number(t.totalAmount) || 0;
+    });
+    return map;
+  }, [filtered]);
 
   const handleOpenAdd = () => {
     setEditingId(null);
@@ -225,14 +262,13 @@ export const MaterialHaulageTripsModule: React.FC = () => {
 
     const trimmedVendor = purchasedFrom.trim() || 'Direct Quarry / Plant';
 
-    // Save supplier name into persistent list for future auto-complete dropdown
     if (trimmedVendor && !savedVendors.includes(trimmedVendor)) {
       const updatedVendors = [trimmedVendor, ...savedVendors];
       setSavedVendors(updatedVendors);
       try {
         localStorage.setItem(STORAGE_VENDORS_KEY, JSON.stringify(updatedVendors));
       } catch (err) {
-        console.error('Failed to save vendor name to localStorage', err);
+        console.error('Failed to save vendor name', err);
       }
     }
 
@@ -259,31 +295,117 @@ export const MaterialHaulageTripsModule: React.FC = () => {
     setEditingId(null);
   };
 
+  // Print / Save to PDF Trigger
+  const handlePrintPDF = () => {
+    window.print();
+  };
+
   return (
     <div className="space-y-4 sm:space-y-6 font-sans text-slate-100">
+      {/* Print Stylesheet */}
+      <style>{`
+        @media print {
+          body * {
+            visibility: hidden;
+          }
+          #printable-haulage-table, #printable-haulage-table * {
+            visibility: visible;
+          }
+          #printable-haulage-table {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            background: white !important;
+            color: black !important;
+            padding: 20px;
+          }
+          .no-print {
+            display: none !important;
+          }
+          table {
+            border: 1px solid #ddd !important;
+            width: 100% !important;
+          }
+          th, td {
+            border: 1px solid #ddd !important;
+            color: black !important;
+            padding: 6px 8px !important;
+          }
+          thead tr {
+            background-color: #f3f4f6 !important;
+          }
+          tfoot tr {
+            background-color: #e5e7eb !important;
+            font-weight: bold !important;
+          }
+        }
+      `}</style>
+
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 no-print">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-2xl bg-blue-600/20 border border-blue-500/30 flex items-center justify-center text-blue-400 shrink-0">
             <Truck className="w-5 h-5" />
           </div>
           <div>
             <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight">Material Haulage Trips</h1>
-            <p className="text-[11px] sm:text-xs text-slate-400 mt-0.5">Track daily trip counts, material volumes, suppliers, and haulage expenses for {activeSiteName}.</p>
+            <p className="text-[11px] sm:text-xs text-slate-400 mt-0.5">Track daily trip counts, supplier procurement, and total purchase ledger for {activeSiteName}.</p>
           </div>
         </div>
 
-        <button
-          onClick={handleOpenAdd}
-          className="w-full sm:w-auto justify-center px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-black flex items-center gap-1.5 transition-all shadow-lg shadow-blue-600/30 cursor-pointer"
-        >
-          <Plus className="w-4 h-4 shrink-0" />
-          <span>+ Log Haulage Trips</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handlePrintPDF}
+            className="px-3.5 py-2.5 rounded-xl bg-[#142038] hover:bg-[#1b2845] border border-[#23355a] text-slate-200 text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-md"
+            title="Print or Save as PDF"
+          >
+            <Printer className="w-4 h-4 text-cyan-400" />
+            <span>Print PDF</span>
+          </button>
+
+          <button
+            onClick={handleOpenAdd}
+            className="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-black flex items-center gap-1.5 transition-all shadow-lg shadow-blue-600/30 cursor-pointer"
+          >
+            <Plus className="w-4 h-4 shrink-0" />
+            <span>+ Log Haulage Trips</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Supplier-Wise Summary Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 no-print">
+        {/* Total Outflow */}
+        <div className="p-4 rounded-2xl bg-[#0B1220] border border-[#1E293B] shadow-lg flex flex-col justify-between">
+          <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Total Material Purchase</div>
+          <div className="text-2xl font-black text-amber-400 font-mono mt-2">
+            ₹{overallTotals.amount.toLocaleString('en-IN')}
+          </div>
+          <div className="text-[10px] text-slate-500 mt-1">
+            {overallTotals.trips} Total Trips • {overallTotals.brass} Brass Laid
+          </div>
+        </div>
+
+        {/* Vendors Summary */}
+        {Object.entries(vendorBreakdown).slice(0, 3).map(([vName, vData]) => (
+          <div key={vName} className="p-4 rounded-2xl bg-[#0B1220] border border-[#1E293B] shadow-lg flex flex-col justify-between">
+            <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-emerald-400 truncate">
+              <Store className="w-3.5 h-3.5 shrink-0" />
+              <span className="truncate">{vName}</span>
+            </div>
+            <div className="text-2xl font-black text-white font-mono mt-2">
+              ₹{vData.amount.toLocaleString('en-IN')}
+            </div>
+            <div className="text-[10px] text-slate-400 mt-1">
+              {vData.trips} trips ({vData.brass} Brass)
+            </div>
+          </div>
+        ))}
       </div>
 
       {/* Search Bar */}
-      <div className="p-3 sm:p-4 rounded-[1.2rem] sm:rounded-3xl bg-[#0c1427] border border-[#182643] flex items-center gap-3 text-xs">
+      <div className="p-3 sm:p-4 rounded-[1.2rem] sm:rounded-3xl bg-[#0c1427] border border-[#182643] flex items-center gap-3 text-xs no-print">
         <div className="relative flex-1">
           <Search className="absolute left-3.5 top-2.5 sm:top-3 w-4 h-4 text-slate-500" />
           <input
@@ -296,8 +418,8 @@ export const MaterialHaulageTripsModule: React.FC = () => {
         </div>
       </div>
 
-      {/* Trips Table */}
-      <div className="bg-[#0B1220] border border-[#1E293B] rounded-[1.2rem] sm:rounded-3xl overflow-hidden shadow-2xl">
+      {/* Printable Trips Table with Footer Totals */}
+      <div id="printable-haulage-table" className="bg-[#0B1220] border border-[#1E293B] rounded-[1.2rem] sm:rounded-3xl overflow-hidden shadow-2xl">
         <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-[#1E293B]">
           <table className="w-full text-left text-[10px] sm:text-xs border-collapse">
             <thead>
@@ -311,7 +433,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
                 <th className="py-3 px-4 text-right whitespace-nowrap">QTY/TRIP</th>
                 <th className="py-3 px-4 text-right whitespace-nowrap">RATE/UNIT</th>
                 <th className="py-3 px-4 sm:px-6 text-right whitespace-nowrap">TOTAL AMOUNT</th>
-                <th className="py-3 px-4 sm:px-6 text-right whitespace-nowrap">ACTION</th>
+                <th className="py-3 px-4 sm:px-6 text-right whitespace-nowrap no-print">ACTION</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#1E293B]/60 text-slate-200">
@@ -339,11 +461,11 @@ export const MaterialHaulageTripsModule: React.FC = () => {
                     <td className="py-3 sm:py-3.5 px-4 sm:px-6 font-bold text-amber-300 whitespace-nowrap">{t.materialName}</td>
                     <td className="py-3 sm:py-3.5 px-4 text-center font-mono font-bold whitespace-nowrap">{t.dayTrips}</td>
                     <td className="py-3 sm:py-3.5 px-4 text-right font-mono whitespace-nowrap">{t.brassPerTrip}</td>
-                    <td className="py-3 sm:py-3.5 px-4 text-right font-mono text-emerald-400 whitespace-nowrap">₹{t.ratePerBrass.toLocaleString()}</td>
+                    <td className="py-3 sm:py-3.5 px-4 text-right font-mono text-emerald-400 whitespace-nowrap">₹{t.ratePerBrass.toLocaleString('en-IN')}</td>
                     <td className="py-3 sm:py-3.5 px-4 sm:px-6 text-right font-mono font-black text-amber-400 text-[11px] sm:text-sm whitespace-nowrap">
-                      ₹{t.totalAmount.toLocaleString()}
+                      ₹{t.totalAmount.toLocaleString('en-IN')}
                     </td>
-                    <td className="py-3 sm:py-3.5 px-4 sm:px-6 text-right whitespace-nowrap">
+                    <td className="py-3 sm:py-3.5 px-4 sm:px-6 text-right whitespace-nowrap no-print">
                       <div className="flex items-center justify-end gap-1.5 sm:gap-2">
                         <button
                           onClick={() => handleEdit(t)}
@@ -365,13 +487,37 @@ export const MaterialHaulageTripsModule: React.FC = () => {
                 ))
               )}
             </tbody>
+
+            {/* Total Amount Footer */}
+            {filtered.length > 0 && (
+              <tfoot className="border-t-2 border-[#1E293B] bg-[#070c18] font-mono">
+                <tr>
+                  <td colSpan={5} className="py-3.5 px-4 sm:px-6 font-black uppercase text-slate-300 text-right tracking-wider">
+                    Total Purchases & Volume:
+                  </td>
+                  <td className="py-3.5 px-4 text-center font-black text-cyan-400 text-xs sm:text-sm">
+                    {overallTotals.trips} Trips
+                  </td>
+                  <td className="py-3.5 px-4 text-right font-black text-white text-xs sm:text-sm">
+                    {overallTotals.brass} Brass
+                  </td>
+                  <td className="py-3.5 px-4 text-right text-slate-500 font-normal">
+                    —
+                  </td>
+                  <td className="py-3.5 px-4 sm:px-6 text-right font-black text-amber-400 text-xs sm:text-base whitespace-nowrap">
+                    ₹{overallTotals.amount.toLocaleString('en-IN')}
+                  </td>
+                  <td className="py-3.5 px-4 sm:px-6 text-right no-print"></td>
+                </tr>
+              </tfoot>
+            )}
           </table>
         </div>
       </div>
 
       {/* Modal Form */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in no-print">
           <div className="bg-[#121927] border border-[#1E293B] rounded-[1.5rem] sm:rounded-3xl w-full max-w-lg p-5 sm:p-6 shadow-2xl space-y-4 max-h-[92vh] overflow-y-auto text-slate-100">
             <div className="flex items-center justify-between border-b border-[#1E293B] pb-3">
               <h3 className="text-sm sm:text-base font-bold text-white flex items-center gap-2">
@@ -413,7 +559,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
                     <input
                       type="text"
                       required
-                      placeholder="SINDAGI - ALMEL ROAD"
+                      placeholder="MULWAD"
                       value={siteName}
                       onChange={(e) => setSiteName(e.target.value)}
                       className="w-full px-3.5 py-2.5 bg-[#162032] border border-[#1E293B] rounded-xl text-cyan-400 font-medium outline-none"
@@ -427,7 +573,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
                 <input
                   type="text"
                   required
-                  placeholder="TOTAL TRIPS or vehicle registration..."
+                  placeholder="TOTAL TRIPS or vehicle registration (e.g. 8797, 9579)..."
                   value={vehicleNumber}
                   onChange={(e) => setVehicleNumber(e.target.value.toUpperCase())}
                   className="w-full px-3.5 py-2.5 bg-[#162032] border border-[#1E293B] rounded-xl text-white font-mono outline-none uppercase"
@@ -444,7 +590,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
                   type="text"
                   list="vendor-options"
                   required
-                  placeholder="e.g. Mahalaxmi Stone Crusher, Shanti Quarry, Plant #2..."
+                  placeholder="e.g. gigaonkar, Mahalaxmi Stone Crusher..."
                   value={purchasedFrom}
                   onChange={(e) => setPurchasedFrom(e.target.value)}
                   className="w-full px-3.5 py-2.5 bg-[#162032] border border-[#1E293B] focus:border-blue-500 rounded-xl text-white outline-none"
@@ -524,7 +670,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
               <div className="p-3 sm:p-4 rounded-2xl bg-[#080d19] border border-[#1E293B] flex items-center justify-between mt-2">
                 <span className="text-xs sm:text-sm font-bold text-slate-300">Total Day Amount:</span>
                 <span className="text-lg sm:text-xl font-black text-amber-400 font-mono">
-                  ₹{computedTotalAmount.toLocaleString()}
+                  ₹{computedTotalAmount.toLocaleString('en-IN')}
                 </span>
               </div>
 
