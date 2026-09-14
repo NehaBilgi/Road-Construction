@@ -1,417 +1,253 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { useERP } from '../../context/ERPContext';
+import React from 'react';
 import {
-  Layers,
-  DollarSign,
-  Truck,
-  Fuel,
-  Calculator,
-  Plus,
-  ArrowRight,
-  HardHat,
-  ChevronRight,
+  LayoutDashboard,
   MapPin,
-  CreditCard
+  Truck,
+  CreditCard,
+  Fuel,
+  DollarSign,
+  Calculator,
+  HardHat,
+  Sliders,
+  Users,
+  Building2,
+  LogOut
 } from 'lucide-react';
 
-interface Props {
-  onNavigateTab: (tabId: string) => void;
+interface SidebarProps {
+  activeTab: string;
+  setActiveTab: (tabId: string) => void;
 }
 
-export const SiteCentricMidnightDashboard: React.FC<Props> = ({ onNavigateTab }) => {
-  const { siteSheets = [], selectedSiteId } = useERP();
-
-  const activeSite = useMemo(() => {
-    return (
-      siteSheets.find((s: any) => s.siteId === selectedSiteId) ||
-      siteSheets[0] || {
-        siteId: 'site-1789375276548',
-        siteName: 'SINDAGI'
-      }
-    );
-  }, [siteSheets, selectedSiteId]);
-
-  const [trips, setTrips] = useState<any[]>([]);
-  const [diesel, setDiesel] = useState<any[]>([]);
-  const [expenses, setExpenses] = useState<any[]>([]);
-  const [advances, setAdvances] = useState<any[]>([]);
-
-  const loadDashboardData = useCallback(() => {
-    try {
-      const savedTrips = localStorage.getItem('CONSTRUCTION_PRO_HAULAGE_TRIPS_V2');
-      setTrips(savedTrips ? JSON.parse(savedTrips) || [] : []);
-
-      const savedDiesel = localStorage.getItem('CONSTRUCTION_PRO_DIESEL_LOGS_V1');
-      setDiesel(savedDiesel ? JSON.parse(savedDiesel) || [] : []);
-
-      const savedExpenses = localStorage.getItem('CONSTRUCTION_PRO_SITE_EXPENSES_V1');
-      setExpenses(savedExpenses ? JSON.parse(savedExpenses) || [] : []);
-
-      const savedAdvances = localStorage.getItem('CONSTRUCTION_PRO_VENDOR_ADVANCES_V1');
-      setAdvances(savedAdvances ? JSON.parse(savedAdvances) || [] : []);
-    } catch {
-      setTrips([]);
-      setDiesel([]);
-      setExpenses([]);
-      setAdvances([]);
-    }
-  }, []);
-
-  useEffect(() => {
-    loadDashboardData();
-    const handleSync = () => loadDashboardData();
-    window.addEventListener('storage', handleSync);
-    window.addEventListener('focus', handleSync);
-    return () => {
-      window.removeEventListener('storage', handleSync);
-      window.removeEventListener('focus', handleSync);
-    };
-  }, [loadDashboardData, selectedSiteId]);
-
-  const siteTrips = useMemo(
-    () => (trips || []).filter((t) => t?.siteName === activeSite?.siteName || t?.siteName?.includes('Ongoing')),
-    [trips, activeSite?.siteName]
-  );
-
-  const siteDiesel = useMemo(
-    () => (diesel || []).filter((d) => d?.siteName === activeSite?.siteName || d?.siteName?.includes('Ongoing')),
-    [diesel, activeSite?.siteName]
-  );
-
-  const siteExpenses = useMemo(
-    () => (expenses || []).filter((e) => e?.siteName === activeSite?.siteName || e?.costCenterChainage?.includes(activeSite?.siteName) || e?.siteName?.includes('Ongoing')),
-    [expenses, activeSite?.siteName]
-  );
-
-  const siteAdvances = useMemo(
-    () => (advances || []).filter((a) => a?.siteName === activeSite?.siteName || a?.siteName?.includes('Ongoing')),
-    [advances, activeSite?.siteName]
-  );
-
-  // Fallbacks: All calculate to strictly 0 if no records exist
-  const totalBrassToday = siteTrips.reduce((sum, t) => {
-    const dayTrips = Number(t?.dayTrips || 0);
-    const brassPerTrip = Number(t?.brassPerTrip || 0);
-    return sum + (dayTrips * brassPerTrip);
-  }, 0) || 0;
-
-  const activeTripsCount = siteTrips.reduce((sum, t) => {
-    return sum + (Number(t?.dayTrips) || 0);
-  }, 0) || 0;
-
-  const totalDieselDispensed = siteDiesel.reduce((sum, d) => {
-    return sum + (Number(d?.litres) || 0);
-  }, 0) || 0;
-
-  // Total Site Expense Calculation
-  const totalSiteExpense = siteExpenses.reduce((sum, e) => {
-    const val = Number(e?.amount);
-    return sum + (!isNaN(val) && val > 0 ? val : 0);
-  }, 0) || 0;
-
-  // Total Vendor Advances Calculation
-  const totalVendorAdvances = siteAdvances.reduce((sum, a) => {
-    const val = Number(a?.amount);
-    return sum + (!isNaN(val) && val > 0 ? val : 0);
-  }, 0) || 0;
-
-  const expenseVoucherCount = siteExpenses.length || 0;
-  const advanceCount = siteAdvances.length || 0;
-
+export const RoadERPSidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
   return (
-    <div className="space-y-4 sm:space-y-6 font-sans text-slate-100 animate-in fade-in duration-300">
-      
-      {/* Top Banner */}
-      <div className="p-4 sm:p-6 lg:p-8 rounded-[1.5rem] sm:rounded-[2rem] bg-[#0B1220] border border-[#1E293B] shadow-2xl relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-blue-600/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none" />
+    <aside className="w-64 bg-[#080C14] border-r border-[#1E293B] min-h-screen flex flex-col justify-between p-4 text-slate-300 select-none">
+      <div className="space-y-6">
         
-        <div className="relative z-10 flex flex-col xl:flex-row xl:items-start justify-between gap-4 sm:gap-6">
-          <div className="space-y-2 sm:space-y-3">
-            <div className="flex items-center gap-2 text-[9px] sm:text-[10px] font-black tracking-widest uppercase text-blue-400">
-              <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-emerald-500 animate-pulse" />
-              <span>Site Operations Command</span>
-              <span className="text-slate-600 hidden sm:inline">•</span>
-              <span className="text-slate-500 font-mono lowercase tracking-normal hidden sm:inline">
-                {activeSite?.siteId}
-              </span>
-            </div>
-            <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black text-white tracking-tight uppercase break-words">
-              {activeSite?.siteName}
-            </h1>
-            <p className="text-xs sm:text-sm text-slate-400 max-w-xl leading-relaxed">
-              Live site metrics, equipment telematics, material haulage, and supplier advances.
-            </p>
+        {/* App Branding */}
+        <div className="flex items-center gap-3 px-2 py-1">
+          <div className="w-10 h-10 rounded-2xl bg-blue-600 flex items-center justify-center text-white shadow-lg shadow-blue-600/30">
+            <Building2 className="w-5 h-5" />
           </div>
-
-          <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-2 sm:gap-3 shrink-0 w-full xl:w-auto">
-            <button 
-              onClick={() => onNavigateTab('road-sites')}
-              className="w-full sm:w-auto justify-center px-3 py-2.5 sm:px-4 sm:py-2.5 rounded-xl bg-[#121927] hover:bg-[#1b263b] border border-[#1E293B] text-slate-300 text-[11px] sm:text-xs font-bold flex items-center gap-1.5 sm:gap-2 transition-all cursor-pointer"
-            >
-              <MapPin className="w-3.5 h-3.5 text-blue-400 shrink-0" />
-              <span className="truncate">+ Add Section</span>
-            </button>
-            <button 
-              onClick={() => onNavigateTab('yield_calculator')}
-              className="w-full sm:w-auto justify-center px-3 py-2.5 sm:px-4 sm:py-2.5 rounded-xl bg-[#121927] hover:bg-[#1b263b] border border-[#1E293B] text-slate-300 text-[11px] sm:text-xs font-bold flex items-center gap-1.5 sm:gap-2 transition-all cursor-pointer"
-            >
-              <Calculator className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-              <span className="truncate">Yield Calc</span>
-            </button>
-            <button 
-              onClick={() => onNavigateTab('diesel')}
-              className="w-full sm:w-auto justify-center px-3 py-2.5 sm:px-4 sm:py-2.5 rounded-xl bg-[#121927] hover:bg-[#1b263b] border border-[#1E293B] text-slate-300 text-[11px] sm:text-xs font-bold flex items-center gap-1.5 sm:gap-2 transition-all cursor-pointer"
-            >
-              <Fuel className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-              <span className="truncate">+ Log Diesel</span>
-            </button>
-            <button 
-              onClick={() => onNavigateTab('haulage-trips')}
-              className="w-full sm:w-auto justify-center px-3 py-2.5 sm:px-4 sm:py-2.5 rounded-xl bg-[#121927] hover:bg-[#1b263b] border border-[#1E293B] text-slate-300 text-[11px] sm:text-xs font-bold flex items-center gap-1.5 sm:gap-2 transition-all cursor-pointer"
-            >
-              <Truck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-              <span className="truncate">+ Log Trip</span>
-            </button>
-            <button 
-              onClick={() => onNavigateTab('vendor-advances')}
-              className="w-full sm:w-auto justify-center px-3 py-2.5 sm:px-4 sm:py-2.5 rounded-xl bg-[#121927] hover:bg-[#1b263b] border border-amber-500/30 text-amber-400 text-[11px] sm:text-xs font-bold flex items-center gap-1.5 sm:gap-2 transition-all cursor-pointer"
-            >
-              <CreditCard className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-              <span className="truncate">+ Advance</span>
-            </button>
-            <button 
-              onClick={() => onNavigateTab('site-expenses')}
-              className="col-span-2 sm:col-span-1 w-full sm:w-auto justify-center px-4 py-2.5 sm:px-5 sm:py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-black flex items-center gap-2 transition-all shadow-lg shadow-blue-600/30 cursor-pointer"
-            >
-              <Plus className="w-4 h-4 shrink-0" />
-              <span>+ Expense</span>
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* KPI Cards: 4-Column Grid with Vendor Advances */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        
-        {/* Total Material Laid */}
-        <div 
-          onClick={() => onNavigateTab('haulage-trips')}
-          className="p-4 sm:p-5 rounded-[1.2rem] sm:rounded-[1.5rem] bg-[#0B1220] border border-[#1E293B] shadow-xl hover:border-blue-500/50 transition-all cursor-pointer group flex flex-col justify-between"
-        >
-          <div className="space-y-3 sm:space-y-4">
-            <div className="flex justify-between items-start">
-              <div className="text-[10px] sm:text-[11px] font-bold text-slate-400 tracking-wider">
-                TOTAL MATERIAL LAID<br/>(TODAY)
-              </div>
-              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-blue-900/30 flex items-center justify-center border border-blue-800/50 shrink-0">
-                <Layers className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-400" />
-              </div>
-            </div>
-            <div className="flex items-baseline gap-2">
-              <span className="text-3xl sm:text-4xl font-black text-white font-mono tracking-tight">
-                {totalBrassToday}
-              </span>
-              <span className="text-xs sm:text-sm font-medium text-slate-500">Brass</span>
-            </div>
-          </div>
-          <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-[#1E293B] space-y-2 sm:space-y-3">
-            <div className="flex items-center gap-1.5 text-[10px] sm:text-[11px] font-medium text-blue-400 truncate">
-              <div className="w-1.5 h-1.5 rounded-full bg-blue-500 shrink-0" />
-              <span className="truncate">
-                {siteTrips.length} material batches logged
-              </span>
-            </div>
-            <div className="flex items-center gap-1 text-[10px] sm:text-[11px] font-bold text-slate-400 group-hover:text-blue-400 transition-colors">
-              <span>View haulage logs</span>
-              <ArrowRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" />
-            </div>
+          <div>
+            <div className="text-sm font-black text-white tracking-wider">CONSTRUCTION PRO</div>
+            <div className="text-[10px] text-blue-400 font-bold uppercase tracking-wider">Road Construction ERP</div>
           </div>
         </div>
 
-        {/* Vendor Advances Paid */}
-        <div 
-          onClick={() => onNavigateTab('vendor-advances')}
-          className="p-4 sm:p-5 rounded-[1.2rem] sm:rounded-[1.5rem] bg-[#0B1220] border border-[#1E293B] shadow-xl hover:border-amber-500/50 transition-all cursor-pointer group flex flex-col justify-between"
-        >
-          <div className="space-y-3 sm:space-y-4">
-            <div className="flex justify-between items-start">
-              <div className="text-[10px] sm:text-[11px] font-bold text-slate-400 tracking-wider">
-                VENDOR ADVANCES PAID
-              </div>
-              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-amber-950/60 flex items-center justify-center border border-amber-500/30 shrink-0">
-                <CreditCard className="w-4 h-4 text-amber-400" />
-              </div>
-            </div>
-            <div className="flex items-baseline gap-1">
-              <span className="text-3xl sm:text-4xl font-black text-amber-400 font-mono tracking-tight truncate">
-                ₹{totalVendorAdvances.toLocaleString('en-IN')}
-              </span>
-            </div>
+        {/* SITE OPERATIONS SECTION */}
+        <div className="space-y-1">
+          <div className="px-3 text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2">
+            Site Operations
           </div>
-          <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-[#1E293B] space-y-2 sm:space-y-3">
-            <div className="flex items-center gap-1.5 text-[10px] sm:text-[11px] font-medium text-slate-400 truncate">
-              {advanceCount > 0 ? `${advanceCount} advance payments` : '0 advance payments'}
-            </div>
-            <div className="flex items-center gap-1 text-[10px] sm:text-[11px] font-bold text-slate-400 group-hover:text-amber-400 transition-colors">
-              <span>Manage vendor advances</span>
-              <ArrowRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" />
-            </div>
-          </div>
-        </div>
 
-        {/* Active Trips Today */}
-        <div 
-          onClick={() => onNavigateTab('haulage-trips')}
-          className="p-4 sm:p-5 rounded-[1.2rem] sm:rounded-[1.5rem] bg-[#0B1220] border border-[#1E293B] shadow-xl hover:border-cyan-500/50 transition-all cursor-pointer group flex flex-col justify-between"
-        >
-          <div className="space-y-3 sm:space-y-4">
-            <div className="flex justify-between items-start">
-              <div className="text-[10px] sm:text-[11px] font-bold text-slate-400 tracking-wider">
-                ACTIVE TRIPS TODAY
-              </div>
-              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-cyan-900/30 flex items-center justify-center border border-cyan-800/50 shrink-0">
-                <Truck className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-cyan-400" />
-              </div>
+          {/* Site Overview */}
+          <button
+            onClick={() => setActiveTab('dashboard')}
+            className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              activeTab === 'dashboard'
+                ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30'
+                : 'text-slate-400 hover:text-white hover:bg-[#121927]'
+            }`}
+          >
+            <div className="flex items-center gap-3">
+              <LayoutDashboard className="w-4 h-4" />
+              <span>Site Overview</span>
             </div>
-            <div className="flex items-baseline gap-2">
-              <span className="text-3xl sm:text-4xl font-black text-white font-mono tracking-tight">
-                {activeTripsCount}
-              </span>
-              <span className="text-xs sm:text-sm font-medium text-slate-500">Trips</span>
-            </div>
-          </div>
-          <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-[#1E293B] space-y-2 sm:space-y-3">
-            <div className="flex items-center gap-1.5 text-[10px] sm:text-[11px] font-medium text-cyan-400 truncate">
-              {siteTrips.length} vehicles active
-            </div>
-            <div className="flex items-center gap-1 text-[10px] sm:text-[11px] font-bold text-slate-400 group-hover:text-cyan-400 transition-colors">
-              <span>Check trip records</span>
-              <ArrowRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" />
-            </div>
-          </div>
-        </div>
+          </button>
 
-        {/* Diesel Dispensed */}
-        <div 
-          onClick={() => onNavigateTab('diesel')}
-          className="p-4 sm:p-5 rounded-[1.2rem] sm:rounded-[1.5rem] bg-[#0B1220] border border-[#1E293B] shadow-xl hover:border-amber-500/50 transition-all cursor-pointer group flex flex-col justify-between"
-        >
-          <div className="space-y-3 sm:space-y-4">
-            <div className="flex justify-between items-start">
-              <div className="text-[10px] sm:text-[11px] font-bold text-slate-400 tracking-wider">
-                DIESEL DISPENSED
-              </div>
-              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-amber-900/30 flex items-center justify-center border border-amber-800/50 shrink-0">
-                <Fuel className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-400" />
-              </div>
+          {/* Ongoing Site */}
+          <button
+            onClick={() => setActiveTab('road-sites')}
+            className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              activeTab === 'road-sites'
+                ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30'
+                : 'text-slate-400 hover:text-white hover:bg-[#121927]'
+            }`}
+          >
+            <div className="flex items-center gap-3">
+              <MapPin className="w-4 h-4" />
+              <span>Ongoing Site</span>
             </div>
-            <div className="flex items-baseline gap-2">
-              <span className="text-3xl sm:text-4xl font-black text-amber-400 font-mono tracking-tight">
-                {totalDieselDispensed}
-              </span>
-              <span className="text-xs sm:text-sm font-medium text-slate-500">Litres</span>
-            </div>
-          </div>
-          <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-[#1E293B] space-y-2 sm:space-y-3">
-            <div className="flex items-center gap-1.5 text-[10px] sm:text-[11px] font-medium text-slate-400 truncate">
-              {siteDiesel.length} Field fuel voucher logs
-            </div>
-            <div className="flex items-center gap-1 text-[10px] sm:text-[11px] font-bold text-slate-400 group-hover:text-amber-400 transition-colors">
-              <span>Manage diesel log</span>
-              <ArrowRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" />
-            </div>
-          </div>
-        </div>
-
-      </div>
-
-      {/* Bottom Panels */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 pt-2">
-        <div className="lg:col-span-2 p-4 sm:p-6 rounded-[1.5rem] sm:rounded-[2rem] bg-[#0B1220] border border-[#1E293B] shadow-2xl flex flex-col">
-          <div className="flex items-center justify-between mb-4 sm:mb-6">
-            <div className="flex items-center gap-2">
-              <HardHat className="w-4 h-4 sm:w-5 sm:h-5 text-amber-400 shrink-0" />
-              <h2 className="text-sm sm:text-base font-bold text-white truncate">Machine & Operator Deployment</h2>
-            </div>
-            <button 
-              onClick={() => onNavigateTab('machinery_fleet')}
-              className="text-xs font-bold text-blue-400 hover:text-blue-300 flex items-center gap-1 transition-colors shrink-0 cursor-pointer"
-            >
-              <span>View Full Fleet</span>
-              <ChevronRight className="w-4 h-4" />
-            </button>
-          </div>
-          
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 flex-1">
-            <div className="p-3 sm:p-4 rounded-2xl bg-[#080C14] border border-[#1E293B] flex flex-col justify-center">
-              <div className="text-[10px] font-bold text-slate-500 mb-1">Active Excavators</div>
-              <div className="text-xl sm:text-2xl font-black text-white mb-1 sm:mb-2">
-                0 <span className="text-xs sm:text-sm font-medium text-slate-500">Units</span>
-              </div>
-              <div className="text-[10px] text-slate-600">0 active machinery</div>
-            </div>
-            <div className="p-3 sm:p-4 rounded-2xl bg-[#080C14] border border-[#1E293B] flex flex-col justify-center">
-              <div className="text-[10px] font-bold text-slate-500 mb-1">Backhoe Loaders</div>
-              <div className="text-xl sm:text-2xl font-black text-white mb-1 sm:mb-2">
-                0 <span className="text-xs sm:text-sm font-medium text-slate-500">Units</span>
-              </div>
-              <div className="text-[10px] text-slate-600">0 active machinery</div>
-            </div>
-            <div className="p-3 sm:p-4 rounded-2xl bg-[#080C14] border border-[#1E293B] flex flex-col justify-center">
-              <div className="text-[10px] font-bold text-slate-500 mb-1">Tipper Dumpers</div>
-              <div className="text-xl sm:text-2xl font-black text-white mb-1 sm:mb-2">
-                0 <span className="text-xs sm:text-sm font-medium text-slate-500">Units</span>
-              </div>
-              <div className="text-[10px] text-slate-600">0 active tippers</div>
-            </div>
-          </div>
-        </div>
-
-        <div className="p-4 sm:p-6 rounded-[1.5rem] sm:rounded-[2rem] bg-[#0B1220] border border-[#1E293B] shadow-2xl flex flex-col">
-          <div className="flex items-center justify-between mb-4 sm:mb-6">
-            <div className="flex items-center gap-2">
-              <Calculator className="w-4 h-4 sm:w-5 sm:h-5 text-cyan-400 shrink-0" />
-              <h2 className="text-sm sm:text-base font-bold text-white truncate">Engineering Shortcuts</h2>
-            </div>
-            <span className="text-[8px] sm:text-[9px] font-mono text-slate-500 uppercase tracking-widest shrink-0">
-              MoRTH 5th Rev
+            <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded bg-blue-950/80 text-blue-400 border border-blue-800/60">
+              Sites
             </span>
-          </div>
+          </button>
 
-          <div className="space-y-3 flex-1 flex flex-col justify-center">
-            <button 
-              onClick={() => onNavigateTab('yield_calculator')}
-              className="w-full p-3 sm:p-4 rounded-2xl bg-[#080C14] border border-[#1E293B] hover:border-cyan-500/50 hover:bg-[#121c33]/50 transition-all text-left group flex items-center justify-between cursor-pointer"
-            >
-              <div>
-                <div className="text-xs font-bold text-white mb-1 group-hover:text-cyan-400 transition-colors">
-                  Road Layer Yield & Thickness Calc
-                </div>
-                <div className="text-[10px] text-slate-500">
-                  Calculate GSB, WMM, DBM, BC tonnage & brass yield
-                </div>
-              </div>
-              <ArrowRight className="w-4 h-4 text-slate-600 group-hover:text-cyan-400 transition-transform group-hover:translate-x-1 shrink-0" />
-            </button>
+          {/* Trips */}
+          <button
+            onClick={() => setActiveTab('haulage-trips')}
+            className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              activeTab === 'haulage-trips'
+                ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30'
+                : 'text-slate-400 hover:text-white hover:bg-[#121927]'
+            }`}
+          >
+            <div className="flex items-center gap-3">
+              <Truck className="w-4 h-4" />
+              <span>Trips</span>
+            </div>
+            <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded bg-emerald-950/80 text-emerald-400 border border-emerald-800/60">
+              Trips
+            </span>
+          </button>
 
-            <button 
-              onClick={() => onNavigateTab('categories')}
-              className="w-full p-3 sm:p-4 rounded-2xl bg-[#080C14] border border-[#1E293B] hover:border-blue-500/50 hover:bg-[#121c33]/50 transition-all text-left group flex items-center justify-between cursor-pointer"
-            >
-              <div>
-                <div className="text-xs font-bold text-white mb-1 group-hover:text-blue-400 transition-colors">
-                  Material Rates & Master Spec
-                </div>
-                <div className="text-[10px] text-slate-500">
-                  Manage schedule of rates and category specs
-                </div>
-              </div>
-              <ArrowRight className="w-4 h-4 text-slate-600 group-hover:text-blue-400 transition-transform group-hover:translate-x-1 shrink-0" />
-            </button>
-          </div>
+          {/* Vendor Advance */}
+          <button
+            onClick={() => setActiveTab('vendor-advances')}
+            className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              activeTab === 'vendor-advances'
+                ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30'
+                : 'text-slate-400 hover:text-white hover:bg-[#121927]'
+            }`}
+          >
+            <div className="flex items-center gap-3">
+              <CreditCard className="w-4 h-4 text-amber-400" />
+              <span>Vendor Advance</span>
+            </div>
+            <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded bg-amber-950/80 text-amber-400 border border-amber-800/60">
+              Advance
+            </span>
+          </button>
+
+          {/* Diesel */}
+          <button
+            onClick={() => setActiveTab('diesel')}
+            className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              activeTab === 'diesel'
+                ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30'
+                : 'text-slate-400 hover:text-white hover:bg-[#121927]'
+            }`}
+          >
+            <div className="flex items-center gap-3">
+              <Fuel className="w-4 h-4 text-amber-400" />
+              <span>Diesel</span>
+            </div>
+            <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded bg-amber-950/80 text-amber-400 border border-amber-800/60">
+              Diesel
+            </span>
+          </button>
+
+          {/* Site Expense */}
+          <button
+            onClick={() => setActiveTab('site-expenses')}
+            className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              activeTab === 'site-expenses'
+                ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30'
+                : 'text-slate-400 hover:text-white hover:bg-[#121927]'
+            }`}
+          >
+            <div className="flex items-center gap-3">
+              <DollarSign className="w-4 h-4 text-emerald-400" />
+              <span>Site Expense</span>
+            </div>
+            <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded bg-cyan-950/80 text-cyan-400 border border-cyan-800/60">
+              Petty Cash
+            </span>
+          </button>
         </div>
 
+        {/* ENGINEERING SECTION */}
+        <div className="space-y-1">
+          <div className="px-3 text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2">
+            Engineering
+          </div>
+
+          {/* Road Trip Calculator */}
+          <button
+            onClick={() => setActiveTab('yield_calculator')}
+            className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              activeTab === 'yield_calculator'
+                ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30'
+                : 'text-slate-400 hover:text-white hover:bg-[#121927]'
+            }`}
+          >
+            <div className="flex items-center gap-3">
+              <Calculator className="w-4 h-4 text-cyan-400" />
+              <span>Road Trip Calculator</span>
+            </div>
+            <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded bg-blue-950/80 text-blue-400 border border-blue-800/60">
+              MoRTH
+            </span>
+          </button>
+
+          {/* Machinery */}
+          <button
+            onClick={() => setActiveTab('machinery_fleet')}
+            className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              activeTab === 'machinery_fleet'
+                ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30'
+                : 'text-slate-400 hover:text-white hover:bg-[#121927]'
+            }`}
+          >
+            <div className="flex items-center gap-3">
+              <HardHat className="w-4 h-4 text-amber-400" />
+              <span>Machinery</span>
+            </div>
+          </button>
+        </div>
+
+        {/* CONFIGURATION SECTION */}
+        <div className="space-y-1">
+          <div className="px-3 text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2">
+            Configuration
+          </div>
+
+          {/* Categories */}
+          <button
+            onClick={() => setActiveTab('categories')}
+            className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              activeTab === 'categories'
+                ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30'
+                : 'text-slate-400 hover:text-white hover:bg-[#121927]'
+            }`}
+          >
+            <div className="flex items-center gap-3">
+              <Sliders className="w-4 h-4 text-emerald-400" />
+              <span>Categories</span>
+            </div>
+            <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded bg-emerald-950/80 text-emerald-400 border border-emerald-800/60">
+              Rates
+            </span>
+          </button>
+
+          {/* User Management */}
+          <button
+            onClick={() => setActiveTab('users')}
+            className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              activeTab === 'users'
+                ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30'
+                : 'text-slate-400 hover:text-white hover:bg-[#121927]'
+            }`}
+          >
+            <div className="flex items-center gap-3">
+              <Users className="w-4 h-4 text-purple-400" />
+              <span>User Management</span>
+            </div>
+            <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded bg-purple-950/80 text-purple-400 border border-purple-800/60">
+              RBAC
+            </span>
+          </button>
+        </div>
       </div>
-    </div>
+
+      {/* Profile Footer */}
+      <div className="pt-4 border-t border-[#1E293B]">
+        <div className="flex items-center justify-between p-2 rounded-xl bg-[#0F172A] border border-[#1E293B]">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-blue-600 text-white font-black text-xs flex items-center justify-center">
+              H
+            </div>
+            <div className="leading-tight">
+              <div className="text-xs font-bold text-white">Habibulla Bilgi (Director)</div>
+              <div className="text-[10px] text-slate-400">Site Engineer & Admin</div>
+            </div>
+          </div>
+          <button title="Logout" className="text-slate-400 hover:text-rose-400 transition-colors cursor-pointer">
+            <LogOut className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+    </aside>
   );
 };
