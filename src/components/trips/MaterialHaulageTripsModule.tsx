@@ -321,12 +321,12 @@ export const MaterialHaulageTripsModule: React.FC = () => {
   return (
     <div className="space-y-4 sm:space-y-6 font-sans text-slate-100">
       
-      {/* Spacious, Elegant A4 Print Stylesheet with Generous Padding */}
+      {/* Full-Width A4 Print Stylesheet with Zero Unnecessary Margins */}
       <style>{`
         @media print {
           @page {
             size: A4 portrait;
-            margin: 15mm 15mm 15mm 15mm;
+            margin: 0mm;
           }
           * {
             -webkit-print-color-adjust: exact !important;
@@ -350,28 +350,29 @@ export const MaterialHaulageTripsModule: React.FC = () => {
             left: 0 !important;
             top: 0 !important;
             width: 100% !important;
-            max-width: 100% !important;
+            height: 100% !important;
             margin: 0 !important;
-            padding: 0 !important;
+            padding: 12mm 15mm !important;
             background: #ffffff !important;
             color: #000000 !important;
-            border: 2px solid #000000 !important;
-            border-radius: 18px !important;
-            overflow: hidden !important;
+            border: none !important;
+            border-radius: 0 !important;
+            overflow: visible !important;
           }
           .no-print {
             display: none !important;
           }
           .print-header {
             display: block !important;
-            padding: 22px 24px 18px 24px !important;
+            padding: 0 0 16px 0 !important;
             border-bottom: 2px solid #000000 !important;
             background: #ffffff !important;
+            margin-bottom: 0 !important;
           }
           table {
             width: 100% !important;
             border-collapse: collapse !important;
-            font-size: 9pt !important;
+            font-size: 9.5pt !important;
             table-layout: fixed !important;
           }
           th, td {
@@ -386,7 +387,6 @@ export const MaterialHaulageTripsModule: React.FC = () => {
             font-weight: 800 !important;
             text-transform: uppercase !important;
             font-size: 8.5pt !important;
-            letter-spacing: 0.3px !important;
           }
           tfoot tr td {
             background-color: #ffffff !important;
@@ -395,8 +395,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
           }
           .print-bold-row td {
             font-weight: 900 !important;
-            font-size: 9.5pt !important;
-            padding: 10px 10px !important;
+            font-size: 10pt !important;
           }
         }
       `}</style>
@@ -493,13 +492,13 @@ export const MaterialHaulageTripsModule: React.FC = () => {
         
         {/* Printable Header with Vendor Name */}
         <div className="hidden print-header">
-          <h1 className="text-[18pt] font-black uppercase text-black tracking-tight leading-none m-0">
+          <h1 className="text-[20pt] font-black uppercase text-black tracking-tight leading-none m-0">
             {activeVendorName}
           </h1>
-          <p className="text-[9.5pt] font-black uppercase tracking-wide text-black mt-1.5 m-0">
+          <p className="text-[10pt] font-black uppercase tracking-wide text-black mt-1.5 m-0">
             MATERIAL PURCHASED
           </p>
-          <div className="text-[9.5pt] text-black font-bold mt-1.5">
+          <div className="text-[10pt] text-black font-bold mt-1.5">
             <span>Site: {activeSiteName}</span>
           </div>
         </div>
