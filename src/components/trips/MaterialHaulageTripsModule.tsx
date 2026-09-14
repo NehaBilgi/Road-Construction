@@ -35,51 +35,13 @@ export interface RoadMaterialCategory {
 const STORAGE_HAULAGE_KEY = 'CONSTRUCTION_PRO_HAULAGE_TRIPS_V2';
 const STORAGE_ROAD_CATS_KEY = 'CONSTRUCTION_PRO_ROAD_CATEGORIES_V1';
 const STORAGE_VENDORS_KEY = 'CONSTRUCTION_PRO_VENDOR_NAMES_V1';
+const STORAGE_VENDOR_ADVANCES_KEY = 'CONSTRUCTION_PRO_VENDOR_ADVANCES_V1';
 
 const INITIAL_ROAD_CATEGORIES: RoadMaterialCategory[] = [
   { id: 'RCAT-01', name: 'Granular Sub-Base (GSB)', description: 'Coarse graded granular material sub-base', standardRate: 1500, unit: 'Brass' },
   { id: 'RCAT-02', name: 'Wet Mix Macadam (WMM)', description: 'Crushed stone aggregate base/sub-base layer', standardRate: 4500, unit: 'Brass' },
   { id: 'RCAT-03', name: 'Dense Bituminous Macadam (DBM)', description: 'Structural layer in flexible pavements', standardRate: 5500, unit: 'Brass' },
   { id: 'RCAT-04', name: 'Bituminous Concrete (BC)', description: 'High quality wearing course finish', standardRate: 6000, unit: 'Brass' }
-];
-
-const INITIAL_HAULAGE_TRIPS: HaulageTripRecord[] = [
-  {
-    id: 'TRIP-3971',
-    tripDate: '2026-09-14',
-    siteName: 'MULWAD',
-    vehicleNumber: '8797',
-    materialName: 'Granular Sub-Base (GSB) (₹1500/Brass)',
-    purchasedFrom: 'gigaonkar',
-    dayTrips: 3,
-    brassPerTrip: 5,
-    ratePerBrass: 1500,
-    totalAmount: 22500
-  },
-  {
-    id: 'TRIP-0609',
-    tripDate: '2026-09-14',
-    siteName: 'MULWAD',
-    vehicleNumber: '9579',
-    materialName: 'Granular Sub-Base (GSB) (₹1500/Brass)',
-    purchasedFrom: 'gigaonkar',
-    dayTrips: 3,
-    brassPerTrip: 6,
-    ratePerBrass: 1500,
-    totalAmount: 27000
-  },
-  {
-    id: 'TRIP-9099',
-    tripDate: '2026-09-14',
-    siteName: 'MULWAD',
-    vehicleNumber: '9580',
-    materialName: 'Granular Sub-Base (GSB) (₹1500/Brass)',
-    purchasedFrom: 'gigaonkar',
-    dayTrips: 3,
-    brassPerTrip: 6,
-    ratePerBrass: 1500,
-    totalAmount: 27000
-  }
 ];
 
 export const MaterialHaulageTripsModule: React.FC = () => {
@@ -91,14 +53,9 @@ export const MaterialHaulageTripsModule: React.FC = () => {
   const [trips, setTrips] = useState<HaulageTripRecord[]>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_HAULAGE_KEY);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      }
-      localStorage.setItem(STORAGE_HAULAGE_KEY, JSON.stringify(INITIAL_HAULAGE_TRIPS));
-      return INITIAL_HAULAGE_TRIPS;
+      return saved ? JSON.parse(saved) : [];
     } catch {
-      return INITIAL_HAULAGE_TRIPS;
+      return [];
     }
   });
 
@@ -114,12 +71,39 @@ export const MaterialHaulageTripsModule: React.FC = () => {
   const [savedVendors, setSavedVendors] = useState<string[]>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_VENDORS_KEY);
-      if (saved) return JSON.parse(saved);
-      return ['gigaonkar', 'Mahalaxmi Stone Crusher', 'Bilgi Hot Mix Plant Quarry #1'];
+      return saved ? JSON.parse(saved) : ['gigaonkar', 'Mahalaxmi Stone Crusher', 'Bilgi Hot Mix Plant Quarry #1'];
     } catch {
       return ['gigaonkar', 'Mahalaxmi Stone Crusher', 'Bilgi Hot Mix Plant Quarry #1'];
     }
   });
+
+  // State for loaded vendor advances
+  const [advances, setAdvances] = useState<any[]>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_VENDOR_ADVANCES_KEY);
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  // Keep advances synced
+  useEffect(() => {
+    const handleSync = () => {
+      try {
+        const saved = localStorage.getItem(STORAGE_VENDOR_ADVANCES_KEY);
+        setAdvances(saved ? JSON.parse(saved) : []);
+      } catch {
+        setAdvances([]);
+      }
+    };
+    window.addEventListener('storage', handleSync);
+    window.addEventListener('focus', handleSync);
+    return () => {
+      window.removeEventListener('storage', handleSync);
+      window.removeEventListener('focus', handleSync);
+    };
+  }, []);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -148,30 +132,10 @@ export const MaterialHaulageTripsModule: React.FC = () => {
   };
 
   useEffect(() => {
-    if (isModalOpen) {
-      try {
-        const savedCats = localStorage.getItem(STORAGE_ROAD_CATS_KEY);
-        if (savedCats) {
-          const parsed = JSON.parse(savedCats);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            setCategories(parsed);
-          }
-        }
-        const savedVends = localStorage.getItem(STORAGE_VENDORS_KEY);
-        if (savedVends) {
-          setSavedVendors(JSON.parse(savedVends));
-        }
-      } catch (error) {
-        console.error('Failed to reload categories/vendors', error);
-      }
-    }
-  }, [isModalOpen]);
-
-  useEffect(() => {
     try {
       localStorage.setItem(STORAGE_HAULAGE_KEY, JSON.stringify(trips));
     } catch (error) {
-      console.error('Failed to save trips to localStorage', error);
+      console.error('Failed saving trips', error);
     }
   }, [trips]);
 
@@ -184,20 +148,19 @@ export const MaterialHaulageTripsModule: React.FC = () => {
 
   const filtered = useMemo(() => {
     return trips.filter((t) => {
-      const matchSite =
-        !activeSiteName ||
-        t.siteName === activeSiteName ||
-        t.siteName.toLowerCase().includes(activeSiteName.toLowerCase());
+      const matchSite = !activeSiteName || t.siteName === activeSiteName;
       const q = searchQuery.toLowerCase();
-      const matchQuery =
-        !q ||
-        t.vehicleNumber.toLowerCase().includes(q) ||
-        t.materialName.toLowerCase().includes(q) ||
-        (t.purchasedFrom || '').toLowerCase().includes(q);
-      return matchSite && matchQuery;
+      return (
+        matchSite &&
+        (!q ||
+          t.vehicleNumber.toLowerCase().includes(q) ||
+          t.materialName.toLowerCase().includes(q) ||
+          (t.purchasedFrom || '').toLowerCase().includes(q))
+      );
     });
   }, [trips, activeSiteName, searchQuery]);
 
+  // Totals
   const overallTotals = useMemo(() => {
     return filtered.reduce(
       (acc, t) => {
@@ -214,26 +177,26 @@ export const MaterialHaulageTripsModule: React.FC = () => {
     );
   }, [filtered]);
 
-  // Extract distinct vendor name(s) for the print header
+  // Primary active vendor name
   const activeVendorName = useMemo(() => {
     const vendors = Array.from(new Set(filtered.map((t) => t.purchasedFrom?.trim()).filter(Boolean)));
     return vendors.length > 0 ? vendors.join(', ') : 'Direct Supplier';
   }, [filtered]);
 
-  const vendorBreakdown = useMemo(() => {
-    const map: Record<string, { trips: number; brass: number; amount: number }> = {};
-    filtered.forEach((t) => {
-      const v = t.purchasedFrom?.trim() || 'Direct / Unspecified';
-      if (!map[v]) {
-        map[v] = { trips: 0, brass: 0, amount: 0 };
-      }
-      const tr = Number(t.dayTrips) || 0;
-      map[v].trips += tr;
-      map[v].brass += tr * (Number(t.brassPerTrip) || 0);
-      map[v].amount += Number(t.totalAmount) || 0;
-    });
-    return map;
-  }, [filtered]);
+  // Calculate Advances linked to the vendors of the current filtered site
+  const totalVendorAdvancePaid = useMemo(() => {
+    const currentVendorNames = Array.from(new Set(filtered.map((t) => t.purchasedFrom?.trim().toLowerCase()).filter(Boolean)));
+    return advances
+      .filter((a) => {
+        const matchSite = !activeSiteName || a.siteName === activeSiteName;
+        const matchVendor = currentVendorNames.length === 0 || currentVendorNames.includes(a.vendorName?.trim().toLowerCase());
+        return matchSite && matchVendor;
+      })
+      .reduce((sum, a) => sum + (Number(a.amount) || 0), 0);
+  }, [advances, filtered, activeSiteName]);
+
+  // Net payable amount after deducting advance
+  const netPayableAmount = Math.max(0, overallTotals.amount - totalVendorAdvancePaid);
 
   const handleOpenAdd = () => {
     setEditingId(null);
@@ -262,7 +225,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
   };
 
   const handleDelete = (id: string) => {
-    if (window.confirm('Are you sure you want to delete this trip record?')) {
+    if (window.confirm('Delete this trip record?')) {
       setTrips((prev) => prev.filter((t) => t.id !== id));
     }
   };
@@ -276,11 +239,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
     if (trimmedVendor && !savedVendors.includes(trimmedVendor)) {
       const updatedVendors = [trimmedVendor, ...savedVendors];
       setSavedVendors(updatedVendors);
-      try {
-        localStorage.setItem(STORAGE_VENDORS_KEY, JSON.stringify(updatedVendors));
-      } catch (err) {
-        console.error('Failed to save vendor name', err);
-      }
+      localStorage.setItem(STORAGE_VENDORS_KEY, JSON.stringify(updatedVendors));
     }
 
     const record: HaulageTripRecord = {
@@ -306,26 +265,13 @@ export const MaterialHaulageTripsModule: React.FC = () => {
     setEditingId(null);
   };
 
-  const handlePrintPDF = () => {
-    window.print();
-  };
-
   return (
     <div className="space-y-4 sm:space-y-6 font-sans text-slate-100">
-      
-      {/* Print-specific stylesheet to fit table exactly on one portrait page */}
       <style>{`
         @media print {
           @page {
             size: portrait;
             margin: 8mm;
-          }
-          body {
-            background: white !important;
-            color: black !important;
-            margin: 0 !important;
-            padding: 0 !important;
-            font-size: 10px !important;
           }
           body * {
             visibility: hidden;
@@ -338,9 +284,6 @@ export const MaterialHaulageTripsModule: React.FC = () => {
             left: 0;
             top: 0;
             width: 100% !important;
-            max-width: 100% !important;
-            margin: 0 !important;
-            padding: 0 !important;
             background: white !important;
             color: black !important;
           }
@@ -349,29 +292,22 @@ export const MaterialHaulageTripsModule: React.FC = () => {
           }
           .print-header {
             display: block !important;
-            margin-bottom: 12px;
+            margin-bottom: 8px;
           }
           table {
             width: 100% !important;
             border-collapse: collapse !important;
-            font-size: 9.5px !important;
+            font-size: 9px !important;
             table-layout: fixed !important;
           }
           th, td {
-            border: 1px solid #999 !important;
-            padding: 5px 6px !important;
-            color: #111 !important;
-            word-wrap: break-word !important;
-            overflow: hidden !important;
+            border: 1px solid #777 !important;
+            padding: 4px 5px !important;
+            color: #000 !important;
           }
           th {
-            background-color: #f3f4f6 !important;
-            font-weight: 800 !important;
-            text-transform: uppercase !important;
-          }
-          tfoot tr {
-            background-color: #f8fafc !important;
-            font-weight: 800 !important;
+            background-color: #f2f2f2 !important;
+            font-weight: bold !important;
           }
         }
       `}</style>
@@ -384,23 +320,23 @@ export const MaterialHaulageTripsModule: React.FC = () => {
           </div>
           <div>
             <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight">Material Haulage Trips</h1>
-            <p className="text-[11px] sm:text-xs text-slate-400 mt-0.5">Track daily trip counts, supplier procurement, and total purchase ledger for {activeSiteName}.</p>
+            <p className="text-[11px] sm:text-xs text-slate-400 mt-0.5">
+              Track material purchases, auto-deduct vendor advances, and print statements for {activeSiteName}.
+            </p>
           </div>
         </div>
 
         <div className="flex items-center gap-2">
           <button
-            onClick={handlePrintPDF}
-            className="px-3.5 py-2.5 rounded-xl bg-[#142038] hover:bg-[#1b2845] border border-[#23355a] text-slate-200 text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-md"
-            title="Print or Save as Single Page PDF"
+            onClick={() => window.print()}
+            className="px-3.5 py-2.5 rounded-xl bg-[#142038] hover:bg-[#1b2845] border border-[#23355a] text-slate-200 text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-md"
           >
             <Printer className="w-4 h-4 text-cyan-400" />
             <span>Print PDF</span>
           </button>
-
           <button
             onClick={handleOpenAdd}
-            className="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-black flex items-center gap-1.5 transition-all shadow-lg shadow-blue-600/30 cursor-pointer"
+            className="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-black flex items-center gap-1.5 shadow-lg shadow-blue-600/30 cursor-pointer"
           >
             <Plus className="w-4 h-4 shrink-0" />
             <span>+ Log Haulage Trips</span>
@@ -408,41 +344,34 @@ export const MaterialHaulageTripsModule: React.FC = () => {
         </div>
       </div>
 
-      {/* Supplier-Wise Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 no-print">
-        <div className="p-4 rounded-2xl bg-[#0B1220] border border-[#1E293B] shadow-lg flex flex-col justify-between">
-          <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Total Material Purchase</div>
-          <div className="text-2xl font-black text-amber-400 font-mono mt-2">
-            ₹{overallTotals.amount.toLocaleString('en-IN')}
-          </div>
-          <div className="text-[10px] text-slate-500 mt-1">
-            {overallTotals.trips} Total Trips • {overallTotals.brass} Brass Laid
-          </div>
+      {/* Summary Stat Cards with Advances Auto-Deducted */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 no-print">
+        <div className="p-4 rounded-2xl bg-[#0B1220] border border-[#1E293B] shadow-lg">
+          <div className="text-[10px] font-bold uppercase text-slate-400">Total Material Purchase</div>
+          <div className="text-2xl font-black text-white font-mono mt-1">₹{overallTotals.amount.toLocaleString('en-IN')}</div>
+          <div className="text-[10px] text-slate-500">{overallTotals.trips} Trips ({overallTotals.brass} Brass)</div>
         </div>
 
-        {Object.entries(vendorBreakdown).slice(0, 3).map(([vName, vData]) => (
-          <div key={vName} className="p-4 rounded-2xl bg-[#0B1220] border border-[#1E293B] shadow-lg flex flex-col justify-between">
-            <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-emerald-400 truncate">
-              <Store className="w-3.5 h-3.5 shrink-0" />
-              <span className="truncate">{vName}</span>
-            </div>
-            <div className="text-2xl font-black text-white font-mono mt-2">
-              ₹{vData.amount.toLocaleString('en-IN')}
-            </div>
-            <div className="text-[10px] text-slate-400 mt-1">
-              {vData.trips} trips ({vData.brass} Brass)
-            </div>
-          </div>
-        ))}
+        <div className="p-4 rounded-2xl bg-[#0B1220] border border-[#1E293B] shadow-lg">
+          <div className="text-[10px] font-bold uppercase text-rose-400">(-) Less: Advance Paid</div>
+          <div className="text-2xl font-black text-rose-400 font-mono mt-1">₹{totalVendorAdvancePaid.toLocaleString('en-IN')}</div>
+          <div className="text-[10px] text-slate-500">Auto-deducted from Advances ledger</div>
+        </div>
+
+        <div className="p-4 rounded-2xl bg-[#0B1220] border border-emerald-500/30 shadow-lg bg-emerald-950/20">
+          <div className="text-[10px] font-bold uppercase text-emerald-400">(=) Net Payable Amount</div>
+          <div className="text-2xl font-black text-emerald-400 font-mono mt-1">₹{netPayableAmount.toLocaleString('en-IN')}</div>
+          <div className="text-[10px] text-emerald-500/80 font-bold">Remaining balance to supplier</div>
+        </div>
       </div>
 
-      {/* Search Bar */}
-      <div className="p-3 sm:p-4 rounded-[1.2rem] sm:rounded-3xl bg-[#0c1427] border border-[#182643] flex items-center gap-3 text-xs no-print">
+      {/* Search */}
+      <div className="p-3 rounded-2xl bg-[#0c1427] border border-[#182643] flex items-center gap-3 text-xs no-print">
         <div className="relative flex-1">
-          <Search className="absolute left-3.5 top-2.5 sm:top-3 w-4 h-4 text-slate-500" />
+          <Search className="absolute left-3.5 top-2.5 w-4 h-4 text-slate-500" />
           <input
             type="text"
-            placeholder="Search by vehicle, supplier / quarry, material name..."
+            placeholder="Search by vehicle, supplier, material..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-10 pr-4 py-2 bg-[#080d19] border border-[#1E293B] rounded-xl text-white outline-none placeholder-slate-500"
@@ -450,95 +379,59 @@ export const MaterialHaulageTripsModule: React.FC = () => {
         </div>
       </div>
 
-      {/* Main Table / Print Section */}
-      <div id="print-area" className="bg-[#0B1220] border border-[#1E293B] rounded-[1.2rem] sm:rounded-3xl overflow-hidden shadow-2xl">
+      {/* Main Print Container & Table */}
+      <div id="print-area" className="bg-[#0B1220] border border-[#1E293B] rounded-2xl overflow-hidden shadow-2xl">
         
-        {/* Printable Header with Vendor Name */}
-        <div className="hidden print-header p-4">
-          <div className="border-b-2 border-black pb-3">
-            <h1 className="text-xl font-black uppercase text-black tracking-tight">
-              {activeVendorName}
-            </h1>
-            <p className="text-xs text-black font-bold uppercase tracking-wider mt-0.5">
-              MATERIAL PURCHASED
-            </p>
-            <div className="text-[11px] text-black font-semibold mt-1">
-              <span><strong>Site:</strong> {activeSiteName}</span>
-            </div>
-          </div>
-        </div>
-            <div className="text-right">
-              <div className="text-[10px] font-bold text-black uppercase tracking-wider">
-                TOTAL PAYABLE AMOUNT
-              </div>
-              <div className="text-xl font-black text-black font-mono">
-                ₹{overallTotals.amount.toLocaleString('en-IN')}
-              </div>
-              <div className="text-[10px] text-black font-medium mt-0.5">
-                {overallTotals.trips} Total Trips ({overallTotals.brass} Brass)
-              </div>
-            </div>
+        {/* Printable Header */}
+        <div className="hidden print-header p-4 border-b-2 border-black">
+          <h1 className="text-xl font-black uppercase text-black">{activeVendorName}</h1>
+          <p className="text-xs text-black font-bold uppercase tracking-wider mt-0.5">MATERIAL PURCHASED</p>
+          <div className="text-[11px] text-black font-semibold mt-1">
+            <span><strong>Site:</strong> {activeSiteName}</span>
           </div>
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-[10px] sm:text-xs border-collapse">
+          <table className="w-full text-left text-xs border-collapse">
             <thead>
-              <tr className="border-b border-[#1E293B] text-[9px] sm:text-[10px] font-extrabold uppercase tracking-wider text-slate-400 bg-[#080d19]/80">
-                <th className="py-3 px-3 w-[12%] text-center">DATE</th>
-                <th className="py-3 px-3 w-[12%] text-center">SITE</th>
-                <th className="py-3 px-3 w-[16%]">PURCHASED FROM</th>
-                <th className="py-3 px-3 w-[12%] text-center">VEHICLE</th>
-                <th className="py-3 px-3 w-[22%]">MATERIAL NAME</th>
-                <th className="py-3 px-2 w-[7%] text-center">TRIPS</th>
-                <th className="py-3 px-2 w-[7%] text-right">QTY/TRIP</th>
-                <th className="py-3 px-2 w-[10%] text-right">RATE (₹)</th>
-                <th className="py-3 px-3 w-[14%] text-right">AMOUNT (₹)</th>
-                <th className="py-3 px-3 w-[8%] text-center no-print">ACTION</th>
+              <tr className="border-b border-[#1E293B] text-[10px] font-extrabold uppercase text-slate-400 bg-[#080d19]/80">
+                <th className="py-3 px-3 text-center">DATE</th>
+                <th className="py-3 px-3 text-center">SITE</th>
+                <th className="py-3 px-3">PURCHASED FROM</th>
+                <th className="py-3 px-3 text-center">VEHICLE</th>
+                <th className="py-3 px-3">MATERIAL NAME</th>
+                <th className="py-3 px-2 text-center">TRIPS</th>
+                <th className="py-3 px-2 text-right">QTY/TRIP</th>
+                <th className="py-3 px-2 text-right">RATE (₹)</th>
+                <th className="py-3 px-3 text-right">AMOUNT (₹)</th>
+                <th className="py-3 px-3 text-center no-print">ACTION</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#1E293B]/60 text-slate-200">
               {filtered.length === 0 ? (
                 <tr>
                   <td colSpan={10} className="py-8 text-center text-slate-500">
-                    No haulage trip records found for {activeSiteName}.
+                    No records found for {activeSiteName}.
                   </td>
                 </tr>
               ) : (
                 filtered.map((t) => (
-                  <tr key={t.id} className="hover:bg-[#121c33]/50 transition-colors">
-                    <td className="py-2.5 px-3 font-mono font-bold text-slate-300 text-center whitespace-nowrap">
-                      {t.tripDate}
-                    </td>
-                    <td className="py-2.5 px-3 font-bold text-cyan-400 text-center whitespace-nowrap">{t.siteName}</td>
-                    <td className="py-2.5 px-3 font-semibold text-emerald-400 truncate">
-                      <div className="flex items-center gap-1.5">
-                        <Store className="w-3.5 h-3.5 text-emerald-400/70 shrink-0 no-print" />
-                        <span>{t.purchasedFrom || 'Direct Quarry'}</span>
-                      </div>
-                    </td>
-                    <td className="py-2.5 px-3 font-mono font-bold text-slate-300 text-center whitespace-nowrap">{t.vehicleNumber}</td>
-                    <td className="py-2.5 px-3 font-bold text-amber-300 truncate">{t.materialName}</td>
-                    <td className="py-2.5 px-2 text-center font-mono font-bold">{t.dayTrips}</td>
+                  <tr key={t.id} className="hover:bg-[#121c33]/50">
+                    <td className="py-2.5 px-3 font-mono text-center text-slate-300">{t.tripDate}</td>
+                    <td className="py-2.5 px-3 font-bold text-cyan-400 text-center">{t.siteName}</td>
+                    <td className="py-2.5 px-3 font-semibold text-emerald-400">{t.purchasedFrom || 'Direct Quarry'}</td>
+                    <td className="py-2.5 px-3 font-mono text-slate-300 text-center">{t.vehicleNumber}</td>
+                    <td className="py-2.5 px-3 font-bold text-amber-300">{t.materialName}</td>
+                    <td className="py-2.5 px-2 text-center font-mono">{t.dayTrips}</td>
                     <td className="py-2.5 px-2 text-right font-mono">{t.brassPerTrip}</td>
-                    <td className="py-2.5 px-2 text-right font-mono text-emerald-400 whitespace-nowrap">₹{t.ratePerBrass.toLocaleString('en-IN')}</td>
-                    <td className="py-2.5 px-3 text-right font-mono font-black text-amber-400 text-[11px] sm:text-xs whitespace-nowrap">
-                      ₹{t.totalAmount.toLocaleString('en-IN')}
-                    </td>
-                    <td className="py-2.5 px-3 text-center whitespace-nowrap no-print">
+                    <td className="py-2.5 px-2 text-right font-mono text-emerald-400">₹{t.ratePerBrass.toLocaleString('en-IN')}</td>
+                    <td className="py-2.5 px-3 text-right font-mono font-black text-amber-400">₹{t.totalAmount.toLocaleString('en-IN')}</td>
+                    <td className="py-2.5 px-3 text-center no-print">
                       <div className="flex items-center justify-center gap-1">
-                        <button
-                          onClick={() => handleEdit(t)}
-                          title="Edit Record"
-                          className="p-1 rounded-lg text-slate-400 hover:text-blue-400 hover:bg-blue-950/40 transition-colors cursor-pointer"
-                        >
+                        <button onClick={() => handleEdit(t)} className="p-1 rounded text-slate-400 hover:text-blue-400">
                           <Edit2 className="w-3.5 h-3.5" />
                         </button>
-                        <button
-                          onClick={() => handleDelete(t.id)}
-                          title="Delete Record"
-                          className="p-1 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-950/40 transition-colors cursor-pointer"
-                        >
+                        <button onClick={() => handleDelete(t.id)} className="p-1 rounded text-slate-400 hover:text-rose-400">
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
                       </div>
@@ -548,24 +441,39 @@ export const MaterialHaulageTripsModule: React.FC = () => {
               )}
             </tbody>
 
-            {/* Total Footer Row */}
+            {/* Footer with Subtotal, Advance Deduction, and Net Amount */}
             {filtered.length > 0 && (
               <tfoot className="border-t-2 border-[#1E293B] bg-[#070c18] font-mono">
-                <tr>
-                  <td colSpan={5} className="py-3 px-3 font-black uppercase text-slate-300 text-right tracking-wider">
-                    Total Purchases & Volume:
+                {/* 1. Gross Material Purchase */}
+                <tr className="border-b border-[#1E293B]/60">
+                  <td colSpan={5} className="py-2.5 px-3 font-bold uppercase text-slate-300 text-right">
+                    Total Material Purchased:
                   </td>
-                  <td className="py-3 px-2 text-center font-black text-cyan-400 text-xs whitespace-nowrap">
-                    {overallTotals.trips} Trips
+                  <td className="py-2.5 px-2 text-center font-bold text-cyan-400">{overallTotals.trips} Trips</td>
+                  <td className="py-2.5 px-2 text-right font-bold text-white">{overallTotals.brass} Brass</td>
+                  <td className="py-2.5 px-2 text-right text-slate-500">—</td>
+                  <td className="py-2.5 px-3 text-right font-bold text-white">₹{overallTotals.amount.toLocaleString('en-IN')}</td>
+                  <td className="py-2.5 px-3 no-print"></td>
+                </tr>
+
+                {/* 2. Less Advance Paid */}
+                <tr className="border-b border-[#1E293B]/60 text-rose-400">
+                  <td colSpan={8} className="py-2 px-3 font-bold uppercase text-right">
+                    (-) Less: Advance Payment Received:
                   </td>
-                  <td className="py-3 px-2 text-right font-black text-white text-xs whitespace-nowrap">
-                    {overallTotals.brass} Brass
+                  <td className="py-2 px-3 text-right font-bold">
+                    - ₹{totalVendorAdvancePaid.toLocaleString('en-IN')}
                   </td>
-                  <td className="py-3 px-2 text-right text-slate-500 font-normal">
-                    —
+                  <td className="py-2 px-3 no-print"></td>
+                </tr>
+
+                {/* 3. Net Payable Balance */}
+                <tr className="bg-[#0b162c] text-emerald-400 font-black">
+                  <td colSpan={8} className="py-3 px-3 text-right uppercase tracking-wider text-sm">
+                    (=) NET PAYABLE AMOUNT:
                   </td>
-                  <td className="py-3 px-3 text-right font-black text-amber-400 text-xs sm:text-sm whitespace-nowrap">
-                    ₹{overallTotals.amount.toLocaleString('en-IN')}
+                  <td className="py-3 px-3 text-right text-sm sm:text-base font-black">
+                    ₹{netPayableAmount.toLocaleString('en-IN')}
                   </td>
                   <td className="py-3 px-3 no-print"></td>
                 </tr>
@@ -575,22 +483,22 @@ export const MaterialHaulageTripsModule: React.FC = () => {
         </div>
       </div>
 
-      {/* Modal Form */}
+      {/* Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in no-print">
-          <div className="bg-[#121927] border border-[#1E293B] rounded-[1.5rem] sm:rounded-3xl w-full max-w-lg p-5 sm:p-6 shadow-2xl space-y-4 max-h-[92vh] overflow-y-auto text-slate-100">
-            <div className="flex items-center justify-between border-b border-[#1E293B] pb-3">
-              <h3 className="text-sm sm:text-base font-bold text-white flex items-center gap-2">
-                <Truck className="w-4 h-4 text-blue-400 shrink-0" />
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm no-print">
+          <div className="bg-[#121927] border border-[#1E293B] rounded-2xl w-full max-w-lg p-5 space-y-4 max-h-[92vh] overflow-y-auto">
+            <div className="flex justify-between items-center border-b border-[#1E293B] pb-3">
+              <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                <Truck className="w-4 h-4 text-blue-400" />
                 <span>{editingId ? 'Edit Haulage Trip' : 'Log Total Day Haulage Trips'}</span>
               </h3>
-              <button onClick={() => { setIsModalOpen(false); setEditingId(null); }} className="text-slate-400 hover:text-white p-1 cursor-pointer">
+              <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-white">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <form onSubmit={handleSave} className="space-y-4 text-[11px] sm:text-xs">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <form onSubmit={handleSave} className="space-y-3 text-xs">
+              <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-slate-300 font-bold mb-1">Trip Date *</label>
                   <input
@@ -598,33 +506,18 @@ export const MaterialHaulageTripsModule: React.FC = () => {
                     required
                     value={tripDate}
                     onChange={(e) => setTripDate(e.target.value)}
-                    className="w-full px-3.5 py-2.5 bg-[#162032] border border-[#1E293B] rounded-xl text-white font-mono outline-none"
+                    className="w-full px-3 py-2 bg-[#162032] border border-[#1E293B] rounded-xl text-white outline-none"
                   />
                 </div>
                 <div>
                   <label className="block text-slate-300 font-bold mb-1">Site Name *</label>
-                  {siteSheets.length > 0 ? (
-                    <select
-                      value={siteName}
-                      onChange={(e) => setSiteName(e.target.value)}
-                      className="w-full px-3.5 py-2.5 bg-[#162032] border border-[#1E293B] rounded-xl text-cyan-400 font-medium outline-none cursor-pointer"
-                    >
-                      {siteSheets.map((s: any) => (
-                        <option key={s.siteId} value={s.siteName}>
-                          {s.siteName}
-                        </option>
-                      ))}
-                    </select>
-                  ) : (
-                    <input
-                      type="text"
-                      required
-                      placeholder="MULWAD"
-                      value={siteName}
-                      onChange={(e) => setSiteName(e.target.value)}
-                      className="w-full px-3.5 py-2.5 bg-[#162032] border border-[#1E293B] rounded-xl text-cyan-400 font-medium outline-none"
-                    />
-                  )}
+                  <input
+                    type="text"
+                    required
+                    value={siteName}
+                    onChange={(e) => setSiteName(e.target.value)}
+                    className="w-full px-3 py-2 bg-[#162032] border border-[#1E293B] rounded-xl text-cyan-400 font-medium outline-none"
+                  />
                 </div>
               </div>
 
@@ -633,47 +526,37 @@ export const MaterialHaulageTripsModule: React.FC = () => {
                 <input
                   type="text"
                   required
-                  placeholder="TOTAL TRIPS or vehicle registration (e.g. 8797, 9579)..."
                   value={vehicleNumber}
                   onChange={(e) => setVehicleNumber(e.target.value.toUpperCase())}
-                  className="w-full px-3.5 py-2.5 bg-[#162032] border border-[#1E293B] rounded-xl text-white font-mono outline-none uppercase"
+                  className="w-full px-3 py-2 bg-[#162032] border border-[#1E293B] rounded-xl text-white font-mono outline-none uppercase"
                 />
               </div>
 
               <div>
-                <label className="block text-slate-300 font-bold mb-1 flex justify-between items-center">
-                  <span>Purchased From / Supplier *</span>
-                  <span className="text-[10px] text-emerald-400 font-normal">Saves automatically for next time</span>
-                </label>
+                <label className="block text-slate-300 font-bold mb-1">Purchased From / Supplier *</label>
                 <input
                   type="text"
                   list="vendor-options"
                   required
-                  placeholder="e.g. gigaonkar, Mahalaxmi Stone Crusher..."
+                  placeholder="e.g. gigaonkar"
                   value={purchasedFrom}
                   onChange={(e) => setPurchasedFrom(e.target.value)}
-                  className="w-full px-3.5 py-2.5 bg-[#162032] border border-[#1E293B] focus:border-blue-500 rounded-xl text-white outline-none"
+                  className="w-full px-3 py-2 bg-[#162032] border border-[#1E293B] rounded-xl text-white outline-none"
                 />
                 <datalist id="vendor-options">
-                  {savedVendors.map((vendor, idx) => (
-                    <option key={idx} value={vendor} />
+                  {savedVendors.map((v, idx) => (
+                    <option key={idx} value={v} />
                   ))}
                 </datalist>
               </div>
 
               <div>
-                <label className="block text-slate-300 font-bold mb-1 flex justify-between items-center">
-                  <span>Material Name *</span>
-                  <span className="text-[10px] text-blue-400 font-normal hidden sm:inline">Sourced from Categories Tab</span>
-                </label>
+                <label className="block text-slate-300 font-bold mb-1">Material Name *</label>
                 <select
                   value={materialName}
                   onChange={(e) => handleMaterialChange(e.target.value)}
-                  className="w-full px-3.5 py-2.5 bg-[#162032] border border-[#1E293B] rounded-xl text-amber-300 font-bold outline-none cursor-pointer"
+                  className="w-full px-3 py-2 bg-[#162032] border border-[#1E293B] rounded-xl text-amber-300 font-bold outline-none"
                 >
-                  {categories.length === 0 && (
-                    <option value="">No categories found. Please add in Categories tab.</option>
-                  )}
                   {categories.map((c) => {
                     const label = `${c.name} (₹${c.standardRate}/${c.unit})`;
                     return (
@@ -682,14 +565,10 @@ export const MaterialHaulageTripsModule: React.FC = () => {
                       </option>
                     );
                   })}
-                  
-                  {!categories.some((c) => `${c.name} (₹${c.standardRate}/${c.unit})` === materialName) && materialName && (
-                    <option value={materialName}>{materialName}</option>
-                  )}
                 </select>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="grid grid-cols-3 gap-2">
                 <div>
                   <label className="block text-slate-300 font-bold mb-1">Day Trips *</label>
                   <input
@@ -698,53 +577,43 @@ export const MaterialHaulageTripsModule: React.FC = () => {
                     required
                     value={dayTrips}
                     onChange={(e) => setDayTrips(e.target.value === '' ? '' : Number(e.target.value))}
-                    className="w-full px-3.5 py-2.5 bg-[#162032] border border-[#1E293B] rounded-xl text-white font-mono font-bold outline-none"
+                    className="w-full px-3 py-2 bg-[#162032] border border-[#1E293B] rounded-xl text-white font-mono outline-none"
                   />
                 </div>
                 <div>
-                  <label className="block text-slate-300 font-bold mb-1">Quantity/Trip *</label>
+                  <label className="block text-slate-300 font-bold mb-1">Qty/Trip *</label>
                   <input
                     type="number"
                     min="1"
                     required
                     value={brassPerTrip}
                     onChange={(e) => setBrassPerTrip(e.target.value === '' ? '' : Number(e.target.value))}
-                    className="w-full px-3.5 py-2.5 bg-[#162032] border border-[#1E293B] rounded-xl text-white font-mono font-bold outline-none"
+                    className="w-full px-3 py-2 bg-[#162032] border border-[#1E293B] rounded-xl text-white font-mono outline-none"
                   />
                 </div>
                 <div>
-                  <label className="block text-slate-300 font-bold mb-1">Rate/Unit (₹) *</label>
+                  <label className="block text-slate-300 font-bold mb-1">Rate (₹) *</label>
                   <input
                     type="number"
                     min="1"
                     required
                     value={ratePerBrass}
                     onChange={(e) => setRatePerBrass(e.target.value === '' ? '' : Number(e.target.value))}
-                    className="w-full px-3.5 py-2.5 bg-[#162032] border border-[#1E293B] rounded-xl text-emerald-400 font-mono font-bold outline-none"
+                    className="w-full px-3 py-2 bg-[#162032] border border-[#1E293B] rounded-xl text-emerald-400 font-mono outline-none"
                   />
                 </div>
               </div>
 
-              {/* Live Calculated Total Amount Display */}
-              <div className="p-3 sm:p-4 rounded-2xl bg-[#080d19] border border-[#1E293B] flex items-center justify-between mt-2">
-                <span className="text-xs sm:text-sm font-bold text-slate-300">Total Day Amount:</span>
-                <span className="text-lg sm:text-xl font-black text-amber-400 font-mono">
-                  ₹{computedTotalAmount.toLocaleString('en-IN')}
-                </span>
+              <div className="p-3 rounded-xl bg-[#080d19] border border-[#1E293B] flex justify-between items-center">
+                <span className="text-xs font-bold text-slate-300">Total Day Amount:</span>
+                <span className="text-base font-black text-amber-400 font-mono">₹{computedTotalAmount.toLocaleString('en-IN')}</span>
               </div>
 
-              <div className="flex sm:flex-row flex-col justify-end gap-2 pt-3 border-t border-[#1E293B]">
-                <button
-                  type="button"
-                  onClick={() => { setIsModalOpen(false); setEditingId(null); }}
-                  className="w-full sm:w-auto px-4 py-2.5 rounded-xl text-slate-400 hover:text-white cursor-pointer font-bold"
-                >
+              <div className="flex justify-end gap-2 pt-3 border-t border-[#1E293B]">
+                <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 text-slate-400">
                   Cancel
                 </button>
-                <button
-                  type="submit"
-                  className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-black shadow-lg shadow-blue-600/30 cursor-pointer"
-                >
+                <button type="submit" className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold">
                   {editingId ? 'Update Record' : 'Save Record'}
                 </button>
               </div>
