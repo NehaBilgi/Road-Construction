@@ -1,0 +1,66 @@
+@import "tailwindcss";
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+:root {
+  color-scheme: dark;
+}
+
+:root[data-theme='light'] {
+  color-scheme: light;
+}
+
+:root[data-theme='light'] body {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+/* The original UI uses fixed dark Tailwind colors. These targeted overrides
+   make the new light mode useful without rewriting every module at once. */
+:root[data-theme='light'] .bg-\[\#080C14\],
+:root[data-theme='light'] .bg-\[\#080d19\],
+:root[data-theme='light'] .bg-\[\#0c1427\],
+:root[data-theme='light'] .bg-\[\#0C1427\],
+:root[data-theme='light'] .bg-\[\#0D111D\],
+:root[data-theme='light'] .bg-\[\#121927\],
+:root[data-theme='light'] .bg-\[\#162032\],
+:root[data-theme='light'] .bg-\[\#142038\],
+:root[data-theme='light'] .bg-\[\#132b25\] {
+  background-color: #ffffff !important;
+}
+
+:root[data-theme='light'] .border-\[\#1E293B\],
+:root[data-theme='light'] .border-\[\#182643\],
+:root[data-theme='light'] .border-\[\#22365e\],
+:root[data-theme='light'] .border-\[\#1d4d3e\] {
+  border-color: #cbd5e1 !important;
+}
+
+:root[data-theme='light'] .text-slate-100,
+:root[data-theme='light'] .text-slate-200,
+:root[data-theme='light'] .text-slate-300,
+:root[data-theme='light'] .text-slate-400 {
+  color: #475569 !important;
+}
+
+:root[data-theme='light'] .bg-\[\#162032\].text-white,
+:root[data-theme='light'] .bg-\[\#121927\] .text-white,
+:root[data-theme='light'] .bg-\[\#080C14\] .text-white,
+:root[data-theme='light'] .bg-\[\#0c1427\] .text-white {
+  color: #0f172a !important;
+}
+
+:root[data-theme='light'] .bg-blue-600.text-white,
+:root[data-theme='light'] .bg-gradient-to-br.text-white {
+  color: #ffffff !important;
+}
+
+:root[data-theme='light'] input,
+:root[data-theme='light'] textarea,
+:root[data-theme='light'] select {
+  color: #0f172a;
+}

@@ -1,0 +1,11 @@
+{
+  "name": "Construction Pro",
+  "short_name": "Construction Pro",
+  "description": "Construction project, site, inventory and road operations management.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#080C14",
+  "theme_color": "#080C14",
+  "orientation": "any",
+  "icons": []
+}

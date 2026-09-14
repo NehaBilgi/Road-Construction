@@ -1,0 +1,6 @@
+{
+  "name": "PaveTrack Pro - Road Construction Management ERP",
+  "description": "Comprehensive modular Road Construction Management ERP with offline-first capabilities: Heavy Machine & Fleet Management, Quarry-to-Chainage Trip Tracking, Diesel Bowser Logs with Meter Verification, Road Material Quantity & Yield Calculator, and DPR Analytics.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
