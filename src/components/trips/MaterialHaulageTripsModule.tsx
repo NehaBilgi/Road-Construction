@@ -321,21 +321,20 @@ export const MaterialHaulageTripsModule: React.FC = () => {
   };
 
   return (
-    <div className="space-y-4 sm:space-y-6 font-sans text-slate-100 print:text-black print:space-y-3">
-      {/* Print Specific CSS: A4 Portrait, Zero Margin for standard browser URL removal */}
+    <div className="space-y-4 sm:space-y-6 font-sans text-slate-100 print:p-8 print:space-y-4">
+      {/* Print Styles: Portrait, Zero margins to remove URL/Footer, Original Colors Intact */}
       <style dangerouslySetInnerHTML={{ __html: `
         @media print {
           @page {
-            size: A4 portrait;
-            margin: 12mm 15mm;
+            size: portrait;
+            margin: 0 !important;
           }
           html, body {
-            width: 100% !important;
-            background-color: #ffffff !important;
-            color: #000000 !important;
-            font-size: 11px !important;
-            -webkit-print-color-adjust: exact;
-            print-color-adjust: exact;
+            margin: 0 !important;
+            padding: 0 !important;
+            background-color: #030712 !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
           }
           nav,
           header,
@@ -346,36 +345,15 @@ export const MaterialHaulageTripsModule: React.FC = () => {
           a[href]:after {
             content: none !important;
           }
-          .print-clean-table {
-            width: 100% !important;
-            border-collapse: collapse !important;
-          }
-          .print-clean-table th {
-            background-color: #f1f5f9 !important;
-            color: #000000 !important;
-            border-bottom: 2px solid #000000 !important;
-            padding: 6px 8px !important;
-            font-size: 10px !important;
-          }
-          .print-clean-table td {
-            color: #000000 !important;
-            border-bottom: 1px solid #e2e8f0 !important;
-            padding: 6px 8px !important;
-            font-size: 10.5px !important;
-          }
-          .print-clean-table tfoot td {
-            padding: 6px 8px !important;
-            font-size: 11px !important;
-          }
         }
       `}} />
 
       {/* Printable Only Header: Bold Supplier Name (Left) & Bold Site Name (Right) */}
-      <div className="hidden print:flex items-center justify-between border-b-2 border-black pb-3 mb-2">
-        <div className="text-2xl font-black uppercase text-black tracking-wide">
+      <div className="hidden print:flex items-center justify-between border-b border-slate-700 pb-3 mb-4">
+        <div className="text-2xl font-black uppercase text-white tracking-wide">
           {currentSupplierName}
         </div>
-        <div className="text-2xl font-black uppercase text-black tracking-wide">
+        <div className="text-2xl font-black uppercase text-white tracking-wide">
           SITE: {activeSiteName}
         </div>
       </div>
@@ -470,9 +448,9 @@ export const MaterialHaulageTripsModule: React.FC = () => {
       </div>
 
       {/* Main Table */}
-      <div className="bg-[#0B1220] border border-[#1E293B] rounded-2xl overflow-hidden shadow-2xl print:border-none print:shadow-none print:rounded-none">
+      <div className="bg-[#0B1220] border border-[#1E293B] rounded-2xl overflow-hidden shadow-2xl">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs border-collapse print-clean-table">
+          <table className="w-full text-left text-xs border-collapse">
             <thead>
               <tr className="border-b border-[#1E293B] text-[10px] font-extrabold uppercase text-slate-400 bg-[#080d19]/80">
                 <th className="py-3 px-3 text-left">DATE</th>
@@ -497,17 +475,17 @@ export const MaterialHaulageTripsModule: React.FC = () => {
               ) : (
                 filtered.map((t) => (
                   <tr key={t.id} className="hover:bg-[#121c33]/50">
-                    <td className="py-2.5 px-3 font-mono text-left text-slate-300 print:text-black whitespace-nowrap">
+                    <td className="py-2.5 px-3 font-mono text-left text-slate-300 whitespace-nowrap">
                       {formatDateDMY(t.tripDate)}
                     </td>
-                    <td className="py-2.5 px-3 font-bold text-cyan-400 print:text-black text-center">{t.siteName}</td>
-                    <td className="py-2.5 px-3 font-semibold text-emerald-400 print:text-black">{t.purchasedFrom || 'Direct Quarry'}</td>
-                    <td className="py-2.5 px-3 font-mono text-slate-300 print:text-black text-center">{t.vehicleNumber}</td>
-                    <td className="py-2.5 px-3 font-bold text-amber-300 print:text-black">{t.materialName}</td>
-                    <td className="py-2.5 px-2 text-center font-mono print:text-black">{t.dayTrips}</td>
-                    <td className="py-2.5 px-2 text-right font-mono print:text-black">{t.brassPerTrip}</td>
-                    <td className="py-2.5 px-2 text-right font-mono text-emerald-400 print:text-black">₹{t.ratePerBrass.toLocaleString('en-IN')}</td>
-                    <td className="py-2.5 px-3 text-right font-mono font-black text-amber-400 print:text-black">₹{t.totalAmount.toLocaleString('en-IN')}</td>
+                    <td className="py-2.5 px-3 font-bold text-cyan-400 text-center">{t.siteName}</td>
+                    <td className="py-2.5 px-3 font-semibold text-emerald-400">{t.purchasedFrom || 'Direct Quarry'}</td>
+                    <td className="py-2.5 px-3 font-mono text-slate-300 text-center">{t.vehicleNumber}</td>
+                    <td className="py-2.5 px-3 font-bold text-amber-300">{t.materialName}</td>
+                    <td className="py-2.5 px-2 text-center font-mono">{t.dayTrips}</td>
+                    <td className="py-2.5 px-2 text-right font-mono">{t.brassPerTrip}</td>
+                    <td className="py-2.5 px-2 text-right font-mono text-emerald-400">₹{t.ratePerBrass.toLocaleString('en-IN')}</td>
+                    <td className="py-2.5 px-3 text-right font-mono font-black text-amber-400">₹{t.totalAmount.toLocaleString('en-IN')}</td>
                     <td className="py-2.5 px-3 text-center no-print">
                       <div className="flex items-center justify-center gap-1">
                         <button onClick={() => handleEdit(t)} className="p-1 rounded text-slate-400 hover:text-blue-400">
@@ -525,19 +503,19 @@ export const MaterialHaulageTripsModule: React.FC = () => {
 
             {/* Table Footer */}
             {filtered.length > 0 && (
-              <tfoot className="border-t-2 border-[#1E293B] print:border-t-2 print:border-black bg-[#070c18] font-mono print:bg-white">
-                <tr className="border-b border-[#1E293B]/60 print:border-b print:border-slate-300">
-                  <td colSpan={5} className="py-2.5 px-3 font-bold uppercase text-slate-300 print:text-black text-right">
+              <tfoot className="border-t-2 border-[#1E293B] bg-[#070c18] font-mono">
+                <tr className="border-b border-[#1E293B]/60">
+                  <td colSpan={5} className="py-2.5 px-3 font-bold uppercase text-slate-300 text-right">
                     Total Material Purchased:
                   </td>
-                  <td className="py-2.5 px-2 text-center font-bold text-cyan-400 print:text-black">{overallTotals.trips} Trips</td>
-                  <td className="py-2.5 px-2 text-right font-bold text-white print:text-black">{overallTotals.brass} Brass</td>
-                  <td className="py-2.5 px-2 text-right text-slate-500 print:text-black">—</td>
-                  <td className="py-2.5 px-3 text-right font-bold text-white print:text-black">₹{overallTotals.amount.toLocaleString('en-IN')}</td>
+                  <td className="py-2.5 px-2 text-center font-bold text-cyan-400">{overallTotals.trips} Trips</td>
+                  <td className="py-2.5 px-2 text-right font-bold text-white">{overallTotals.brass} Brass</td>
+                  <td className="py-2.5 px-2 text-right text-slate-500">—</td>
+                  <td className="py-2.5 px-3 text-right font-bold text-white">₹{overallTotals.amount.toLocaleString('en-IN')}</td>
                   <td className="py-2.5 px-3 no-print"></td>
                 </tr>
 
-                <tr className="border-b border-[#1E293B]/60 print:border-b print:border-slate-300 text-rose-400 print:text-black">
+                <tr className="border-b border-[#1E293B]/60 text-rose-400">
                   <td colSpan={8} className="py-2 px-3 font-bold uppercase text-right">
                     (-) Less: Advance Payment Received {advanceDatesSummary ? `(${advanceDatesSummary})` : ''}:
                   </td>
@@ -548,7 +526,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
                 </tr>
 
                 {remainingAdvanceBalance > 0 ? (
-                  <tr className="bg-[#082216] text-emerald-400 print:bg-slate-100 print:text-black font-black">
+                  <tr className="bg-[#082216] text-emerald-400 font-black">
                     <td colSpan={8} className="py-3 px-3 text-right uppercase tracking-wider text-xs">
                       REMAINING ADVANCE BALANCE (EXCESS):
                     </td>
@@ -558,7 +536,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
                     <td className="py-3 px-3 no-print"></td>
                   </tr>
                 ) : (
-                  <tr className="bg-[#1e1906] text-amber-400 print:bg-slate-100 print:text-black font-black">
+                  <tr className="bg-[#1e1906] text-amber-400 font-black">
                     <td colSpan={8} className="py-3 px-3 text-right uppercase tracking-wider text-xs">
                       (=) NET PAYABLE AMOUNT:
                     </td>
