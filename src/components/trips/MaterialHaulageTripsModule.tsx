@@ -181,6 +181,14 @@ export const MaterialHaulageTripsModule: React.FC = () => {
     });
   }, [trips, activeSiteName, searchQuery]);
 
+  // Derive supplier name for the printable header
+  const currentSupplierName = useMemo(() => {
+    const vendors = Array.from(
+      new Set(filtered.map((t) => t.purchasedFrom?.trim()).filter(Boolean))
+    );
+    return vendors.length > 0 ? vendors.join(', ') : 'GIRGOANKAR';
+  }, [filtered]);
+
   const overallTotals = useMemo(() => {
     return filtered.reduce(
       (acc, t) => {
@@ -278,10 +286,6 @@ export const MaterialHaulageTripsModule: React.FC = () => {
     }
   };
 
-  const handlePrint = () => {
-    window.print();
-  };
-
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
     if (dayTrips === '' || brassPerTrip === '' || ratePerBrass === '') return;
@@ -318,20 +322,23 @@ export const MaterialHaulageTripsModule: React.FC = () => {
   };
 
   return (
-    <div className="space-y-4 sm:space-y-6 font-sans text-slate-100 print:text-black print:space-y-3">
-      {/* Print-specific Stylesheet */}
+    <div className="space-y-4 sm:space-y-6 font-sans text-slate-100 print:text-black print:space-y-4">
+      {/* Print Specific CSS Rules */}
       <style dangerouslySetInnerHTML={{ __html: `
         @media print {
           @page {
             size: A4 landscape;
-            margin: 10mm 12mm;
+            margin: 12mm 15mm;
+          }
+          nav,
+          header,
+          aside,
+          .no-print {
+            display: none !important;
           }
           body {
             background-color: #ffffff !important;
             color: #000000 !important;
-          }
-          .no-print {
-            display: none !important;
           }
           .print-clean-card {
             border: 1px solid #cbd5e1 !important;
@@ -351,17 +358,13 @@ export const MaterialHaulageTripsModule: React.FC = () => {
         }
       `}} />
 
-      {/* Printable Letterhead (Only visible when printing) */}
-      <div className="hidden print:block border-b-2 border-slate-900 pb-3 mb-2">
-        <div className="flex justify-between items-end">
-          <div>
-            <h1 className="text-xl font-black tracking-tight text-slate-900 uppercase">CONSTRUCTION PRO ERP</h1>
-            <p className="text-xs font-semibold text-slate-700">Material Haulage & Supplier Billing Statement</p>
-          </div>
-          <div className="text-right text-[11px] text-slate-600 font-mono">
-            <p><strong>Site:</strong> {activeSiteName}</p>
-            <p><strong>Printed On:</strong> {new Date().toLocaleDateString('en-GB')}</p>
-          </div>
+      {/* Printable Header: Supplier Name & Site Name in Bold Only */}
+      <div className="hidden print:flex items-center justify-between border-b-2 border-black pb-3">
+        <div className="text-2xl font-black uppercase text-black tracking-wide">
+          {currentSupplierName}
+        </div>
+        <div className="text-2xl font-black uppercase text-black tracking-wide">
+          SITE: {activeSiteName}
         </div>
       </div>
 
@@ -382,7 +385,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
         <div className="flex items-center gap-2">
           {/* Print to PDF Action Button */}
           <button
-            onClick={handlePrint}
+            onClick={() => window.print()}
             className="px-3.5 py-2.5 rounded-xl bg-[#131d33] hover:bg-[#1a2847] border border-[#1E293B] hover:border-slate-600 text-slate-200 text-xs font-bold flex items-center gap-1.5 transition-all shadow-sm cursor-pointer"
             title="Print or Export to PDF"
           >
@@ -609,7 +612,6 @@ export const MaterialHaulageTripsModule: React.FC = () => {
                 />
               </div>
 
-              {/* Purchased From / Supplier with Custom Dropdown & Delete Icon */}
               <div className="relative" ref={vendorDropdownRef}>
                 <label className="block text-slate-300 font-bold mb-1">
                   Purchased From / Supplier *
@@ -636,7 +638,6 @@ export const MaterialHaulageTripsModule: React.FC = () => {
                   </button>
                 </div>
 
-                {/* Dropdown Options with Trash / Delete Button */}
                 {isVendorDropdownOpen && (
                   <div className="absolute left-0 right-0 mt-1 bg-[#0F172A] border border-[#1E293B] rounded-xl shadow-2xl z-50 max-h-48 overflow-y-auto divide-y divide-[#1E293B]">
                     {savedVendors
