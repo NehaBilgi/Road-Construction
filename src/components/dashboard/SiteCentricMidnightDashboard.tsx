@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useERP } from '../../context/ERPContext';
+import { useRoadERP } from '../../context/RoadERPContext';
 import {
   Layers,
   DollarSign,
@@ -19,6 +20,7 @@ interface Props {
 
 export const SiteCentricMidnightDashboard: React.FC<Props> = ({ onNavigateTab }) => {
   const { siteSheets = [], selectedSiteId } = useERP();
+  const roadERP = useRoadERP?.() || {};
 
   // 1. Identify active site
   const activeSite = useMemo(() => {
@@ -40,21 +42,39 @@ export const SiteCentricMidnightDashboard: React.FC<Props> = ({ onNavigateTab })
   const loadDashboardData = useCallback(() => {
     try {
       const savedTrips = localStorage.getItem('CONSTRUCTION_PRO_HAULAGE_TRIPS_V2');
-      setTrips(savedTrips ? JSON.parse(savedTrips) || [] : []);
+      if (savedTrips) {
+        setTrips(JSON.parse(savedTrips) || []);
+      } else if (roadERP.trips) {
+        setTrips(roadERP.trips);
+      } else {
+        setTrips([]);
+      }
 
       const savedDiesel = localStorage.getItem('CONSTRUCTION_PRO_DIESEL_LOGS_V1');
-      setDiesel(savedDiesel ? JSON.parse(savedDiesel) || [] : []);
+      if (savedDiesel) {
+        setDiesel(JSON.parse(savedDiesel) || []);
+      } else if (roadERP.fuelLogs) {
+        setDiesel(roadERP.fuelLogs);
+      } else {
+        setDiesel([]);
+      }
 
       const savedExpenses =
         localStorage.getItem('CONSTRUCTION_PRO_SITE_EXPENSES_V1') ||
         localStorage.getItem('road_erp_expenses');
-      setExpenses(savedExpenses ? JSON.parse(savedExpenses) || [] : []);
+      if (savedExpenses) {
+        setExpenses(JSON.parse(savedExpenses) || []);
+      } else if (roadERP.expenses) {
+        setExpenses(roadERP.expenses);
+      } else {
+        setExpenses([]);
+      }
     } catch {
       setTrips([]);
       setDiesel([]);
       setExpenses([]);
     }
-  }, []);
+  }, [roadERP]);
 
   useEffect(() => {
     loadDashboardData();
@@ -74,7 +94,8 @@ export const SiteCentricMidnightDashboard: React.FC<Props> = ({ onNavigateTab })
         (t) =>
           t?.siteName === activeSite?.siteName ||
           t?.siteId === activeSite?.siteId ||
-          t?.siteName?.includes('Ongoing')
+          t?.siteName?.includes('Ongoing') ||
+          !t?.siteName
       ),
     [trips, activeSite]
   );
@@ -85,7 +106,8 @@ export const SiteCentricMidnightDashboard: React.FC<Props> = ({ onNavigateTab })
         (d) =>
           d?.siteName === activeSite?.siteName ||
           d?.siteId === activeSite?.siteId ||
-          d?.siteName?.includes('Ongoing')
+          d?.siteName?.includes('Ongoing') ||
+          !d?.siteName
       ),
     [diesel, activeSite]
   );
@@ -96,32 +118,48 @@ export const SiteCentricMidnightDashboard: React.FC<Props> = ({ onNavigateTab })
         (e) =>
           e?.siteName === activeSite?.siteName ||
           e?.costCenterChainage?.includes(activeSite?.siteName) ||
-          e?.siteName?.includes('Ongoing')
+          e?.siteName?.includes('Ongoing') ||
+          !e?.siteName
       ),
     [expenses, activeSite]
   );
 
-  // 5. Dynamic Calculations with Safe 0 Fallbacks
+  // 5. Calculations
   const totalBrassToday = siteTrips.reduce((sum, t) => {
-    const dayTrips = Number(t?.dayTrips || 0);
-    const brassPerTrip = Number(t?.brassPerTrip || 0);
-    return sum + dayTrips * brassPerTrip;
+    const dayTrips = Number(t?.dayTrips ?? t?.trips ?? 0);
+    const brassPerTrip = Number(t?.brassPerTrip ?? t?.capacityBrass ?? 0);
+    return sum + (isNaN(dayTrips) ? 0 : dayTrips) * (isNaN(brassPerTrip) ? 0 : brassPerTrip);
   }, 0);
 
   const activeTripsCount = siteTrips.reduce((sum, t) => {
-    return sum + (Number(t?.dayTrips) || 0);
+    const dayTrips = Number(t?.dayTrips ?? t?.trips ?? 0);
+    return sum + (isNaN(dayTrips) ? 0 : dayTrips);
   }, 0);
 
   const totalDieselDispensed = siteDiesel.reduce((sum, d) => {
-    return sum + (Number(d?.litres) || 0);
+    const litres = Number(d?.litres ?? d?.qtyLitres ?? d?.litresDispensed ?? 0);
+    return sum + (isNaN(litres) ? 0 : litres);
   }, 0);
 
-  // Total Site Expense sum calculated directly from recorded vouchers
-  const totalSiteExpense = siteExpenses.reduce((sum, e) => {
+  // Direct petty cash voucher expense sum
+  const directSiteExpenses = siteExpenses.reduce((sum, e) => {
     const amount = Number(e?.amount || 0);
     return sum + (!isNaN(amount) && amount > 0 ? amount : 0);
   }, 0);
 
+  // Material and Diesel Outflow additions to match the Ledger totals
+  const materialCost = siteTrips.reduce((sum, t) => {
+    const cost = Number(t?.totalCost ?? t?.amount ?? (Number(t?.dayTrips || 0) * Number(t?.brassPerTrip || 0) * 5650));
+    return sum + (isNaN(cost) ? 0 : cost);
+  }, 0);
+
+  const dieselCost = siteDiesel.reduce((sum, d) => {
+    const cost = Number(d?.totalCost ?? (Number(d?.litres || 0) * 92));
+    return sum + (isNaN(cost) ? 0 : cost);
+  }, 0);
+
+  // Total Site Expense reflects either Direct Expenses or Total Site Outflow
+  const totalSiteExpense = directSiteExpenses > 0 ? directSiteExpenses : (directSiteExpenses + materialCost + dieselCost);
   const expenseCount = siteExpenses.length;
 
   return (
