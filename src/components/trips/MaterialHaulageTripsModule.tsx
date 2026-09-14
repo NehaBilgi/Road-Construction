@@ -214,6 +214,12 @@ export const MaterialHaulageTripsModule: React.FC = () => {
     );
   }, [filtered]);
 
+  // Extract distinct vendor name(s) for the print header
+  const activeVendorName = useMemo(() => {
+    const vendors = Array.from(new Set(filtered.map((t) => t.purchasedFrom?.trim()).filter(Boolean)));
+    return vendors.length > 0 ? vendors.join(', ') : 'Direct Supplier';
+  }, [filtered]);
+
   const vendorBreakdown = useMemo(() => {
     const map: Record<string, { trips: number; brass: number; amount: number }> = {};
     filtered.forEach((t) => {
@@ -307,7 +313,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
   return (
     <div className="space-y-4 sm:space-y-6 font-sans text-slate-100">
       
-      {/* Print-specific stylesheet to fit table exactly in 1 portrait page */}
+      {/* Print-specific stylesheet to fit table exactly on one portrait page */}
       <style>{`
         @media print {
           @page {
@@ -344,8 +350,6 @@ export const MaterialHaulageTripsModule: React.FC = () => {
           .print-header {
             display: block !important;
             margin-bottom: 12px;
-            border-bottom: 2px solid #111;
-            padding-bottom: 8px;
           }
           table {
             width: 100% !important;
@@ -449,16 +453,30 @@ export const MaterialHaulageTripsModule: React.FC = () => {
       {/* Main Table / Print Section */}
       <div id="print-area" className="bg-[#0B1220] border border-[#1E293B] rounded-[1.2rem] sm:rounded-3xl overflow-hidden shadow-2xl">
         
-        {/* Printable Header - Visible only when printing */}
+        {/* Printable Header with Vendor Name */}
         <div className="hidden print-header p-4">
-          <div className="flex justify-between items-center">
+          <div className="flex justify-between items-start border-b-2 border-black pb-3">
             <div>
-              <h2 className="text-lg font-black uppercase text-black tracking-tight">Construction Pro — Haulage Material Purchase Ledger</h2>
-              <p className="text-xs text-black font-semibold mt-0.5">Site: {activeSiteName} | Generated on: {new Date().toLocaleDateString('en-IN')}</p>
+              <h1 className="text-xl font-black uppercase text-black tracking-tight">
+                {activeVendorName}
+              </h1>
+              <p className="text-xs text-black font-bold uppercase tracking-wider mt-0.5">
+                Material Purchase & Haulage Statement
+              </p>
+              <div className="text-[11px] text-black font-semibold mt-1 flex gap-4">
+                <span><strong>Site:</strong> {activeSiteName}</span>
+                <span><strong>Date:</strong> {new Date().toLocaleDateString('en-IN')}</span>
+              </div>
             </div>
+            
             <div className="text-right">
-              <span className="text-xs font-bold text-black uppercase">Grand Total: </span>
-              <span className="text-base font-black text-black">₹{overallTotals.amount.toLocaleString('en-IN')}</span>
+              <div className="text-[10px] font-bold text-black uppercase tracking-wider">Total Payable Amount</div>
+              <div className="text-xl font-black text-black">
+                ₹{overallTotals.amount.toLocaleString('en-IN')}
+              </div>
+              <div className="text-[10px] text-black font-medium mt-0.5">
+                {overallTotals.trips} Total Trips ({overallTotals.brass} Brass)
+              </div>
             </div>
           </div>
         </div>
@@ -489,7 +507,6 @@ export const MaterialHaulageTripsModule: React.FC = () => {
               ) : (
                 filtered.map((t) => (
                   <tr key={t.id} className="hover:bg-[#121c33]/50 transition-colors">
-                    {/* Date Only (Trip ID completely removed) */}
                     <td className="py-2.5 px-3 font-mono font-bold text-slate-300 text-center whitespace-nowrap">
                       {t.tripDate}
                     </td>
