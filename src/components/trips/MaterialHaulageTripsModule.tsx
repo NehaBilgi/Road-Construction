@@ -45,6 +45,16 @@ const INITIAL_ROAD_CATEGORIES: RoadMaterialCategory[] = [
   { id: 'RCAT-04', name: 'Bituminous Concrete (BC)', description: 'High quality wearing course finish', standardRate: 6000, unit: 'Brass' }
 ];
 
+const formatDateDMY = (dateStr: string) => {
+  if (!dateStr) return '';
+  const parts = dateStr.split('-');
+  if (parts.length === 3) {
+    const [year, month, day] = parts;
+    return `${day}-${month}-${year}`;
+  }
+  return dateStr;
+};
+
 export const MaterialHaulageTripsModule: React.FC = () => {
   const { siteSheets = [], selectedSiteId } = useERP();
 
@@ -209,7 +219,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
       .reduce((sum, a) => sum + (Number(a.amount) || 0), 0);
   }, [advances, filtered, activeSiteName]);
 
-  // Extract formatted dates of advances linked to this vendor/site
+  // Extract formatted dates of advances linked to this vendor/site in DD-MM-YYYY format
   const advanceDatesSummary = useMemo(() => {
     const currentVendorNames = Array.from(new Set(filtered.map((t) => t.purchasedFrom?.trim().toLowerCase()).filter(Boolean)));
     const matchedDates = advances
@@ -218,7 +228,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
         const matchVendor = currentVendorNames.length === 0 || currentVendorNames.includes(a.vendorName?.trim().toLowerCase());
         return matchSite && matchVendor && a.date;
       })
-      .map((a) => a.date);
+      .map((a) => formatDateDMY(a.date));
 
     const uniqueDates = Array.from(new Set(matchedDates));
     return uniqueDates.length > 0 ? uniqueDates.join(', ') : '';
@@ -466,7 +476,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
           <table className="w-full text-left text-xs border-collapse">
             <thead>
               <tr className="border-b border-[#1E293B] text-[10px] font-extrabold uppercase text-slate-400 bg-[#080d19]/80">
-                <th className="py-3 px-3 text-center">DATE</th>
+                <th className="py-3 px-3 text-left">DATE</th>
                 <th className="py-3 px-3 text-center">SITE</th>
                 <th className="py-3 px-3">PURCHASED FROM</th>
                 <th className="py-3 px-3 text-center">VEHICLE</th>
@@ -488,7 +498,9 @@ export const MaterialHaulageTripsModule: React.FC = () => {
               ) : (
                 filtered.map((t) => (
                   <tr key={t.id} className="hover:bg-[#121c33]/50">
-                    <td className="py-2.5 px-3 font-mono text-center text-slate-300">{t.tripDate}</td>
+                    <td className="py-2.5 px-3 font-mono text-left text-slate-300 whitespace-nowrap">
+                      {formatDateDMY(t.tripDate)}
+                    </td>
                     <td className="py-2.5 px-3 font-bold text-cyan-400 text-center">{t.siteName}</td>
                     <td className="py-2.5 px-3 font-semibold text-emerald-400">{t.purchasedFrom || 'Direct Quarry'}</td>
                     <td className="py-2.5 px-3 font-mono text-slate-300 text-center">{t.vehicleNumber}</td>
