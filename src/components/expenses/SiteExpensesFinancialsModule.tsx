@@ -51,6 +51,22 @@ export const SiteExpensesFinancialsModule: React.FC = () => {
 
   const { currentUser, userRole, siteSheets = [], selectedSiteId } = useERP();
 
+  // 1. One-time clean-up of stale 45,000 mock data if present
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(EXPENSE_STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.some((p: any) => Number(p.amount) === 45000 && !p.id)) {
+          localStorage.setItem(EXPENSE_STORAGE_KEY, JSON.stringify([]));
+          window.dispatchEvent(new Event('storage'));
+        }
+      }
+    } catch {
+      localStorage.setItem(EXPENSE_STORAGE_KEY, JSON.stringify([]));
+    }
+  }, []);
+
   // Active site fallback
   const activeSite = useMemo(() => {
     return (
@@ -68,8 +84,8 @@ export const SiteExpensesFinancialsModule: React.FC = () => {
       const formattedForDashboard = (expenses || []).map((e) => ({
         id: e.id,
         voucherNumber: e.voucherNumber,
-        siteName: e.costCenterChainage?.includes('SINDAGI')
-          ? 'SINDAGI'
+        siteName: e.costCenterChainage?.includes(activeSite.siteName)
+          ? activeSite.siteName
           : activeSite.siteName || 'SINDAGI',
         amount: Number(e.amount) || 0,
         category: e.category,
@@ -133,8 +149,15 @@ export const SiteExpensesFinancialsModule: React.FC = () => {
     remainingBalance: 0
   };
 
-  // Safe Metric Calculation Fallbacks
-  const safeTotalSiteExpenses = Number(kpis?.totalSiteExpensesINR ?? 0) || 0;
+  // Safe Metric Calculation Fallbacks (Directly derived from the current expenses array)
+  const safeTotalSiteExpenses = useMemo(() => {
+    if (!expenses || expenses.length === 0) return 0;
+    return expenses.reduce((sum, e) => {
+      const val = Number(e?.amount);
+      return sum + (!isNaN(val) && val > 0 ? val : 0);
+    }, 0);
+  }, [expenses]);
+
   const safeTotalFuelCost = Number(kpis?.totalFuelCostINR ?? 0) || 0;
   const safeAvgCostPerKm = Number(kpis?.averageCostPerKmINR ?? 0) || 0;
   const safePettyCashRemaining = Number(primaryWallet?.remainingBalance ?? 0) || 0;
@@ -585,7 +608,6 @@ export const SiteExpensesFinancialsModule: React.FC = () => {
             </div>
 
             <form onSubmit={handleCreateVoucher} className="space-y-3.5 text-xs">
-              {/* Category & Date */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-slate-300 font-semibold mb-1">
@@ -616,7 +638,6 @@ export const SiteExpensesFinancialsModule: React.FC = () => {
                 </div>
               </div>
 
-              {/* Payee / Vendor & Amount */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-slate-300 font-semibold mb-1">
@@ -651,7 +672,6 @@ export const SiteExpensesFinancialsModule: React.FC = () => {
                 </div>
               </div>
 
-              {/* Payment Mode & Cost Center Chainage */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-slate-300 font-semibold mb-1">
@@ -684,7 +704,6 @@ export const SiteExpensesFinancialsModule: React.FC = () => {
                 </div>
               </div>
 
-              {/* Description & Bill/Invoice # */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-slate-300 font-semibold mb-1">
