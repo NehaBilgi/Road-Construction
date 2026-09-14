@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useERP } from '../../context/ERPContext';
 import {
   Plus,
@@ -8,7 +8,8 @@ import {
   Edit2,
   Truck,
   Store,
-  Printer
+  Printer,
+  ChevronDown
 } from 'lucide-react';
 
 export interface HaulageTripRecord {
@@ -77,7 +78,6 @@ export const MaterialHaulageTripsModule: React.FC = () => {
     }
   });
 
-  // State for loaded vendor advances
   const [advances, setAdvances] = useState<any[]>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_VENDOR_ADVANCES_KEY);
@@ -87,7 +87,6 @@ export const MaterialHaulageTripsModule: React.FC = () => {
     }
   });
 
-  // Keep advances synced
   useEffect(() => {
     const handleSync = () => {
       try {
@@ -113,6 +112,8 @@ export const MaterialHaulageTripsModule: React.FC = () => {
   const [siteName, setSiteName] = useState(activeSiteName);
   const [vehicleNumber, setVehicleNumber] = useState('TOTAL TRIPS');
   const [purchasedFrom, setPurchasedFrom] = useState('');
+  const [isVendorDropdownOpen, setIsVendorDropdownOpen] = useState(false);
+  const vendorDropdownRef = useRef<HTMLDivElement>(null);
 
   const defaultCategory = categories[0]
     ? `${categories[0].name} (₹${categories[0].standardRate}/${categories[0].unit})`
@@ -130,6 +131,17 @@ export const MaterialHaulageTripsModule: React.FC = () => {
       setRatePerBrass(found.standardRate);
     }
   };
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (vendorDropdownRef.current && !vendorDropdownRef.current.contains(event.target as Node)) {
+        setIsVendorDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   useEffect(() => {
     try {
@@ -160,7 +172,6 @@ export const MaterialHaulageTripsModule: React.FC = () => {
     });
   }, [trips, activeSiteName, searchQuery]);
 
-  // Totals
   const overallTotals = useMemo(() => {
     return filtered.reduce(
       (acc, t) => {
@@ -177,13 +188,11 @@ export const MaterialHaulageTripsModule: React.FC = () => {
     );
   }, [filtered]);
 
-  // Primary active vendor name
   const activeVendorName = useMemo(() => {
     const vendors = Array.from(new Set(filtered.map((t) => t.purchasedFrom?.trim()).filter(Boolean)));
     return vendors.length > 0 ? vendors.join(', ') : 'Direct Supplier';
   }, [filtered]);
 
-  // Calculate Advances linked to the vendors of the current filtered site
   const totalVendorAdvancePaid = useMemo(() => {
     const currentVendorNames = Array.from(new Set(filtered.map((t) => t.purchasedFrom?.trim().toLowerCase()).filter(Boolean)));
     return advances
@@ -195,11 +204,27 @@ export const MaterialHaulageTripsModule: React.FC = () => {
       .reduce((sum, a) => sum + (Number(a.amount) || 0), 0);
   }, [advances, filtered, activeSiteName]);
 
-  // Net Balance Calculations
   const rawBalance = overallTotals.amount - totalVendorAdvancePaid;
   const isAdvanceExcess = rawBalance < 0;
   const netPayableAmount = isAdvanceExcess ? 0 : rawBalance;
   const remainingAdvanceBalance = isAdvanceExcess ? Math.abs(rawBalance) : 0;
+
+  const handleDeleteSavedVendor = (vendorToDelete: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (window.confirm(`Delete "${vendorToDelete}" from saved supplier names?`)) {
+      const updated = savedVendors.filter((v) => v !== vendorToDelete);
+      setSavedVendors(updated);
+      if (purchasedFrom === vendorToDelete) {
+        setPurchasedFrom('');
+      }
+      try {
+        localStorage.setItem(STORAGE_VENDORS_KEY, JSON.stringify(updated));
+      } catch (err) {
+        console.error('Failed saving updated vendors', err);
+      }
+    }
+  };
 
   const handleOpenAdd = () => {
     setEditingId(null);
@@ -211,6 +236,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
     setDayTrips(3);
     setBrassPerTrip(6);
     setRatePerBrass(categories[0]?.standardRate || 1500);
+    setIsVendorDropdownOpen(false);
     setIsModalOpen(true);
   };
 
@@ -224,6 +250,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
     setDayTrips(trip.dayTrips);
     setBrassPerTrip(trip.brassPerTrip);
     setRatePerBrass(trip.ratePerBrass);
+    setIsVendorDropdownOpen(false);
     setIsModalOpen(true);
   };
 
@@ -347,7 +374,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
         </div>
       </div>
 
-      {/* Summary Stat Cards with Advances Auto-Deducted and Remaining Balance */}
+      {/* Summary Stat Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 no-print">
         <div className="p-4 rounded-2xl bg-[#0B1220] border border-[#1E293B] shadow-lg flex flex-col justify-between">
           <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Total Material Purchase</div>
@@ -465,7 +492,6 @@ export const MaterialHaulageTripsModule: React.FC = () => {
             {/* Footer with Subtotal, Advance Deduction, and Net / Remaining Balance */}
             {filtered.length > 0 && (
               <tfoot className="border-t-2 border-[#1E293B] bg-[#070c18] font-mono">
-                {/* 1. Gross Material Purchase */}
                 <tr className="border-b border-[#1E293B]/60">
                   <td colSpan={5} className="py-2.5 px-3 font-bold uppercase text-slate-300 text-right">
                     Total Material Purchased:
@@ -477,7 +503,6 @@ export const MaterialHaulageTripsModule: React.FC = () => {
                   <td className="py-2.5 px-3 no-print"></td>
                 </tr>
 
-                {/* 2. Less Advance Paid */}
                 <tr className="border-b border-[#1E293B]/60 text-rose-400">
                   <td colSpan={8} className="py-2 px-3 font-bold uppercase text-right">
                     (-) Less: Advance Payment Received:
@@ -488,7 +513,6 @@ export const MaterialHaulageTripsModule: React.FC = () => {
                   <td className="py-2 px-3 no-print"></td>
                 </tr>
 
-                {/* 3. Final Balance Result */}
                 {remainingAdvanceBalance > 0 ? (
                   <tr className="bg-[#082216] text-emerald-400 font-black">
                     <td colSpan={8} className="py-3 px-3 text-right uppercase tracking-wider text-xs sm:text-sm">
@@ -516,7 +540,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
         </div>
       </div>
 
-      {/* Modal */}
+      {/* Modal Form */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm no-print">
           <div className="bg-[#121927] border border-[#1E293B] rounded-2xl w-full max-w-lg p-5 space-y-4 max-h-[92vh] overflow-y-auto">
@@ -565,22 +589,66 @@ export const MaterialHaulageTripsModule: React.FC = () => {
                 />
               </div>
 
-              <div>
-                <label className="block text-slate-300 font-bold mb-1">Purchased From / Supplier *</label>
-                <input
-                  type="text"
-                  list="vendor-options"
-                  required
-                  placeholder="e.g. gigaonkar"
-                  value={purchasedFrom}
-                  onChange={(e) => setPurchasedFrom(e.target.value)}
-                  className="w-full px-3 py-2 bg-[#162032] border border-[#1E293B] rounded-xl text-white outline-none"
-                />
-                <datalist id="vendor-options">
-                  {savedVendors.map((v, idx) => (
-                    <option key={idx} value={v} />
-                  ))}
-                </datalist>
+              {/* Purchased From / Supplier with Custom Dropdown & Delete Icon */}
+              <div className="relative" ref={vendorDropdownRef}>
+                <label className="block text-slate-300 font-bold mb-1">
+                  Purchased From / Supplier *
+                </label>
+                <div className="relative flex items-center">
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. gigaonkar"
+                    value={purchasedFrom}
+                    onChange={(e) => {
+                      setPurchasedFrom(e.target.value);
+                      setIsVendorDropdownOpen(true);
+                    }}
+                    onFocus={() => setIsVendorDropdownOpen(true)}
+                    className="w-full pl-3.5 pr-10 py-2.5 bg-[#162032] border border-[#1E293B] focus:border-blue-500 rounded-xl text-white outline-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setIsVendorDropdownOpen((prev) => !prev)}
+                    className="absolute right-2.5 text-slate-400 hover:text-white p-1"
+                  >
+                    <ChevronDown className={`w-4 h-4 transition-transform ${isVendorDropdownOpen ? 'rotate-180' : ''}`} />
+                  </button>
+                </div>
+
+                {/* Dropdown Options with Trash / Delete Button */}
+                {isVendorDropdownOpen && (
+                  <div className="absolute left-0 right-0 mt-1 bg-[#0F172A] border border-[#1E293B] rounded-xl shadow-2xl z-50 max-h-48 overflow-y-auto divide-y divide-[#1E293B]">
+                    {savedVendors
+                      .filter((v) => !purchasedFrom || v.toLowerCase().includes(purchasedFrom.toLowerCase()))
+                      .map((v) => (
+                        <div
+                          key={v}
+                          onClick={() => {
+                            setPurchasedFrom(v);
+                            setIsVendorDropdownOpen(false);
+                          }}
+                          className="flex items-center justify-between px-3.5 py-2.5 hover:bg-[#1E293B]/70 cursor-pointer group transition-colors"
+                        >
+                          <span className="text-white font-medium text-xs">{v}</span>
+                          <button
+                            type="button"
+                            onClick={(e) => handleDeleteSavedVendor(v, e)}
+                            title={`Delete "${v}" from saved suppliers`}
+                            className="p-1 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-950/50 transition-colors"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      ))}
+
+                    {savedVendors.filter((v) => !purchasedFrom || v.toLowerCase().includes(purchasedFrom.toLowerCase())).length === 0 && (
+                      <div className="px-3.5 py-3 text-slate-500 text-center text-xs">
+                        Press save to add "{purchasedFrom}" as a new supplier
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               <div>
