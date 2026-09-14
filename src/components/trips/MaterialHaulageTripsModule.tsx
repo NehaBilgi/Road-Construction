@@ -453,22 +453,20 @@ export const MaterialHaulageTripsModule: React.FC = () => {
       {/* Main Table / Print Section */}
       <div id="print-area" className="bg-[#0B1220] border border-[#1E293B] rounded-[1.2rem] sm:rounded-3xl overflow-hidden shadow-2xl">
         
-        {/* Printable Header with Updated Vendor Name, Material Purchased, Date, & Payable Amount */}
+        {/* Printable Header with Vendor Name */}
         <div className="hidden print-header p-4">
-          <div className="flex justify-between items-start border-b-2 border-black pb-3">
-            <div>
-              <h1 className="text-xl font-black uppercase text-black tracking-tight">
-                {activeVendorName}
-              </h1>
-              <p className="text-xs text-black font-bold uppercase tracking-wider mt-0.5">
-                MATERIAL PURCHASED
-              </p>
-              <div className="text-[11px] text-black font-semibold mt-1 flex gap-4">
-                <span><strong>Site:</strong> {activeSiteName}</span>
-                <span><strong>Date:</strong> {filtered[0]?.tripDate || new Date().toLocaleDateString('en-IN')}</span>
-              </div>
+          <div className="border-b-2 border-black pb-3">
+            <h1 className="text-xl font-black uppercase text-black tracking-tight">
+              {activeVendorName}
+            </h1>
+            <p className="text-xs text-black font-bold uppercase tracking-wider mt-0.5">
+              MATERIAL PURCHASED
+            </p>
+            <div className="text-[11px] text-black font-semibold mt-1">
+              <span><strong>Site:</strong> {activeSiteName}</span>
             </div>
-            
+          </div>
+        </div>
             <div className="text-right">
               <div className="text-[10px] font-bold text-black uppercase tracking-wider">
                 TOTAL PAYABLE AMOUNT
