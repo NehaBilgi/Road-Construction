@@ -321,13 +321,17 @@ export const MaterialHaulageTripsModule: React.FC = () => {
   };
 
   return (
-    <div className="space-y-4 sm:space-y-6 font-sans text-slate-100 print:p-6 print:space-y-4">
-      {/* Print Styles: Portrait mode with zero page margins to remove browser-injected header/footer */}
+    <div className="space-y-4 sm:space-y-6 font-sans text-slate-100 print:space-y-4 print:p-0">
+      {/* Print Styles: Portrait mode with 100% original dark colors preserved */}
       <style dangerouslySetInnerHTML={{ __html: `
         @media print {
           @page {
             size: portrait;
-            margin: 0mm !important;
+            margin: 10mm 12mm;
+          }
+          * {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
           }
           html, body, #root, main, div, table {
             overflow: visible !important;
@@ -348,18 +352,15 @@ export const MaterialHaulageTripsModule: React.FC = () => {
           a[href]:after {
             content: none !important;
           }
-          .print-clean-table {
-            width: 100% !important;
-          }
         }
       `}} />
 
-      {/* Printable Only Header: Bold Supplier Name (Left) & Bold Site Name (Right) */}
-      <div className="hidden print:flex items-center justify-between border-b border-slate-700 pb-3 mb-4">
+      {/* Printable Only Header: Bold Supplier Name (Left) & Bold Site Name (Right) in Original Theme Colors */}
+      <div className="hidden print:flex items-center justify-between border-b border-[#1E293B] pb-3 mb-4">
         <div className="text-2xl font-black uppercase text-white tracking-wide">
           {currentSupplierName}
         </div>
-        <div className="text-2xl font-black uppercase text-white tracking-wide">
+        <div className="text-2xl font-black uppercase text-cyan-400 tracking-wide">
           SITE: {activeSiteName}
         </div>
       </div>
@@ -398,7 +399,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
         </div>
       </div>
 
-      {/* Summary Stat Cards (Hidden on Print via no-print) */}
+      {/* Summary Stat Cards (Hidden on Print) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 no-print">
         <div className="p-4 rounded-2xl bg-[#0B1220] border border-[#1E293B] shadow-lg flex flex-col justify-between">
           <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Total Material Purchase</div>
@@ -453,10 +454,10 @@ export const MaterialHaulageTripsModule: React.FC = () => {
         </div>
       </div>
 
-      {/* Main Table */}
+      {/* Main Table (Original Dark-Theme Colors Kept Intact) */}
       <div className="bg-[#0B1220] border border-[#1E293B] rounded-2xl overflow-hidden shadow-2xl print:border-none print:shadow-none print:rounded-none print:overflow-visible">
         <div className="overflow-x-auto print:overflow-visible">
-          <table className="w-full text-left text-xs border-collapse print-clean-table">
+          <table className="w-full text-left text-xs border-collapse">
             <thead>
               <tr className="border-b border-[#1E293B] text-[10px] font-extrabold uppercase text-slate-400 bg-[#080d19]/80">
                 <th className="py-3 px-3 text-left">DATE</th>
