@@ -321,25 +321,23 @@ export const MaterialHaulageTripsModule: React.FC = () => {
   return (
     <div className="space-y-4 sm:space-y-6 font-sans text-slate-100">
       
-      {/* Elegant Clean A4 Print Stylesheet */}
+      {/* Print-specific stylesheet with card container styling */}
       <style>{`
         @media print {
           @page {
             size: A4 portrait;
-            margin: 12mm 14mm 14mm 14mm;
+            margin: 8mm;
           }
           * {
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
-            box-shadow: none !important;
-            text-shadow: none !important;
           }
           body {
             background: #ffffff !important;
-            color: #0f172a !important;
+            color: #000000 !important;
             margin: 0 !important;
             padding: 0 !important;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
+            font-size: 10px !important;
           }
           body * {
             visibility: hidden;
@@ -352,134 +350,49 @@ export const MaterialHaulageTripsModule: React.FC = () => {
             left: 0 !important;
             top: 0 !important;
             width: 100% !important;
-            background: #ffffff !important;
-            color: #0f172a !important;
-            border: none !important;
-            border-radius: 0 !important;
-            padding: 0 !important;
+            max-width: 100% !important;
             margin: 0 !important;
-            box-shadow: none !important;
+            padding: 0 !important;
+            background: #ffffff !important;
+            color: #000000 !important;
+            border: 1.5px solid #0f172a !important;
+            border-radius: 20px !important;
+            overflow: hidden !important;
           }
           .no-print {
             display: none !important;
           }
-          
-          /* Elegant Header */
-          .print-header-container {
+          .print-header {
             display: block !important;
-            margin-bottom: 18px !important;
-            padding-bottom: 12px !important;
+            padding: 16px 20px 12px 20px !important;
             border-bottom: 2px solid #0f172a !important;
+            background: #ffffff !important;
           }
-          .print-vendor-title {
-            font-size: 18pt !important;
-            font-weight: 900 !important;
-            letter-spacing: -0.02em !important;
-            color: #0f172a !important;
-            text-transform: uppercase !important;
-            margin: 0 0 2px 0 !important;
-          }
-          .print-doc-subtitle {
-            font-size: 8.5pt !important;
-            font-weight: 700 !important;
-            letter-spacing: 0.08em !important;
-            color: #475569 !important;
-            text-transform: uppercase !important;
-            margin: 0 !important;
-          }
-          .print-meta-grid {
-            display: flex !important;
-            justify-content: space-between !important;
-            align-items: flex-end !important;
-            margin-top: 10px !important;
-            font-size: 8.5pt !important;
-            color: #334155 !important;
-          }
-
-          /* Clean Border Table */
-          .print-table {
+          table {
             width: 100% !important;
             border-collapse: collapse !important;
+            font-size: 9px !important;
             table-layout: fixed !important;
-            font-size: 8.5pt !important;
-            border-top: 1px solid #cbd5e1 !important;
-            border-bottom: 1px solid #cbd5e1 !important;
           }
-          .print-table th {
-            background-color: #f8fafc !important;
-            color: #334155 !important;
-            font-weight: 800 !important;
-            font-size: 7.5pt !important;
-            text-transform: uppercase !important;
-            letter-spacing: 0.05em !important;
-            padding: 7px 8px !important;
-            border-bottom: 1.5px solid #0f172a !important;
-            border-top: 1px solid #cbd5e1 !important;
-            border-left: none !important;
-            border-right: none !important;
+          th, td {
+            border: 1px solid #64748b !important;
+            padding: 6px 7px !important;
+            color: #0f172a !important;
+            word-wrap: break-word !important;
+            overflow: hidden !important;
           }
-          .print-table td {
-            padding: 6.5px 8px !important;
-            color: #1e293b !important;
-            border-bottom: 1px solid #e2e8f0 !important;
-            border-left: none !important;
-            border-right: none !important;
-            line-height: 1.3 !important;
-          }
-          .print-table tbody tr:last-child td {
-            border-bottom: 1.5px solid #0f172a !important;
-          }
-
-          /* Financial Summary Footer */
-          .print-table tfoot tr td {
-            padding: 6px 8px !important;
-            border-left: none !important;
-            border-right: none !important;
-          }
-          .print-summary-row td {
+          th {
             background-color: #ffffff !important;
-            font-weight: 700 !important;
-            border-bottom: 1px solid #e2e8f0 !important;
-          }
-          .print-advance-row td {
-            background-color: #fff1f2 !important;
-            color: #9f1239 !important;
-            font-weight: 700 !important;
-            border-bottom: 1.5px solid #0f172a !important;
-          }
-          .print-final-balance td {
-            background-color: #f0fdf4 !important;
-            color: #14532d !important;
-            font-size: 9.5pt !important;
-            font-weight: 900 !important;
-            padding: 9px 8px !important;
-            border-bottom: 2px solid #0f172a !important;
-          }
-          .print-final-payable td {
-            background-color: #fffbeb !important;
-            color: #78350f !important;
-            font-size: 9.5pt !important;
-            font-weight: 900 !important;
-            padding: 9px 8px !important;
-            border-bottom: 2px solid #0f172a !important;
-          }
-
-          /* Elegant Signature Block */
-          .print-sign-block {
-            display: flex !important;
-            justify-content: space-between !important;
-            margin-top: 36px !important;
-            padding-top: 8px !important;
-          }
-          .print-sign-line {
-            width: 140px !important;
-            border-top: 1px dashed #64748b !important;
-            text-align: center !important;
-            font-size: 7.5pt !important;
-            font-weight: 700 !important;
+            font-weight: 800 !important;
             text-transform: uppercase !important;
-            color: #475569 !important;
-            padding-top: 4px !important;
+          }
+          tfoot tr td {
+            background-color: #ffffff !important;
+            font-weight: 800 !important;
+          }
+          .print-final-row td {
+            border-top: 1.5px solid #0f172a !important;
+            padding: 8px 10px !important;
           }
         }
       `}</style>
@@ -572,42 +485,35 @@ export const MaterialHaulageTripsModule: React.FC = () => {
       </div>
 
       {/* Main Print Container & Table */}
-      <div id="print-area" className="bg-[#0B1220] border border-[#1E293B] rounded-2xl overflow-hidden shadow-2xl">
+      <div id="print-area" className="bg-[#0B1220] border border-[#1E293B] rounded-[1.2rem] sm:rounded-3xl overflow-hidden shadow-2xl">
         
-        {/* Printable Header */}
-        <div className="hidden print-header-container">
-          <div className="flex justify-between items-start">
-            <div>
-              <h1 className="print-vendor-title">{activeVendorName}</h1>
-              <p className="print-doc-subtitle">Material Purchase & Haulage Statement</p>
-            </div>
-            <div className="text-right">
-              <span className="text-[8pt] font-mono font-bold px-2 py-0.5 bg-slate-100 border border-slate-300 rounded text-slate-700">
-                PaveTrack ERP
-              </span>
-            </div>
-          </div>
-          
-          <div className="print-meta-grid">
-            <div><strong>Project Site:</strong> {activeSiteName}</div>
-            <div><strong>Statement Date:</strong> {new Date().toLocaleDateString('en-IN')}</div>
+        {/* Printable Header with Vendor Name */}
+        <div className="hidden print-header">
+          <h1 className="text-xl font-black uppercase text-black tracking-tight leading-tight">
+            {activeVendorName}
+          </h1>
+          <p className="text-xs text-black font-bold uppercase tracking-wider mt-0.5">
+            MATERIAL PURCHASED
+          </p>
+          <div className="text-[11px] text-black font-semibold mt-1">
+            <span><strong>Site:</strong> {activeSiteName}</span>
           </div>
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs border-collapse print-table">
+          <table className="w-full text-left text-[10px] sm:text-xs border-collapse">
             <thead>
-              <tr className="border-b border-[#1E293B] text-[10px] font-extrabold uppercase text-slate-400 bg-[#080d19]/80">
-                <th className="py-3 px-3 text-left w-[11%]">DATE</th>
-                <th className="py-3 px-3 text-center w-[11%]">SITE</th>
-                <th className="py-3 px-3 text-left w-[15%]">PURCHASED FROM</th>
-                <th className="py-3 px-3 text-center w-[11%]">VEHICLE</th>
-                <th className="py-3 px-3 text-left w-[22%]">MATERIAL NAME</th>
-                <th className="py-3 px-2 text-center w-[6%]">TRIPS</th>
-                <th className="py-3 px-2 text-right w-[7%]">QTY/TRIP</th>
-                <th className="py-3 px-2 text-right w-[8%]">RATE (₹)</th>
-                <th className="py-3 px-3 text-right w-[11%]">AMOUNT (₹)</th>
-                <th className="py-3 px-3 text-center w-[8%] no-print">ACTION</th>
+              <tr className="border-b border-[#1E293B] text-[9px] sm:text-[10px] font-extrabold uppercase tracking-wider text-slate-400 bg-[#080d19]/80">
+                <th className="py-3 px-3 w-[11%] text-left">DATE</th>
+                <th className="py-3 px-3 w-[11%] text-center">SITE</th>
+                <th className="py-3 px-3 w-[15%] text-left">PURCHASED FROM</th>
+                <th className="py-3 px-3 w-[11%] text-center">VEHICLE</th>
+                <th className="py-3 px-3 w-[22%] text-left">MATERIAL NAME</th>
+                <th className="py-3 px-2 w-[6%] text-center">TRIPS</th>
+                <th className="py-3 px-2 w-[7%] text-right">QTY/TRIP</th>
+                <th className="py-3 px-2 w-[8%] text-right">RATE (₹)</th>
+                <th className="py-3 px-3 w-[11%] text-right">AMOUNT (₹)</th>
+                <th className="py-3 px-3 w-[8%] text-center no-print">ACTION</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#1E293B]/60 text-slate-200">
@@ -624,13 +530,13 @@ export const MaterialHaulageTripsModule: React.FC = () => {
                       {formatDateDMY(t.tripDate)}
                     </td>
                     <td className="py-2.5 px-3 font-bold text-cyan-400 text-center">{t.siteName}</td>
-                    <td className="py-2.5 px-3 font-semibold text-emerald-400">{t.purchasedFrom || 'Direct Quarry'}</td>
+                    <td className="py-2.5 px-3 font-semibold text-emerald-400 truncate">{t.purchasedFrom || 'Direct Quarry'}</td>
                     <td className="py-2.5 px-3 font-mono text-slate-300 text-center">{t.vehicleNumber}</td>
                     <td className="py-2.5 px-3 font-bold text-amber-300">{t.materialName}</td>
                     <td className="py-2.5 px-2 text-center font-mono">{t.dayTrips}</td>
                     <td className="py-2.5 px-2 text-right font-mono">{t.brassPerTrip}</td>
-                    <td className="py-2.5 px-2 text-right font-mono text-emerald-400">₹{t.ratePerBrass.toLocaleString('en-IN')}</td>
-                    <td className="py-2.5 px-3 text-right font-mono font-black text-amber-400">₹{t.totalAmount.toLocaleString('en-IN')}</td>
+                    <td className="py-2.5 px-2 text-right font-mono text-emerald-400 whitespace-nowrap">₹{t.ratePerBrass.toLocaleString('en-IN')}</td>
+                    <td className="py-2.5 px-3 text-right font-mono font-black text-amber-400 whitespace-nowrap">₹{t.totalAmount.toLocaleString('en-IN')}</td>
                     <td className="py-2.5 px-3 text-center no-print">
                       <div className="flex items-center justify-center gap-1">
                         <button onClick={() => handleEdit(t)} className="p-1 rounded text-slate-400 hover:text-blue-400">
@@ -646,13 +552,13 @@ export const MaterialHaulageTripsModule: React.FC = () => {
               )}
             </tbody>
 
-            {/* Clean Structured Financial Statement Footer */}
+            {/* Table Footer */}
             {filtered.length > 0 && (
               <tfoot className="border-t-2 border-[#1E293B] bg-[#070c18] font-mono">
                 {/* 1. Gross Material Purchase */}
-                <tr className="print-summary-row border-b border-[#1E293B]/60">
+                <tr className="border-b border-[#1E293B]/60">
                   <td colSpan={5} className="py-2 px-3 font-bold uppercase text-slate-300 text-right">
-                    Total Material Purchased:
+                    TOTAL MATERIAL PURCHASED:
                   </td>
                   <td className="py-2 px-2 text-center font-bold text-cyan-400 whitespace-nowrap">{overallTotals.trips} Trips</td>
                   <td className="py-2 px-2 text-right font-bold text-white whitespace-nowrap">{overallTotals.brass} Brass</td>
@@ -662,9 +568,9 @@ export const MaterialHaulageTripsModule: React.FC = () => {
                 </tr>
 
                 {/* 2. Less Advance Payment Received */}
-                <tr className="print-advance-row border-b border-[#1E293B]/60 text-rose-400">
+                <tr className="border-b border-[#1E293B]/60 text-rose-400">
                   <td colSpan={8} className="py-2 px-3 font-bold uppercase text-right">
-                    (-) Less: Advance Payment Received {advanceDatesSummary ? `(${advanceDatesSummary})` : ''}:
+                    (-) LESS: ADVANCE PAYMENT RECEIVED {advanceDatesSummary ? `(${advanceDatesSummary})` : ''}:
                   </td>
                   <td className="py-2 px-3 text-right font-bold whitespace-nowrap">
                     - ₹{totalVendorAdvancePaid.toLocaleString('en-IN')}
@@ -672,11 +578,11 @@ export const MaterialHaulageTripsModule: React.FC = () => {
                   <td className="py-2 px-3 no-print"></td>
                 </tr>
 
-                {/* 3. Final Balance Highlight Row */}
+                {/* 3. Final Balance Row */}
                 {remainingAdvanceBalance > 0 ? (
-                  <tr className="print-final-balance bg-[#082216] text-emerald-400 font-black">
+                  <tr className="print-final-row bg-[#082216] text-emerald-400 font-black">
                     <td colSpan={8} className="py-2.5 px-3 text-right uppercase tracking-wider text-xs">
-                      Remaining Advance Balance (Excess):
+                      REMAINING ADVANCE BALANCE (EXCESS):
                     </td>
                     <td className="py-2.5 px-3 text-right text-xs sm:text-sm font-black whitespace-nowrap">
                       ₹{remainingAdvanceBalance.toLocaleString('en-IN')}
@@ -684,9 +590,9 @@ export const MaterialHaulageTripsModule: React.FC = () => {
                     <td className="py-2.5 px-3 no-print"></td>
                   </tr>
                 ) : (
-                  <tr className="print-final-payable bg-[#1e1906] text-amber-400 font-black">
+                  <tr className="print-final-row bg-[#1e1906] text-amber-400 font-black">
                     <td colSpan={8} className="py-2.5 px-3 text-right uppercase tracking-wider text-xs">
-                      (=) Net Payable Amount:
+                      (=) NET PAYABLE AMOUNT:
                     </td>
                     <td className="py-2.5 px-3 text-right text-xs sm:text-sm font-black whitespace-nowrap">
                       ₹{netPayableAmount.toLocaleString('en-IN')}
@@ -697,13 +603,6 @@ export const MaterialHaulageTripsModule: React.FC = () => {
               </tfoot>
             )}
           </table>
-        </div>
-
-        {/* Elegant Sign-off Footer on Print Page */}
-        <div className="hidden print-sign-block">
-          <div className="print-sign-line">Supplier Signature</div>
-          <div className="print-sign-line">Site Incharge / Engineer</div>
-          <div className="print-sign-line">Authorized Signatory</div>
         </div>
       </div>
 
@@ -783,6 +682,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
                   </button>
                 </div>
 
+                {/* Dropdown Options with Trash / Delete Button */}
                 {isVendorDropdownOpen && (
                   <div className="absolute left-0 right-0 mt-1 bg-[#0F172A] border border-[#1E293B] rounded-xl shadow-2xl z-50 max-h-48 overflow-y-auto divide-y divide-[#1E293B]">
                     {savedVendors
