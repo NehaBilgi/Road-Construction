@@ -321,21 +321,13 @@ export const MaterialHaulageTripsModule: React.FC = () => {
   };
 
   return (
-    <div className="space-y-4 sm:space-y-6 font-sans text-slate-100 print:text-black print:space-y-3 print:p-8">
+    <div className="space-y-4 sm:space-y-6 font-sans text-slate-100 print:text-black print:space-y-3">
       {/* Print Styles */}
       <style dangerouslySetInnerHTML={{ __html: `
         @media print {
           @page {
             size: portrait;
-            margin: 0 !important;
-          }
-          body {
-            margin: 0 !important;
-            padding: 12mm 15mm !important;
-            background-color: #ffffff !important;
-            color: #000000 !important;
-            -webkit-print-color-adjust: exact !important;
-            print-color-adjust: exact !important;
+            margin: 10mm 12mm;
           }
           html, body, #root, main, div, table {
             overflow: visible !important;
@@ -352,6 +344,10 @@ export const MaterialHaulageTripsModule: React.FC = () => {
           aside,
           .no-print {
             display: none !important;
+          }
+          body {
+            background-color: #ffffff !important;
+            color: #000000 !important;
           }
           .print-clean-table {
             width: 100% !important;
