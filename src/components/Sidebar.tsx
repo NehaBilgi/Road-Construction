@@ -10,7 +10,8 @@ import {
   ArrowRight,
   HardHat,
   ChevronRight,
-  MapPin
+  MapPin,
+  CreditCard
 } from 'lucide-react';
 
 interface Props {
@@ -33,6 +34,7 @@ export const SiteCentricMidnightDashboard: React.FC<Props> = ({ onNavigateTab })
   const [trips, setTrips] = useState<any[]>([]);
   const [diesel, setDiesel] = useState<any[]>([]);
   const [expenses, setExpenses] = useState<any[]>([]);
+  const [advances, setAdvances] = useState<any[]>([]);
 
   const loadDashboardData = useCallback(() => {
     try {
@@ -44,10 +46,14 @@ export const SiteCentricMidnightDashboard: React.FC<Props> = ({ onNavigateTab })
 
       const savedExpenses = localStorage.getItem('CONSTRUCTION_PRO_SITE_EXPENSES_V1');
       setExpenses(savedExpenses ? JSON.parse(savedExpenses) || [] : []);
+
+      const savedAdvances = localStorage.getItem('CONSTRUCTION_PRO_VENDOR_ADVANCES_V1');
+      setAdvances(savedAdvances ? JSON.parse(savedAdvances) || [] : []);
     } catch {
       setTrips([]);
       setDiesel([]);
       setExpenses([]);
+      setAdvances([]);
     }
   }, []);
 
@@ -77,6 +83,11 @@ export const SiteCentricMidnightDashboard: React.FC<Props> = ({ onNavigateTab })
     [expenses, activeSite?.siteName]
   );
 
+  const siteAdvances = useMemo(
+    () => (advances || []).filter((a) => a?.siteName === activeSite?.siteName || a?.siteName?.includes('Ongoing')),
+    [advances, activeSite?.siteName]
+  );
+
   // Fallbacks: All calculate to strictly 0 if no records exist
   const totalBrassToday = siteTrips.reduce((sum, t) => {
     const dayTrips = Number(t?.dayTrips || 0);
@@ -92,13 +103,20 @@ export const SiteCentricMidnightDashboard: React.FC<Props> = ({ onNavigateTab })
     return sum + (Number(d?.litres) || 0);
   }, 0) || 0;
 
-  // Total Site Expense Calculation (Defaults strictly to 0)
+  // Total Site Expense Calculation
   const totalSiteExpense = siteExpenses.reduce((sum, e) => {
     const val = Number(e?.amount);
     return sum + (!isNaN(val) && val > 0 ? val : 0);
   }, 0) || 0;
 
+  // Total Vendor Advances Calculation
+  const totalVendorAdvances = siteAdvances.reduce((sum, a) => {
+    const val = Number(a?.amount);
+    return sum + (!isNaN(val) && val > 0 ? val : 0);
+  }, 0) || 0;
+
   const expenseVoucherCount = siteExpenses.length || 0;
+  const advanceCount = siteAdvances.length || 0;
 
   return (
     <div className="space-y-4 sm:space-y-6 font-sans text-slate-100 animate-in fade-in duration-300">
@@ -121,7 +139,7 @@ export const SiteCentricMidnightDashboard: React.FC<Props> = ({ onNavigateTab })
               {activeSite?.siteName}
             </h1>
             <p className="text-xs sm:text-sm text-slate-400 max-w-xl leading-relaxed">
-              Live site metrics, equipment telematics, material haulage, and petty cash ledger.
+              Live site metrics, equipment telematics, material haulage, and supplier advances.
             </p>
           </div>
 
@@ -155,6 +173,13 @@ export const SiteCentricMidnightDashboard: React.FC<Props> = ({ onNavigateTab })
               <span className="truncate">+ Log Trip</span>
             </button>
             <button 
+              onClick={() => onNavigateTab('vendor-advances')}
+              className="w-full sm:w-auto justify-center px-3 py-2.5 sm:px-4 sm:py-2.5 rounded-xl bg-[#121927] hover:bg-[#1b263b] border border-amber-500/30 text-amber-400 text-[11px] sm:text-xs font-bold flex items-center gap-1.5 sm:gap-2 transition-all cursor-pointer"
+            >
+              <CreditCard className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+              <span className="truncate">+ Advance</span>
+            </button>
+            <button 
               onClick={() => onNavigateTab('site-expenses')}
               className="col-span-2 sm:col-span-1 w-full sm:w-auto justify-center px-4 py-2.5 sm:px-5 sm:py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-black flex items-center gap-2 transition-all shadow-lg shadow-blue-600/30 cursor-pointer"
             >
@@ -165,7 +190,7 @@ export const SiteCentricMidnightDashboard: React.FC<Props> = ({ onNavigateTab })
         </div>
       </div>
 
-      {/* KPI Cards */}
+      {/* KPI Cards: 4-Column Grid with Vendor Advances */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         
         {/* Total Material Laid */}
@@ -203,32 +228,32 @@ export const SiteCentricMidnightDashboard: React.FC<Props> = ({ onNavigateTab })
           </div>
         </div>
 
-        {/* Total Site Expense Card */}
+        {/* Vendor Advances Paid */}
         <div 
-          onClick={() => onNavigateTab('site-expenses')}
-          className="p-4 sm:p-5 rounded-[1.2rem] sm:rounded-[1.5rem] bg-[#0B1220] border border-[#1E293B] shadow-xl hover:border-emerald-500/50 transition-all cursor-pointer group flex flex-col justify-between"
+          onClick={() => onNavigateTab('vendor-advances')}
+          className="p-4 sm:p-5 rounded-[1.2rem] sm:rounded-[1.5rem] bg-[#0B1220] border border-[#1E293B] shadow-xl hover:border-amber-500/50 transition-all cursor-pointer group flex flex-col justify-between"
         >
           <div className="space-y-3 sm:space-y-4">
             <div className="flex justify-between items-start">
               <div className="text-[10px] sm:text-[11px] font-bold text-slate-400 tracking-wider">
-                TOTAL SITE EXPENSE
+                VENDOR ADVANCES PAID
               </div>
-              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-emerald-950/60 flex items-center justify-center border border-emerald-500/30 shrink-0">
-                <DollarSign className="w-4 h-4 text-emerald-400" />
+              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-amber-950/60 flex items-center justify-center border border-amber-500/30 shrink-0">
+                <CreditCard className="w-4 h-4 text-amber-400" />
               </div>
             </div>
             <div className="flex items-baseline gap-1">
-              <span className="text-3xl sm:text-4xl font-black text-emerald-400 font-mono tracking-tight truncate">
-                ₹{totalSiteExpense.toLocaleString('en-IN')}
+              <span className="text-3xl sm:text-4xl font-black text-amber-400 font-mono tracking-tight truncate">
+                ₹{totalVendorAdvances.toLocaleString('en-IN')}
               </span>
             </div>
           </div>
           <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-[#1E293B] space-y-2 sm:space-y-3">
             <div className="flex items-center gap-1.5 text-[10px] sm:text-[11px] font-medium text-slate-400 truncate">
-              {expenseVoucherCount > 0 ? `${expenseVoucherCount} ${expenseVoucherCount === 1 ? 'expense voucher' : 'expense vouchers'}` : '0 expense vouchers'}
+              {advanceCount > 0 ? `${advanceCount} advance payments` : '0 advance payments'}
             </div>
-            <div className="flex items-center gap-1 text-[10px] sm:text-[11px] font-bold text-slate-400 group-hover:text-emerald-400 transition-colors">
-              <span>Open expenses ledger</span>
+            <div className="flex items-center gap-1 text-[10px] sm:text-[11px] font-bold text-slate-400 group-hover:text-amber-400 transition-colors">
+              <span>Manage vendor advances</span>
               <ArrowRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" />
             </div>
           </div>
