@@ -461,16 +461,18 @@ export const MaterialHaulageTripsModule: React.FC = () => {
                 {activeVendorName}
               </h1>
               <p className="text-xs text-black font-bold uppercase tracking-wider mt-0.5">
-                Material Purchase & Haulage Statement
+                MATERIAL PURCHASED
               </p>
               <div className="text-[11px] text-black font-semibold mt-1 flex gap-4">
                 <span><strong>Site:</strong> {activeSiteName}</span>
-                <span><strong>Date:</strong> {new Date().toLocaleDateString('en-IN')}</span>
+                <span><strong>Date:</strong> {filtered[0]?.tripDate || new Date().toLocaleDateString('en-IN')}</span>
               </div>
             </div>
             
             <div className="text-right">
-              <div className="text-[10px] font-bold text-black uppercase tracking-wider">Total Payable Amount</div>
+              <div className="text-[10px] font-bold text-black uppercase tracking-wider">
+                TOTAL PAYABLE AMOUNT
+              </div>
               <div className="text-xl font-black text-black">
                 ₹{overallTotals.amount.toLocaleString('en-IN')}
               </div>
@@ -507,6 +509,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
               ) : (
                 filtered.map((t) => (
                   <tr key={t.id} className="hover:bg-[#121c33]/50 transition-colors">
+                    {/* Date Only */}
                     <td className="py-2.5 px-3 font-mono font-bold text-slate-300 text-center whitespace-nowrap">
                       {t.tripDate}
                     </td>
