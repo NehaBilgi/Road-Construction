@@ -330,15 +330,16 @@ export const MaterialHaulageTripsModule: React.FC = () => {
   };
 
   return (
-    <div className="space-y-4 sm:space-y-6 font-sans text-slate-100 print:text-black print:space-y-3 print:bg-white print:p-0 print:m-0 print:w-full">
-      {/* 100% Margin / Full Width Print Styles */}
+    <div className="space-y-4 sm:space-y-6 font-sans text-slate-100 print:text-black print:space-y-0 print:p-0 print:m-0 print:w-full">
+      {/* Clean, Systematic A4 Portrait Print Styles */}
       <style dangerouslySetInnerHTML={{ __html: `
         @media print {
           @page {
-            size: portrait;
-            margin: 0 !important;
+            size: A4 portrait;
+            margin: 12mm 14mm;
           }
           
+          /* Neutralize app containers and enforce clean paper canvas */
           html,
           body,
           #root,
@@ -355,8 +356,6 @@ export const MaterialHaulageTripsModule: React.FC = () => {
             max-height: none !important;
             width: 100% !important;
             max-width: 100% !important;
-            margin: 0 !important;
-            padding: 0 !important;
           }
 
           * {
@@ -365,6 +364,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
             print-color-adjust: exact !important;
           }
 
+          /* Remove all non-print interface controls */
           nav,
           header,
           aside,
@@ -376,46 +376,50 @@ export const MaterialHaulageTripsModule: React.FC = () => {
             content: none !important;
           }
 
+          /* Clean, crisp statement table */
           .print-clean-table {
             width: 100% !important;
             border-collapse: collapse !important;
             background-color: #ffffff !important;
-            margin: 0 !important;
+            margin-top: 6px !important;
           }
 
           .print-clean-table th {
-            background-color: #ffffff !important;
-            border-bottom: 2px solid #000000 !important;
-            padding: 8px 10px !important;
-            font-size: 11px !important;
+            background-color: #f8fafc !important;
+            border-top: 1.5px solid #0f172a !important;
+            border-bottom: 2px solid #0f172a !important;
+            padding: 8px 6px !important;
+            font-size: 9.5px !important;
             font-weight: 800 !important;
+            letter-spacing: 0.05em !important;
+            text-transform: uppercase !important;
           }
 
           .print-clean-table td {
             background-color: #ffffff !important;
-            border-bottom: 1px solid #d1d5db !important;
-            padding: 8px 10px !important;
-            font-size: 11px !important;
+            border-bottom: 1px solid #e2e8f0 !important;
+            padding: 7px 6px !important;
+            font-size: 10px !important;
+          }
+
+          .print-clean-table tfoot tr {
+            border-bottom: 1px solid #cbd5e1 !important;
           }
 
           .print-clean-table tfoot td {
             background-color: #ffffff !important;
-            padding: 8px 10px !important;
-            font-size: 11.5px !important;
-          }
-
-          .print-clean-table tfoot tr {
-            border-bottom: 1px solid #d1d5db !important;
+            padding: 7px 6px !important;
+            font-size: 10.5px !important;
           }
         }
       `}} />
 
-      {/* Printable Only Header: Bold Black Supplier Name & Site Name across 100% Width */}
-      <div className="hidden print:flex items-center justify-between border-b-2 border-black pb-3 mb-3 w-full px-4 pt-4">
-        <div className="text-2xl font-black uppercase text-black tracking-wide">
+      {/* Printable Header: Clean Bold Supplier Name (Left) & Site Name (Right) */}
+      <div className="hidden print:flex items-center justify-between border-b-2 border-slate-900 pb-3 mb-3 w-full">
+        <div className="text-xl font-black uppercase text-slate-900 tracking-wider">
           {currentSupplierName}
         </div>
-        <div className="text-2xl font-black uppercase text-black tracking-wide">
+        <div className="text-xl font-black uppercase text-slate-900 tracking-wider">
           SITE: {activeSiteName}
         </div>
       </div>
@@ -514,7 +518,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
         <div className="overflow-x-auto print:overflow-visible print:w-full">
           <table className="w-full text-left text-xs border-collapse print-clean-table">
             <thead>
-              <tr className="border-b border-[#1E293B] text-[10px] font-extrabold uppercase text-slate-400 bg-[#080d19]/80 print:bg-white print:text-black">
+              <tr className="border-b border-[#1E293B] text-[10px] font-extrabold uppercase text-slate-400 bg-[#080d19]/80 print:bg-slate-100 print:text-slate-900">
                 <th className="py-3 px-3 text-left">DATE</th>
                 <th className="py-3 px-3 text-center">SITE</th>
                 <th className="py-3 px-3">PURCHASED FROM</th>
@@ -527,7 +531,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
                 <th className="py-3 px-3 text-center no-print">ACTION</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#1E293B]/60 text-slate-200 print:divide-slate-300">
+            <tbody className="divide-y divide-[#1E293B]/60 text-slate-200 print:divide-slate-200">
               {filtered.length === 0 ? (
                 <tr>
                   <td colSpan={10} className="py-8 text-center text-slate-500 print:text-black">
@@ -565,7 +569,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
 
             {/* Table Footer */}
             {filtered.length > 0 && (
-              <tfoot className="border-t-2 border-[#1E293B] print:border-t-2 print:border-black bg-[#070c18] font-mono print:bg-white">
+              <tfoot className="border-t-2 border-[#1E293B] print:border-t-2 print:border-slate-900 bg-[#070c18] font-mono print:bg-white">
                 <tr className="border-b border-[#1E293B]/60 print:border-b print:border-slate-300">
                   <td colSpan={5} className="py-2.5 px-3 font-bold uppercase text-slate-300 print:text-black text-right">
                     Total Material Purchased:
