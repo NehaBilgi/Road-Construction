@@ -323,7 +323,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
 
   return (
     <div className="space-y-4 sm:space-y-6 font-sans text-slate-100 print:text-black print:space-y-4">
-      {/* Print Specific CSS Rules */}
+      {/* Print Styles */}
       <style dangerouslySetInnerHTML={{ __html: `
         @media print {
           @page {
@@ -340,12 +340,6 @@ export const MaterialHaulageTripsModule: React.FC = () => {
             background-color: #ffffff !important;
             color: #000000 !important;
           }
-          .print-clean-card {
-            border: 1px solid #cbd5e1 !important;
-            background-color: #f8fafc !important;
-            color: #000000 !important;
-            box-shadow: none !important;
-          }
           .print-clean-table th {
             background-color: #f1f5f9 !important;
             color: #000000 !important;
@@ -358,7 +352,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
         }
       `}} />
 
-      {/* Printable Header: Supplier Name & Site Name in Bold Only */}
+      {/* Printable Only Header: Bold Supplier Name & Bold Site Name */}
       <div className="hidden print:flex items-center justify-between border-b-2 border-black pb-3">
         <div className="text-2xl font-black uppercase text-black tracking-wide">
           {currentSupplierName}
@@ -383,7 +377,6 @@ export const MaterialHaulageTripsModule: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-2">
-          {/* Print to PDF Action Button */}
           <button
             onClick={() => window.print()}
             className="px-3.5 py-2.5 rounded-xl bg-[#131d33] hover:bg-[#1a2847] border border-[#1E293B] hover:border-slate-600 text-slate-200 text-xs font-bold flex items-center gap-1.5 transition-all shadow-sm cursor-pointer"
@@ -403,42 +396,42 @@ export const MaterialHaulageTripsModule: React.FC = () => {
         </div>
       </div>
 
-      {/* Summary Stat Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-        <div className="p-4 rounded-2xl bg-[#0B1220] border border-[#1E293B] shadow-lg flex flex-col justify-between print-clean-card">
-          <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 print:text-slate-700">Total Material Purchase</div>
-          <div className="text-2xl font-black text-white font-mono mt-1 print:text-black">₹{overallTotals.amount.toLocaleString('en-IN')}</div>
-          <div className="text-[10px] text-slate-500 print:text-slate-600 font-medium">{overallTotals.trips} Trips ({overallTotals.brass} Brass)</div>
+      {/* Summary Stat Cards (Hidden on Print) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 no-print">
+        <div className="p-4 rounded-2xl bg-[#0B1220] border border-[#1E293B] shadow-lg flex flex-col justify-between">
+          <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Total Material Purchase</div>
+          <div className="text-2xl font-black text-white font-mono mt-1">₹{overallTotals.amount.toLocaleString('en-IN')}</div>
+          <div className="text-[10px] text-slate-500 font-medium">{overallTotals.trips} Trips ({overallTotals.brass} Brass)</div>
         </div>
 
-        <div className="p-4 rounded-2xl bg-[#0B1220] border border-[#1E293B] shadow-lg flex flex-col justify-between print-clean-card">
-          <div className="text-[10px] font-bold uppercase tracking-wider text-rose-400 print:text-slate-700">(-) Less: Advance Paid</div>
-          <div className="text-2xl font-black text-rose-400 font-mono mt-1 print:text-black">₹{totalVendorAdvancePaid.toLocaleString('en-IN')}</div>
-          <div className="text-[10px] text-slate-500 print:text-slate-600 font-medium">
+        <div className="p-4 rounded-2xl bg-[#0B1220] border border-[#1E293B] shadow-lg flex flex-col justify-between">
+          <div className="text-[10px] font-bold uppercase tracking-wider text-rose-400">(-) Less: Advance Paid</div>
+          <div className="text-2xl font-black text-rose-400 font-mono mt-1">₹{totalVendorAdvancePaid.toLocaleString('en-IN')}</div>
+          <div className="text-[10px] text-slate-500 font-medium">
             {advanceDatesSummary ? `Paid on: ${advanceDatesSummary}` : 'Auto-deducted from Advances ledger'}
           </div>
         </div>
 
-        <div className={`p-4 rounded-2xl border shadow-lg flex flex-col justify-between transition-all print-clean-card ${
+        <div className={`p-4 rounded-2xl border shadow-lg flex flex-col justify-between transition-all ${
           netPayableAmount > 0 
             ? 'bg-amber-950/20 border-amber-500/30' 
             : 'bg-[#0B1220] border-[#1E293B] opacity-75'
         }`}>
-          <div className="text-[10px] font-bold uppercase tracking-wider text-amber-400 print:text-slate-700">(=) Net Payable Amount</div>
-          <div className="text-2xl font-black text-amber-400 font-mono mt-1 print:text-black">₹{netPayableAmount.toLocaleString('en-IN')}</div>
-          <div className="text-[10px] text-slate-400 print:text-slate-600 font-medium">
+          <div className="text-[10px] font-bold uppercase tracking-wider text-amber-400">(=) Net Payable Amount</div>
+          <div className="text-2xl font-black text-amber-400 font-mono mt-1">₹{netPayableAmount.toLocaleString('en-IN')}</div>
+          <div className="text-[10px] text-slate-400 font-medium">
             {netPayableAmount > 0 ? 'Remaining balance to pay vendor' : 'Cleared by Advance'}
           </div>
         </div>
 
-        <div className={`p-4 rounded-2xl border shadow-lg flex flex-col justify-between transition-all print-clean-card ${
+        <div className={`p-4 rounded-2xl border shadow-lg flex flex-col justify-between transition-all ${
           remainingAdvanceBalance > 0 
             ? 'bg-emerald-950/30 border-emerald-500/40' 
             : 'bg-[#0B1220] border-[#1E293B] opacity-75'
         }`}>
-          <div className="text-[10px] font-bold uppercase tracking-wider text-emerald-400 print:text-slate-700">Remaining Advance Balance</div>
-          <div className="text-2xl font-black text-emerald-400 font-mono mt-1 print:text-black">₹{remainingAdvanceBalance.toLocaleString('en-IN')}</div>
-          <div className="text-[10px] text-emerald-500/80 font-bold print:text-slate-600">
+          <div className="text-[10px] font-bold uppercase tracking-wider text-emerald-400">Remaining Advance Balance</div>
+          <div className="text-2xl font-black text-emerald-400 font-mono mt-1">₹{remainingAdvanceBalance.toLocaleString('en-IN')}</div>
+          <div className="text-[10px] text-emerald-500/80 font-bold">
             {remainingAdvanceBalance > 0 ? 'Unused Advance with Vendor' : 'No Surplus Advance'}
           </div>
         </div>
