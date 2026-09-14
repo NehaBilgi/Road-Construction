@@ -88,7 +88,6 @@ export const MaterialHaulageTripsModule: React.FC = () => {
     }
   });
 
-  // State for loaded vendor advances
   const [advances, setAdvances] = useState<any[]>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_VENDOR_ADVANCES_KEY);
@@ -98,7 +97,6 @@ export const MaterialHaulageTripsModule: React.FC = () => {
     }
   });
 
-  // Keep advances synced
   useEffect(() => {
     const handleSync = () => {
       try {
@@ -144,7 +142,6 @@ export const MaterialHaulageTripsModule: React.FC = () => {
     }
   };
 
-  // Close dropdown on outside click
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (vendorDropdownRef.current && !vendorDropdownRef.current.contains(event.target as Node)) {
@@ -184,7 +181,6 @@ export const MaterialHaulageTripsModule: React.FC = () => {
     });
   }, [trips, activeSiteName, searchQuery]);
 
-  // Totals
   const overallTotals = useMemo(() => {
     return filtered.reduce(
       (acc, t) => {
@@ -201,13 +197,11 @@ export const MaterialHaulageTripsModule: React.FC = () => {
     );
   }, [filtered]);
 
-  // Primary active vendor name
   const activeVendorName = useMemo(() => {
     const vendors = Array.from(new Set(filtered.map((t) => t.purchasedFrom?.trim()).filter(Boolean)));
     return vendors.length > 0 ? vendors.join(', ') : 'Direct Supplier';
   }, [filtered]);
 
-  // Calculate Advances linked to the vendors of the current filtered site
   const totalVendorAdvancePaid = useMemo(() => {
     const currentVendorNames = Array.from(new Set(filtered.map((t) => t.purchasedFrom?.trim().toLowerCase()).filter(Boolean)));
     return advances
@@ -219,7 +213,6 @@ export const MaterialHaulageTripsModule: React.FC = () => {
       .reduce((sum, a) => sum + (Number(a.amount) || 0), 0);
   }, [advances, filtered, activeSiteName]);
 
-  // Extract formatted dates of advances linked to this vendor/site in DD-MM-YYYY format
   const advanceDatesSummary = useMemo(() => {
     const currentVendorNames = Array.from(new Set(filtered.map((t) => t.purchasedFrom?.trim().toLowerCase()).filter(Boolean)));
     const matchedDates = advances
@@ -234,7 +227,6 @@ export const MaterialHaulageTripsModule: React.FC = () => {
     return uniqueDates.length > 0 ? uniqueDates.join(', ') : '';
   }, [advances, filtered, activeSiteName]);
 
-  // Net Balance Calculations
   const rawBalance = overallTotals.amount - totalVendorAdvancePaid;
   const isAdvanceExcess = rawBalance < 0;
   const netPayableAmount = isAdvanceExcess ? 0 : rawBalance;
@@ -328,11 +320,24 @@ export const MaterialHaulageTripsModule: React.FC = () => {
 
   return (
     <div className="space-y-4 sm:space-y-6 font-sans text-slate-100">
+      
+      {/* Exact Match Print Stylesheet matching reference layout with rounded outer card border */}
       <style>{`
         @media print {
           @page {
-            size: portrait;
-            margin: 8mm;
+            size: A4 portrait;
+            margin: 10mm;
+          }
+          * {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+            box-shadow: none !important;
+          }
+          body {
+            background: #ffffff !important;
+            color: #000000 !important;
+            margin: 0 !important;
+            padding: 0 !important;
           }
           body * {
             visibility: hidden;
@@ -341,34 +346,54 @@ export const MaterialHaulageTripsModule: React.FC = () => {
             visibility: visible;
           }
           #print-area {
-            position: absolute;
-            left: 0;
-            top: 0;
+            position: absolute !important;
+            left: 0 !important;
+            top: 0 !important;
             width: 100% !important;
-            background: white !important;
-            color: black !important;
+            max-width: 100% !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            background: #ffffff !important;
+            color: #000000 !important;
+            border: 2px solid #000000 !important;
+            border-radius: 16px !important;
+            overflow: hidden !important;
           }
           .no-print {
             display: none !important;
           }
           .print-header {
             display: block !important;
-            margin-bottom: 8px;
+            padding: 16px 20px 14px 20px !important;
+            border-bottom: 2px solid #000000 !important;
+            background: #ffffff !important;
           }
           table {
             width: 100% !important;
             border-collapse: collapse !important;
-            font-size: 9px !important;
+            font-size: 8.5pt !important;
             table-layout: fixed !important;
           }
           th, td {
-            border: 1px solid #777 !important;
-            padding: 4px 5px !important;
-            color: #000 !important;
+            border: 1px solid #000000 !important;
+            padding: 7px 8px !important;
+            color: #000000 !important;
+            word-wrap: break-word !important;
+            overflow: hidden !important;
           }
           th {
-            background-color: #f2f2f2 !important;
-            font-weight: bold !important;
+            background-color: #ffffff !important;
+            font-weight: 800 !important;
+            text-transform: uppercase !important;
+            font-size: 8pt !important;
+          }
+          tfoot tr td {
+            background-color: #ffffff !important;
+            font-weight: 800 !important;
+          }
+          .print-bold-row td {
+            font-weight: 900 !important;
+            font-size: 9pt !important;
           }
         }
       `}</style>
@@ -446,7 +471,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
         </div>
       </div>
 
-      {/* Search */}
+      {/* Search Bar */}
       <div className="p-3 rounded-2xl bg-[#0c1427] border border-[#182643] flex items-center gap-3 text-xs no-print">
         <div className="relative flex-1">
           <Search className="absolute left-3.5 top-2.5 w-4 h-4 text-slate-500" />
@@ -461,31 +486,35 @@ export const MaterialHaulageTripsModule: React.FC = () => {
       </div>
 
       {/* Main Print Container & Table */}
-      <div id="print-area" className="bg-[#0B1220] border border-[#1E293B] rounded-2xl overflow-hidden shadow-2xl">
+      <div id="print-area" className="bg-[#0B1220] border border-[#1E293B] rounded-[1.2rem] sm:rounded-3xl overflow-hidden shadow-2xl">
         
-        {/* Printable Header */}
-        <div className="hidden print-header p-4 border-b-2 border-black">
-          <h1 className="text-xl font-black uppercase text-black">{activeVendorName}</h1>
-          <p className="text-xs text-black font-bold uppercase tracking-wider mt-0.5">MATERIAL PURCHASED</p>
-          <div className="text-[11px] text-black font-semibold mt-1">
-            <span><strong>Site:</strong> {activeSiteName}</span>
+        {/* Printable Header matching reference screenshot style */}
+        <div className="hidden print-header">
+          <h1 className="text-[17pt] font-black uppercase text-black tracking-tight leading-none m-0">
+            {activeVendorName}
+          </h1>
+          <p className="text-[9pt] font-black uppercase tracking-wide text-black mt-1 m-0">
+            MATERIAL PURCHASED
+          </p>
+          <div className="text-[9pt] text-black font-bold mt-1">
+            <span>Site: {activeSiteName}</span>
           </div>
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs border-collapse">
+          <table className="w-full text-left text-[10px] sm:text-xs border-collapse">
             <thead>
-              <tr className="border-b border-[#1E293B] text-[10px] font-extrabold uppercase text-slate-400 bg-[#080d19]/80">
-                <th className="py-3 px-3 text-left">DATE</th>
-                <th className="py-3 px-3 text-center">SITE</th>
-                <th className="py-3 px-3">PURCHASED FROM</th>
-                <th className="py-3 px-3 text-center">VEHICLE</th>
-                <th className="py-3 px-3">MATERIAL NAME</th>
-                <th className="py-3 px-2 text-center">TRIPS</th>
-                <th className="py-3 px-2 text-right">QTY/TRIP</th>
-                <th className="py-3 px-2 text-right">RATE (₹)</th>
-                <th className="py-3 px-3 text-right">AMOUNT (₹)</th>
-                <th className="py-3 px-3 text-center no-print">ACTION</th>
+              <tr className="border-b border-[#1E293B] text-[9px] sm:text-[10px] font-extrabold uppercase tracking-wider text-slate-400 bg-[#080d19]/80">
+                <th className="py-3 px-3 w-[11%] text-left">DATE</th>
+                <th className="py-3 px-3 w-[11%] text-center">SITE</th>
+                <th className="py-3 px-3 w-[15%] text-left">PURCHASED FROM</th>
+                <th className="py-3 px-3 w-[11%] text-center">VEHICLE</th>
+                <th className="py-3 px-3 w-[22%] text-left">MATERIAL NAME</th>
+                <th className="py-3 px-2 w-[6%] text-center">TRIPS</th>
+                <th className="py-3 px-2 w-[7%] text-right">QTY/TRIP</th>
+                <th className="py-3 px-2 w-[8%] text-right">RATE (₹)</th>
+                <th className="py-3 px-3 w-[11%] text-right">AMOUNT (₹)</th>
+                <th className="py-3 px-3 w-[8%] text-center no-print">ACTION</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#1E293B]/60 text-slate-200">
@@ -502,13 +531,13 @@ export const MaterialHaulageTripsModule: React.FC = () => {
                       {formatDateDMY(t.tripDate)}
                     </td>
                     <td className="py-2.5 px-3 font-bold text-cyan-400 text-center">{t.siteName}</td>
-                    <td className="py-2.5 px-3 font-semibold text-emerald-400">{t.purchasedFrom || 'Direct Quarry'}</td>
+                    <td className="py-2.5 px-3 font-semibold text-emerald-400 truncate">{t.purchasedFrom || 'Direct Quarry'}</td>
                     <td className="py-2.5 px-3 font-mono text-slate-300 text-center">{t.vehicleNumber}</td>
                     <td className="py-2.5 px-3 font-bold text-amber-300">{t.materialName}</td>
                     <td className="py-2.5 px-2 text-center font-mono">{t.dayTrips}</td>
                     <td className="py-2.5 px-2 text-right font-mono">{t.brassPerTrip}</td>
-                    <td className="py-2.5 px-2 text-right font-mono text-emerald-400">₹{t.ratePerBrass.toLocaleString('en-IN')}</td>
-                    <td className="py-2.5 px-3 text-right font-mono font-black text-amber-400">₹{t.totalAmount.toLocaleString('en-IN')}</td>
+                    <td className="py-2.5 px-2 text-right font-mono text-emerald-400 whitespace-nowrap">₹{t.ratePerBrass.toLocaleString('en-IN')}</td>
+                    <td className="py-2.5 px-3 text-right font-mono font-black text-amber-400 whitespace-nowrap">₹{t.totalAmount.toLocaleString('en-IN')}</td>
                     <td className="py-2.5 px-3 text-center no-print">
                       <div className="flex items-center justify-center gap-1">
                         <button onClick={() => handleEdit(t)} className="p-1 rounded text-slate-400 hover:text-blue-400">
@@ -524,49 +553,52 @@ export const MaterialHaulageTripsModule: React.FC = () => {
               )}
             </tbody>
 
-            {/* Footer with Subtotal, Advance Deduction (with Date), and Net / Remaining Balance */}
+            {/* Table Footer matching reference screenshot style */}
             {filtered.length > 0 && (
               <tfoot className="border-t-2 border-[#1E293B] bg-[#070c18] font-mono">
+                {/* 1. Gross Material Purchase */}
                 <tr className="border-b border-[#1E293B]/60">
-                  <td colSpan={5} className="py-2.5 px-3 font-bold uppercase text-slate-300 text-right">
-                    Total Material Purchased:
+                  <td colSpan={5} className="py-2 px-3 font-bold uppercase text-slate-300 text-right">
+                    TOTAL MATERIAL PURCHASED:
                   </td>
-                  <td className="py-2.5 px-2 text-center font-bold text-cyan-400">{overallTotals.trips} Trips</td>
-                  <td className="py-2.5 px-2 text-right font-bold text-white">{overallTotals.brass} Brass</td>
-                  <td className="py-2.5 px-2 text-right text-slate-500">—</td>
-                  <td className="py-2.5 px-3 text-right font-bold text-white">₹{overallTotals.amount.toLocaleString('en-IN')}</td>
-                  <td className="py-2.5 px-3 no-print"></td>
+                  <td className="py-2 px-2 text-center font-bold text-cyan-400 whitespace-nowrap">{overallTotals.trips} Trips</td>
+                  <td className="py-2 px-2 text-right font-bold text-white whitespace-nowrap">{overallTotals.brass} Brass</td>
+                  <td className="py-2 px-2 text-right text-slate-500">—</td>
+                  <td className="py-2 px-3 text-right font-bold text-white whitespace-nowrap">₹{overallTotals.amount.toLocaleString('en-IN')}</td>
+                  <td className="py-2 px-3 no-print"></td>
                 </tr>
 
+                {/* 2. Less Advance Payment Received */}
                 <tr className="border-b border-[#1E293B]/60 text-rose-400">
                   <td colSpan={8} className="py-2 px-3 font-bold uppercase text-right">
-                    (-) Less: Advance Payment Received {advanceDatesSummary ? `(${advanceDatesSummary})` : ''}:
+                    (-) LESS: ADVANCE PAYMENT RECEIVED {advanceDatesSummary ? `(${advanceDatesSummary})` : ''}:
                   </td>
-                  <td className="py-2 px-3 text-right font-bold">
+                  <td className="py-2 px-3 text-right font-bold whitespace-nowrap" style={{ minWidth: '120px' }}>
                     - ₹{totalVendorAdvancePaid.toLocaleString('en-IN')}
                   </td>
                   <td className="py-2 px-3 no-print"></td>
                 </tr>
 
+                {/* 3. Final Balance Row */}
                 {remainingAdvanceBalance > 0 ? (
-                  <tr className="bg-[#082216] text-emerald-400 font-black">
-                    <td colSpan={8} className="py-3 px-3 text-right uppercase tracking-wider text-xs sm:text-sm">
+                  <tr className="print-bold-row bg-[#082216] text-emerald-400 font-black">
+                    <td colSpan={8} className="py-2.5 px-3 text-right uppercase tracking-wider text-xs">
                       REMAINING ADVANCE BALANCE (EXCESS):
                     </td>
-                    <td className="py-3 px-3 text-right text-sm sm:text-base font-black">
+                    <td className="py-2.5 px-3 text-right text-xs sm:text-sm font-black whitespace-nowrap" style={{ minWidth: '120px' }}>
                       ₹{remainingAdvanceBalance.toLocaleString('en-IN')}
                     </td>
-                    <td className="py-3 px-3 no-print"></td>
+                    <td className="py-2.5 px-3 no-print"></td>
                   </tr>
                 ) : (
-                  <tr className="bg-[#1e1906] text-amber-400 font-black">
-                    <td colSpan={8} className="py-3 px-3 text-right uppercase tracking-wider text-xs sm:text-sm">
-                      (=) NET PAYABLE AMOUNT:
+                  <tr className="print-bold-row bg-[#1e1906] text-amber-400 font-black">
+                    <td colSpan={8} className="py-2.5 px-3 text-right uppercase tracking-wider text-xs">
+                      REMAINING ADVANCE BALANCE (EXCESS):
                     </td>
-                    <td className="py-3 px-3 text-right text-sm sm:text-base font-black">
+                    <td className="py-2.5 px-3 text-right text-xs sm:text-sm font-black whitespace-nowrap" style={{ minWidth: '120px' }}>
                       ₹{netPayableAmount.toLocaleString('en-IN')}
                     </td>
-                    <td className="py-3 px-3 no-print"></td>
+                    <td className="py-2.5 px-3 no-print"></td>
                   </tr>
                 )}
               </tfoot>
