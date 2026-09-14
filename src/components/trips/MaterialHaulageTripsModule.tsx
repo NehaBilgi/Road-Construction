@@ -195,8 +195,11 @@ export const MaterialHaulageTripsModule: React.FC = () => {
       .reduce((sum, a) => sum + (Number(a.amount) || 0), 0);
   }, [advances, filtered, activeSiteName]);
 
-  // Net payable amount after deducting advance
-  const netPayableAmount = Math.max(0, overallTotals.amount - totalVendorAdvancePaid);
+  // Net Balance Calculations
+  const rawBalance = overallTotals.amount - totalVendorAdvancePaid;
+  const isAdvanceExcess = rawBalance < 0;
+  const netPayableAmount = isAdvanceExcess ? 0 : rawBalance;
+  const remainingAdvanceBalance = isAdvanceExcess ? Math.abs(rawBalance) : 0;
 
   const handleOpenAdd = () => {
     setEditingId(null);
@@ -344,24 +347,42 @@ export const MaterialHaulageTripsModule: React.FC = () => {
         </div>
       </div>
 
-      {/* Summary Stat Cards with Advances Auto-Deducted */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 no-print">
-        <div className="p-4 rounded-2xl bg-[#0B1220] border border-[#1E293B] shadow-lg">
-          <div className="text-[10px] font-bold uppercase text-slate-400">Total Material Purchase</div>
+      {/* Summary Stat Cards with Advances Auto-Deducted and Remaining Balance */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 no-print">
+        <div className="p-4 rounded-2xl bg-[#0B1220] border border-[#1E293B] shadow-lg flex flex-col justify-between">
+          <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Total Material Purchase</div>
           <div className="text-2xl font-black text-white font-mono mt-1">₹{overallTotals.amount.toLocaleString('en-IN')}</div>
           <div className="text-[10px] text-slate-500">{overallTotals.trips} Trips ({overallTotals.brass} Brass)</div>
         </div>
 
-        <div className="p-4 rounded-2xl bg-[#0B1220] border border-[#1E293B] shadow-lg">
-          <div className="text-[10px] font-bold uppercase text-rose-400">(-) Less: Advance Paid</div>
+        <div className="p-4 rounded-2xl bg-[#0B1220] border border-[#1E293B] shadow-lg flex flex-col justify-between">
+          <div className="text-[10px] font-bold uppercase tracking-wider text-rose-400">(-) Less: Advance Paid</div>
           <div className="text-2xl font-black text-rose-400 font-mono mt-1">₹{totalVendorAdvancePaid.toLocaleString('en-IN')}</div>
           <div className="text-[10px] text-slate-500">Auto-deducted from Advances ledger</div>
         </div>
 
-        <div className="p-4 rounded-2xl bg-[#0B1220] border border-emerald-500/30 shadow-lg bg-emerald-950/20">
-          <div className="text-[10px] font-bold uppercase text-emerald-400">(=) Net Payable Amount</div>
-          <div className="text-2xl font-black text-emerald-400 font-mono mt-1">₹{netPayableAmount.toLocaleString('en-IN')}</div>
-          <div className="text-[10px] text-emerald-500/80 font-bold">Remaining balance to supplier</div>
+        <div className={`p-4 rounded-2xl border shadow-lg flex flex-col justify-between transition-all ${
+          netPayableAmount > 0 
+            ? 'bg-amber-950/20 border-amber-500/30' 
+            : 'bg-[#0B1220] border-[#1E293B] opacity-75'
+        }`}>
+          <div className="text-[10px] font-bold uppercase tracking-wider text-amber-400">(=) Net Payable Amount</div>
+          <div className="text-2xl font-black text-amber-400 font-mono mt-1">₹{netPayableAmount.toLocaleString('en-IN')}</div>
+          <div className="text-[10px] text-slate-400">
+            {netPayableAmount > 0 ? 'Remaining balance to pay vendor' : 'Cleared by Advance'}
+          </div>
+        </div>
+
+        <div className={`p-4 rounded-2xl border shadow-lg flex flex-col justify-between transition-all ${
+          remainingAdvanceBalance > 0 
+            ? 'bg-emerald-950/30 border-emerald-500/40' 
+            : 'bg-[#0B1220] border-[#1E293B] opacity-75'
+        }`}>
+          <div className="text-[10px] font-bold uppercase tracking-wider text-emerald-400">Remaining Advance Balance</div>
+          <div className="text-2xl font-black text-emerald-400 font-mono mt-1">₹{remainingAdvanceBalance.toLocaleString('en-IN')}</div>
+          <div className="text-[10px] text-emerald-500/80 font-bold">
+            {remainingAdvanceBalance > 0 ? 'Unused Advance with Vendor' : 'No Surplus Advance'}
+          </div>
         </div>
       </div>
 
@@ -441,7 +462,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
               )}
             </tbody>
 
-            {/* Footer with Subtotal, Advance Deduction, and Net Amount */}
+            {/* Footer with Subtotal, Advance Deduction, and Net / Remaining Balance */}
             {filtered.length > 0 && (
               <tfoot className="border-t-2 border-[#1E293B] bg-[#070c18] font-mono">
                 {/* 1. Gross Material Purchase */}
@@ -467,16 +488,28 @@ export const MaterialHaulageTripsModule: React.FC = () => {
                   <td className="py-2 px-3 no-print"></td>
                 </tr>
 
-                {/* 3. Net Payable Balance */}
-                <tr className="bg-[#0b162c] text-emerald-400 font-black">
-                  <td colSpan={8} className="py-3 px-3 text-right uppercase tracking-wider text-sm">
-                    (=) NET PAYABLE AMOUNT:
-                  </td>
-                  <td className="py-3 px-3 text-right text-sm sm:text-base font-black">
-                    ₹{netPayableAmount.toLocaleString('en-IN')}
-                  </td>
-                  <td className="py-3 px-3 no-print"></td>
-                </tr>
+                {/* 3. Final Balance Result */}
+                {remainingAdvanceBalance > 0 ? (
+                  <tr className="bg-[#082216] text-emerald-400 font-black">
+                    <td colSpan={8} className="py-3 px-3 text-right uppercase tracking-wider text-xs sm:text-sm">
+                      REMAINING ADVANCE BALANCE (EXCESS):
+                    </td>
+                    <td className="py-3 px-3 text-right text-sm sm:text-base font-black">
+                      ₹{remainingAdvanceBalance.toLocaleString('en-IN')}
+                    </td>
+                    <td className="py-3 px-3 no-print"></td>
+                  </tr>
+                ) : (
+                  <tr className="bg-[#1e1906] text-amber-400 font-black">
+                    <td colSpan={8} className="py-3 px-3 text-right uppercase tracking-wider text-xs sm:text-sm">
+                      (=) NET PAYABLE AMOUNT:
+                    </td>
+                    <td className="py-3 px-3 text-right text-sm sm:text-base font-black">
+                      ₹{netPayableAmount.toLocaleString('en-IN')}
+                    </td>
+                    <td className="py-3 px-3 no-print"></td>
+                  </tr>
+                )}
               </tfoot>
             )}
           </table>
