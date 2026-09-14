@@ -321,12 +321,12 @@ export const MaterialHaulageTripsModule: React.FC = () => {
   return (
     <div className="space-y-4 sm:space-y-6 font-sans text-slate-100">
       
-      {/* Full-Width A4 Print Stylesheet spanning full printable edges with zero gap */}
+      {/* Perfect A4 Print Layout with Clean White Margins and Rounded Border Container */}
       <style>{`
         @media print {
           @page {
             size: A4 portrait;
-            margin: 6mm 8mm;
+            margin: 12mm 14mm;
           }
           * {
             -webkit-print-color-adjust: exact !important;
@@ -350,13 +350,13 @@ export const MaterialHaulageTripsModule: React.FC = () => {
             left: 0 !important;
             top: 0 !important;
             width: 100% !important;
-            height: auto !important;
+            max-width: 100% !important;
             margin: 0 !important;
             padding: 0 !important;
             background: #ffffff !important;
             color: #000000 !important;
             border: 2px solid #000000 !important;
-            border-radius: 12px !important;
+            border-radius: 16px !important;
             overflow: hidden !important;
           }
           .no-print {
@@ -364,7 +364,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
           }
           .print-header {
             display: block !important;
-            padding: 16px 18px 12px 18px !important;
+            padding: 16px 20px 14px 20px !important;
             border-bottom: 2px solid #000000 !important;
             background: #ffffff !important;
           }
@@ -376,7 +376,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
           }
           th, td {
             border: 1px solid #000000 !important;
-            padding: 7px 6px !important;
+            padding: 8px 9px !important;
             color: #000000 !important;
             word-wrap: break-word !important;
             overflow: hidden !important;
@@ -385,16 +385,17 @@ export const MaterialHaulageTripsModule: React.FC = () => {
             background-color: #ffffff !important;
             font-weight: 800 !important;
             text-transform: uppercase !important;
-            font-size: 7.5pt !important;
+            font-size: 8pt !important;
+            letter-spacing: 0.2px !important;
           }
           tfoot tr td {
             background-color: #ffffff !important;
             font-weight: 800 !important;
-            padding: 8px 6px !important;
+            padding: 9px 9px !important;
           }
           .print-bold-row td {
             font-weight: 900 !important;
-            font-size: 9pt !important;
+            font-size: 9.5pt !important;
           }
         }
       `}</style>
@@ -489,7 +490,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
       {/* Main Print Container & Table */}
       <div id="print-area" className="bg-[#0B1220] border border-[#1E293B] rounded-[1.2rem] sm:rounded-3xl overflow-hidden shadow-2xl">
         
-        {/* Printable Header matching reference screenshot style */}
+        {/* Printable Header */}
         <div className="hidden print-header">
           <h1 className="text-[17pt] font-black uppercase text-black tracking-tight leading-none m-0">
             {activeVendorName}
@@ -554,7 +555,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
               )}
             </tbody>
 
-            {/* Table Footer matching reference screenshot style */}
+            {/* Table Footer */}
             {filtered.length > 0 && (
               <tfoot className="border-t-2 border-[#1E293B] bg-[#070c18] font-mono">
                 {/* 1. Gross Material Purchase */}
@@ -574,7 +575,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
                   <td colSpan={8} className="py-2 px-3 font-bold uppercase text-right">
                     (-) LESS: ADVANCE PAYMENT RECEIVED {advanceDatesSummary ? `(${advanceDatesSummary})` : ''}:
                   </td>
-                  <td className="py-2 px-3 text-right font-bold whitespace-nowrap" style={{ minWidth: '130px' }}>
+                  <td className="py-2 px-3 text-right font-bold whitespace-nowrap" style={{ minWidth: '140px' }}>
                     - ₹{totalVendorAdvancePaid.toLocaleString('en-IN')}
                   </td>
                   <td className="py-2 px-3 no-print"></td>
@@ -586,7 +587,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
                     <td colSpan={8} className="py-2.5 px-3 text-right uppercase tracking-wider text-xs">
                       REMAINING ADVANCE BALANCE (EXCESS):
                     </td>
-                    <td className="py-2.5 px-3 text-right text-xs sm:text-sm font-black whitespace-nowrap" style={{ minWidth: '130px' }}>
+                    <td className="py-2.5 px-3 text-right text-xs sm:text-sm font-black whitespace-nowrap" style={{ minWidth: '140px' }}>
                       ₹{remainingAdvanceBalance.toLocaleString('en-IN')}
                     </td>
                     <td className="py-2.5 px-3 no-print"></td>
@@ -596,7 +597,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
                     <td colSpan={8} className="py-2.5 px-3 text-right uppercase tracking-wider text-xs">
                       REMAINING ADVANCE BALANCE (EXCESS):
                     </td>
-                    <td className="py-2.5 px-3 text-right text-xs sm:text-sm font-black whitespace-nowrap" style={{ minWidth: '130px' }}>
+                    <td className="py-2.5 px-3 text-right text-xs sm:text-sm font-black whitespace-nowrap" style={{ minWidth: '140px' }}>
                       ₹{netPayableAmount.toLocaleString('en-IN')}
                     </td>
                     <td className="py-2.5 px-3 no-print"></td>
