@@ -6,7 +6,8 @@ import {
   X,
   Trash2,
   Edit2,
-  Truck
+  Truck,
+  Store
 } from 'lucide-react';
 
 export interface HaulageTripRecord {
@@ -15,6 +16,7 @@ export interface HaulageTripRecord {
   siteName: string;
   vehicleNumber: string;
   materialName: string;
+  purchasedFrom: string;
   dayTrips: number;
   brassPerTrip: number;
   ratePerBrass: number;
@@ -31,6 +33,7 @@ export interface RoadMaterialCategory {
 
 const STORAGE_HAULAGE_KEY = 'CONSTRUCTION_PRO_HAULAGE_TRIPS_V2';
 const STORAGE_ROAD_CATS_KEY = 'CONSTRUCTION_PRO_ROAD_CATEGORIES_V1';
+const STORAGE_VENDORS_KEY = 'CONSTRUCTION_PRO_VENDOR_NAMES_V1';
 
 const INITIAL_ROAD_CATEGORIES: RoadMaterialCategory[] = [
   { id: 'RCAT-01', name: 'Bituminous Macadam (BM)', description: 'Dense bituminous macadam binder course', standardRate: 5000, unit: 'Brass' },
@@ -47,6 +50,7 @@ const INITIAL_HAULAGE_TRIPS: HaulageTripRecord[] = [
     siteName: 'SINDAGI - ALMEL ROAD',
     vehicleNumber: 'TOTAL TRIPS',
     materialName: 'Bituminous Macadam (BM) (₹5000/Brass)',
+    purchasedFrom: 'Mahalaxmi Stone Crusher',
     dayTrips: 10,
     brassPerTrip: 6,
     ratePerBrass: 5000,
@@ -86,6 +90,17 @@ export const MaterialHaulageTripsModule: React.FC = () => {
     }
   });
 
+  // Load Stored Vendors / Suppliers for auto-suggest
+  const [savedVendors, setSavedVendors] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_VENDORS_KEY);
+      if (saved) return JSON.parse(saved);
+      return ['Mahalaxmi Stone Crusher', 'Bilgi Hot Mix Plant Quarry #1', 'Shanti Aggregates'];
+    } catch {
+      return ['Mahalaxmi Stone Crusher', 'Bilgi Hot Mix Plant Quarry #1', 'Shanti Aggregates'];
+    }
+  });
+
   const [searchQuery, setSearchQuery] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -94,11 +109,12 @@ export const MaterialHaulageTripsModule: React.FC = () => {
   const [tripDate, setTripDate] = useState('2026-08-19');
   const [siteName, setSiteName] = useState(activeSiteName);
   const [vehicleNumber, setVehicleNumber] = useState('TOTAL TRIPS');
-  
-  const defaultCategory = categories[0] 
-    ? `${categories[0].name} (₹${categories[0].standardRate}/${categories[0].unit})` 
+  const [purchasedFrom, setPurchasedFrom] = useState('');
+
+  const defaultCategory = categories[0]
+    ? `${categories[0].name} (₹${categories[0].standardRate}/${categories[0].unit})`
     : '';
-    
+
   const [materialName, setMaterialName] = useState(defaultCategory);
   const [dayTrips, setDayTrips] = useState<number | ''>(10);
   const [brassPerTrip, setBrassPerTrip] = useState<number | ''>(6);
@@ -107,20 +123,20 @@ export const MaterialHaulageTripsModule: React.FC = () => {
   // Auto-Update rate when material preset changes
   const handleMaterialChange = (selectedFormattedName: string) => {
     setMaterialName(selectedFormattedName);
-    
+
     const found = categories.find((c) => `${c.name} (₹${c.standardRate}/${c.unit})` === selectedFormattedName);
     if (found) {
       setRatePerBrass(found.standardRate);
     }
   };
 
-  // Re-fetch categories when modal opens in case user added new ones elsewhere
+  // Re-fetch categories and vendors when modal opens
   useEffect(() => {
-    if (isModalOpen && !editingId) {
+    if (isModalOpen) {
       try {
-        const saved = localStorage.getItem(STORAGE_ROAD_CATS_KEY);
-        if (saved) {
-          const parsed = JSON.parse(saved);
+        const savedCats = localStorage.getItem(STORAGE_ROAD_CATS_KEY);
+        if (savedCats) {
+          const parsed = JSON.parse(savedCats);
           if (Array.isArray(parsed) && parsed.length > 0) {
             setCategories(parsed);
             if (!materialName) {
@@ -129,18 +145,23 @@ export const MaterialHaulageTripsModule: React.FC = () => {
             }
           }
         }
+
+        const savedVends = localStorage.getItem(STORAGE_VENDORS_KEY);
+        if (savedVends) {
+          setSavedVendors(JSON.parse(savedVends));
+        }
       } catch (error) {
-        console.error("Failed to load categories", error);
+        console.error('Failed to reload categories/vendors', error);
       }
     }
-  }, [isModalOpen, materialName, editingId]);
+  }, [isModalOpen, materialName]);
 
   // Persist trips on change
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_HAULAGE_KEY, JSON.stringify(trips));
     } catch (error) {
-      console.error("Failed to save trips to localStorage", error);
+      console.error('Failed to save trips to localStorage', error);
     }
   }, [trips]);
 
@@ -151,7 +172,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
     return tripsNum * brassNum * rateNum;
   }, [dayTrips, brassPerTrip, ratePerBrass]);
 
-  // Dynamically filter trips by the active site header
+  // Dynamically filter trips by active site
   const filtered = useMemo(() => {
     return trips.filter((t) => {
       const matchSite = t.siteName === activeSiteName;
@@ -160,6 +181,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
         !q ||
         t.vehicleNumber.toLowerCase().includes(q) ||
         t.materialName.toLowerCase().includes(q) ||
+        (t.purchasedFrom || '').toLowerCase().includes(q) ||
         t.id.toLowerCase().includes(q);
       return matchSite && matchQuery;
     });
@@ -170,6 +192,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
     setTripDate(new Date().toISOString().split('T')[0]);
     setSiteName(activeSiteName);
     setVehicleNumber('TOTAL TRIPS');
+    setPurchasedFrom('');
     setMaterialName(defaultCategory);
     setDayTrips(10);
     setBrassPerTrip(6);
@@ -182,6 +205,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
     setTripDate(trip.tripDate);
     setSiteName(trip.siteName);
     setVehicleNumber(trip.vehicleNumber);
+    setPurchasedFrom(trip.purchasedFrom || '');
     setMaterialName(trip.materialName);
     setDayTrips(trip.dayTrips);
     setBrassPerTrip(trip.brassPerTrip);
@@ -199,11 +223,25 @@ export const MaterialHaulageTripsModule: React.FC = () => {
     e.preventDefault();
     if (dayTrips === '' || brassPerTrip === '' || ratePerBrass === '') return;
 
+    const trimmedVendor = purchasedFrom.trim() || 'Direct Quarry / Plant';
+
+    // Save supplier name into persistent list for future auto-complete dropdown
+    if (trimmedVendor && !savedVendors.includes(trimmedVendor)) {
+      const updatedVendors = [trimmedVendor, ...savedVendors];
+      setSavedVendors(updatedVendors);
+      try {
+        localStorage.setItem(STORAGE_VENDORS_KEY, JSON.stringify(updatedVendors));
+      } catch (err) {
+        console.error('Failed to save vendor name to localStorage', err);
+      }
+    }
+
     const record: HaulageTripRecord = {
       id: editingId || `TRIP-${Date.now().toString().slice(-4)}`,
       tripDate,
       siteName: siteName.trim() || activeSiteName,
       vehicleNumber: vehicleNumber.trim() || 'TOTAL TRIPS',
+      purchasedFrom: trimmedVendor,
       materialName,
       dayTrips: Number(dayTrips),
       brassPerTrip: Number(brassPerTrip),
@@ -216,7 +254,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
     } else {
       setTrips([record, ...trips]);
     }
-    
+
     setIsModalOpen(false);
     setEditingId(null);
   };
@@ -231,7 +269,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
           </div>
           <div>
             <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight">Material Haulage Trips</h1>
-            <p className="text-[11px] sm:text-xs text-slate-400 mt-0.5">Track daily trip counts, material volumes, and haulage expenses for {activeSiteName}.</p>
+            <p className="text-[11px] sm:text-xs text-slate-400 mt-0.5">Track daily trip counts, material volumes, suppliers, and haulage expenses for {activeSiteName}.</p>
           </div>
         </div>
 
@@ -250,7 +288,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
           <Search className="absolute left-3.5 top-2.5 sm:top-3 w-4 h-4 text-slate-500" />
           <input
             type="text"
-            placeholder="Search by vehicle, material name..."
+            placeholder="Search by vehicle, supplier / quarry, material name..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-10 pr-4 py-2 bg-[#080d19] border border-[#1E293B] rounded-xl text-white outline-none placeholder-slate-500"
@@ -266,6 +304,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
               <tr className="border-b border-[#1E293B] text-[9px] sm:text-[10px] font-extrabold uppercase tracking-wider text-slate-400 bg-[#080d19]/80">
                 <th className="py-3 px-4 sm:px-6 whitespace-nowrap">TRIP ID & DATE</th>
                 <th className="py-3 px-4 sm:px-6 whitespace-nowrap">SITE NAME</th>
+                <th className="py-3 px-4 sm:px-6 whitespace-nowrap">PURCHASED FROM</th>
                 <th className="py-3 px-4 sm:px-6 whitespace-nowrap">VEHICLE / BATCH</th>
                 <th className="py-3 px-4 sm:px-6 whitespace-nowrap">MATERIAL NAME</th>
                 <th className="py-3 px-4 text-center whitespace-nowrap">TRIPS</th>
@@ -278,7 +317,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
             <tbody className="divide-y divide-[#1E293B]/60 text-slate-200">
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="py-8 text-center text-slate-500">
+                  <td colSpan={10} className="py-8 text-center text-slate-500">
                     No haulage trip records found for {activeSiteName}.
                   </td>
                 </tr>
@@ -290,6 +329,12 @@ export const MaterialHaulageTripsModule: React.FC = () => {
                       <div className="text-[9px] sm:text-[10px] text-slate-400">{t.tripDate}</div>
                     </td>
                     <td className="py-3 sm:py-3.5 px-4 sm:px-6 font-bold text-cyan-400 whitespace-nowrap">{t.siteName}</td>
+                    <td className="py-3 sm:py-3.5 px-4 sm:px-6 font-medium text-emerald-400 whitespace-nowrap">
+                      <div className="flex items-center gap-1.5">
+                        <Store className="w-3.5 h-3.5 text-emerald-400/70 shrink-0" />
+                        <span>{t.purchasedFrom || 'Direct Quarry'}</span>
+                      </div>
+                    </td>
                     <td className="py-3 sm:py-3.5 px-4 sm:px-6 font-mono font-bold text-slate-300 whitespace-nowrap">{t.vehicleNumber}</td>
                     <td className="py-3 sm:py-3.5 px-4 sm:px-6 font-bold text-amber-300 whitespace-nowrap">{t.materialName}</td>
                     <td className="py-3 sm:py-3.5 px-4 text-center font-mono font-bold whitespace-nowrap">{t.dayTrips}</td>
@@ -387,6 +432,28 @@ export const MaterialHaulageTripsModule: React.FC = () => {
                   onChange={(e) => setVehicleNumber(e.target.value.toUpperCase())}
                   className="w-full px-3.5 py-2.5 bg-[#162032] border border-[#1E293B] rounded-xl text-white font-mono outline-none uppercase"
                 />
+              </div>
+
+              {/* Purchased From Field with Autocomplete & Auto-Save */}
+              <div>
+                <label className="block text-slate-300 font-bold mb-1 flex justify-between items-center">
+                  <span>Purchased From / Supplier *</span>
+                  <span className="text-[10px] text-emerald-400 font-normal">Saves automatically for next time</span>
+                </label>
+                <input
+                  type="text"
+                  list="vendor-options"
+                  required
+                  placeholder="e.g. Mahalaxmi Stone Crusher, Shanti Quarry, Plant #2..."
+                  value={purchasedFrom}
+                  onChange={(e) => setPurchasedFrom(e.target.value)}
+                  className="w-full px-3.5 py-2.5 bg-[#162032] border border-[#1E293B] focus:border-blue-500 rounded-xl text-white outline-none"
+                />
+                <datalist id="vendor-options">
+                  {savedVendors.map((vendor, idx) => (
+                    <option key={idx} value={vendor} />
+                  ))}
+                </datalist>
               </div>
 
               <div>
