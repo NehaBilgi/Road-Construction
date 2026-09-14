@@ -15,6 +15,7 @@ import { MachineryFleetModule } from './components/machinery/MachineryFleetModul
 import StockTransactionsModule from './components/building/StockTransactionsModule';
 import { InstallAppButton } from './components/InstallAppButton';
 import { ThemeToggle } from './components/ThemeToggle';
+import { UserManagementModule } from './components/configuration/UserManagementModule';
 
 import {
   LayoutDashboard, Truck, Fuel, DollarSign, Calculator, HardHat,
@@ -685,6 +686,7 @@ export const AppContent: React.FC = () => {
                 {(activeTab === 'yield_calculator' || activeTab === 'road-yield') && <RoadYieldCalculatorModule />}
                 {(activeTab === 'machinery_fleet' || activeTab === 'machinery') && <MachineryFleetModule />}
                 {activeTab === 'categories' && <RoadMaterialCategoriesModule />}
+                {activeTab === 'users' && <UserManagementModule />}
               </>
             )}
           </div>
