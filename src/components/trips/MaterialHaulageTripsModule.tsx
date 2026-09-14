@@ -327,7 +327,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
       <style dangerouslySetInnerHTML={{ __html: `
         @media print {
           @page {
-            size:  portrait;
+            size:  A4 landscape;
             margin: 12mm 15mm;
           }
           nav,
