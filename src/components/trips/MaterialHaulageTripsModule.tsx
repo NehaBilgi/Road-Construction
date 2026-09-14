@@ -321,12 +321,12 @@ export const MaterialHaulageTripsModule: React.FC = () => {
   return (
     <div className="space-y-4 sm:space-y-6 font-sans text-slate-100">
       
-      {/* Perfect A4 Print Layout with Clean White Margins and Rounded Border Container */}
+      {/* Complete White-Margin A4 Print Stylesheet with Proportional Spacing */}
       <style>{`
         @media print {
           @page {
             size: A4 portrait;
-            margin: 12mm 14mm;
+            margin: 20mm 16mm;
           }
           * {
             -webkit-print-color-adjust: exact !important;
@@ -346,17 +346,17 @@ export const MaterialHaulageTripsModule: React.FC = () => {
             visibility: visible;
           }
           #print-area {
-            position: absolute !important;
-            left: 0 !important;
-            top: 0 !important;
+            position: relative !important;
+            left: auto !important;
+            top: auto !important;
             width: 100% !important;
             max-width: 100% !important;
-            margin: 0 !important;
+            margin: 0 auto !important;
             padding: 0 !important;
             background: #ffffff !important;
             color: #000000 !important;
-            border: 2px solid #000000 !important;
-            border-radius: 16px !important;
+            border: 1.5px solid #000000 !important;
+            border-radius: 12px !important;
             overflow: hidden !important;
           }
           .no-print {
@@ -364,19 +364,19 @@ export const MaterialHaulageTripsModule: React.FC = () => {
           }
           .print-header {
             display: block !important;
-            padding: 16px 20px 14px 20px !important;
-            border-bottom: 2px solid #000000 !important;
+            padding: 14px 16px 12px 16px !important;
+            border-bottom: 1.5px solid #000000 !important;
             background: #ffffff !important;
           }
           table {
             width: 100% !important;
             border-collapse: collapse !important;
-            font-size: 8.5pt !important;
+            font-size: 8pt !important;
             table-layout: fixed !important;
           }
           th, td {
             border: 1px solid #000000 !important;
-            padding: 8px 9px !important;
+            padding: 6px 5px !important;
             color: #000000 !important;
             word-wrap: break-word !important;
             overflow: hidden !important;
@@ -385,17 +385,17 @@ export const MaterialHaulageTripsModule: React.FC = () => {
             background-color: #ffffff !important;
             font-weight: 800 !important;
             text-transform: uppercase !important;
-            font-size: 8pt !important;
-            letter-spacing: 0.2px !important;
+            font-size: 7.5pt !important;
+            letter-spacing: 0.1px !important;
           }
           tfoot tr td {
             background-color: #ffffff !important;
             font-weight: 800 !important;
-            padding: 9px 9px !important;
+            padding: 7px 6px !important;
           }
           .print-bold-row td {
             font-weight: 900 !important;
-            font-size: 9.5pt !important;
+            font-size: 8.5pt !important;
           }
         }
       `}</style>
@@ -492,13 +492,13 @@ export const MaterialHaulageTripsModule: React.FC = () => {
         
         {/* Printable Header */}
         <div className="hidden print-header">
-          <h1 className="text-[17pt] font-black uppercase text-black tracking-tight leading-none m-0">
+          <h1 className="text-[16pt] font-black uppercase text-black tracking-tight leading-none m-0">
             {activeVendorName}
           </h1>
-          <p className="text-[9pt] font-black uppercase tracking-wide text-black mt-1 m-0">
+          <p className="text-[8.5pt] font-black uppercase tracking-wide text-black mt-1 m-0">
             MATERIAL PURCHASED
           </p>
-          <div className="text-[9pt] text-black font-bold mt-1">
+          <div className="text-[8.5pt] text-black font-bold mt-1">
             <span>Site: {activeSiteName}</span>
           </div>
         </div>
@@ -507,16 +507,16 @@ export const MaterialHaulageTripsModule: React.FC = () => {
           <table className="w-full text-left text-[10px] sm:text-xs border-collapse">
             <thead>
               <tr className="border-b border-[#1E293B] text-[9px] sm:text-[10px] font-extrabold uppercase tracking-wider text-slate-400 bg-[#080d19]/80">
-                <th className="py-3 px-3 w-[11%] text-left">DATE</th>
-                <th className="py-3 px-3 w-[11%] text-center">SITE</th>
-                <th className="py-3 px-3 w-[15%] text-left">PURCHASED FROM</th>
-                <th className="py-3 px-3 w-[11%] text-center">VEHICLE</th>
-                <th className="py-3 px-3 w-[22%] text-left">MATERIAL NAME</th>
-                <th className="py-3 px-2 w-[6%] text-center">TRIPS</th>
-                <th className="py-3 px-2 w-[7%] text-right">QTY/TRIP</th>
-                <th className="py-3 px-2 w-[8%] text-right">RATE (₹)</th>
-                <th className="py-3 px-3 w-[11%] text-right">AMOUNT (₹)</th>
-                <th className="py-3 px-3 w-[8%] text-center no-print">ACTION</th>
+                <th className="py-3 px-2 w-[11%] text-left">DATE</th>
+                <th className="py-3 px-2 w-[10%] text-center">SITE</th>
+                <th className="py-3 px-2 w-[13%] text-left">PURCHASED FROM</th>
+                <th className="py-3 px-2 w-[9%] text-center">VEHICLE</th>
+                <th className="py-3 px-2 w-[21%] text-left">MATERIAL NAME</th>
+                <th className="py-3 px-1 w-[5%] text-center">TRIPS</th>
+                <th className="py-3 px-1.5 w-[7%] text-right">QTY/TRIP</th>
+                <th className="py-3 px-2 w-[10%]" style={{ textAlign: 'right' }}>RATE (₹)</th>
+                <th className="py-3 px-2 w-[14%]" style={{ textAlign: 'right' }}>AMOUNT (₹)</th>
+                <th className="py-3 px-2 w-[0%] text-center no-print">ACTION</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#1E293B]/60 text-slate-200">
@@ -529,18 +529,18 @@ export const MaterialHaulageTripsModule: React.FC = () => {
               ) : (
                 filtered.map((t) => (
                   <tr key={t.id} className="hover:bg-[#121c33]/50">
-                    <td className="py-2.5 px-3 font-mono text-left text-slate-300 whitespace-nowrap">
+                    <td className="py-2 px-2 font-mono text-left text-slate-300 whitespace-nowrap">
                       {formatDateDMY(t.tripDate)}
                     </td>
-                    <td className="py-2.5 px-3 font-bold text-cyan-400 text-center">{t.siteName}</td>
-                    <td className="py-2.5 px-3 font-semibold text-emerald-400 truncate">{t.purchasedFrom || 'Direct Quarry'}</td>
-                    <td className="py-2.5 px-3 font-mono text-slate-300 text-center">{t.vehicleNumber}</td>
-                    <td className="py-2.5 px-3 font-bold text-amber-300">{t.materialName}</td>
-                    <td className="py-2.5 px-2 text-center font-mono">{t.dayTrips}</td>
-                    <td className="py-2.5 px-2 text-right font-mono">{t.brassPerTrip}</td>
-                    <td className="py-2.5 px-2 text-right font-mono text-emerald-400 whitespace-nowrap">₹{t.ratePerBrass.toLocaleString('en-IN')}</td>
-                    <td className="py-2.5 px-3 text-right font-mono font-black text-amber-400 whitespace-nowrap">₹{t.totalAmount.toLocaleString('en-IN')}</td>
-                    <td className="py-2.5 px-3 text-center no-print">
+                    <td className="py-2 px-2 font-bold text-cyan-400 text-center whitespace-nowrap">{t.siteName}</td>
+                    <td className="py-2 px-2 font-semibold text-emerald-400 truncate">{t.purchasedFrom || 'Direct Quarry'}</td>
+                    <td className="py-2 px-2 font-mono text-slate-300 text-center whitespace-nowrap">{t.vehicleNumber}</td>
+                    <td className="py-2 px-2 font-bold text-amber-300" style={{ wordBreak: 'break-word', whiteSpace: 'normal' }}>{t.materialName}</td>
+                    <td className="py-2 px-1 text-center font-mono whitespace-nowrap">{t.dayTrips}</td>
+                    <td className="py-2 px-1.5 text-right font-mono whitespace-nowrap">{t.brassPerTrip}</td>
+                    <td className="py-2 px-2 font-mono text-emerald-400 whitespace-nowrap" style={{ textAlign: 'right' }}>₹{t.ratePerBrass.toLocaleString('en-IN')}</td>
+                    <td className="py-2 px-2 font-mono font-black text-amber-400 whitespace-nowrap" style={{ textAlign: 'right' }}>₹{t.totalAmount.toLocaleString('en-IN')}</td>
+                    <td className="py-2 px-2 text-center no-print">
                       <div className="flex items-center justify-center gap-1">
                         <button onClick={() => handleEdit(t)} className="p-1 rounded text-slate-400 hover:text-blue-400">
                           <Edit2 className="w-3.5 h-3.5" />
@@ -560,47 +560,47 @@ export const MaterialHaulageTripsModule: React.FC = () => {
               <tfoot className="border-t-2 border-[#1E293B] bg-[#070c18] font-mono">
                 {/* 1. Gross Material Purchase */}
                 <tr className="border-b border-[#1E293B]/60">
-                  <td colSpan={5} className="py-2 px-3 font-bold uppercase text-slate-300 text-right">
+                  <td colSpan={5} className="py-2 px-2 font-bold uppercase text-slate-300 text-right">
                     TOTAL MATERIAL PURCHASED:
                   </td>
-                  <td className="py-2 px-2 text-center font-bold text-cyan-400 whitespace-nowrap">{overallTotals.trips} Trips</td>
-                  <td className="py-2 px-2 text-right font-bold text-white whitespace-nowrap">{overallTotals.brass} Brass</td>
+                  <td className="py-2 px-1 text-center font-bold text-cyan-400 whitespace-nowrap">{overallTotals.trips} Trips</td>
+                  <td className="py-2 px-1.5 text-right font-bold text-white whitespace-nowrap">{overallTotals.brass} Brass</td>
                   <td className="py-2 px-2 text-right text-slate-500">—</td>
-                  <td className="py-2 px-3 text-right font-bold text-white whitespace-nowrap">₹{overallTotals.amount.toLocaleString('en-IN')}</td>
-                  <td className="py-2 px-3 no-print"></td>
+                  <td className="py-2 px-2 font-bold text-white whitespace-nowrap" style={{ textAlign: 'right' }}>₹{overallTotals.amount.toLocaleString('en-IN')}</td>
+                  <td className="py-2 px-2 no-print"></td>
                 </tr>
 
                 {/* 2. Less Advance Payment Received */}
                 <tr className="border-b border-[#1E293B]/60 text-rose-400">
-                  <td colSpan={8} className="py-2 px-3 font-bold uppercase text-right">
+                  <td colSpan={8} className="py-2 px-2 font-bold uppercase text-right">
                     (-) LESS: ADVANCE PAYMENT RECEIVED {advanceDatesSummary ? `(${advanceDatesSummary})` : ''}:
                   </td>
-                  <td className="py-2 px-3 text-right font-bold whitespace-nowrap" style={{ minWidth: '140px' }}>
+                  <td className="py-2 px-2 font-bold whitespace-nowrap" style={{ textAlign: 'right', minWidth: '110px' }}>
                     - ₹{totalVendorAdvancePaid.toLocaleString('en-IN')}
                   </td>
-                  <td className="py-2 px-3 no-print"></td>
+                  <td className="py-2 px-2 no-print"></td>
                 </tr>
 
                 {/* 3. Final Balance Row */}
                 {remainingAdvanceBalance > 0 ? (
                   <tr className="print-bold-row bg-[#082216] text-emerald-400 font-black">
-                    <td colSpan={8} className="py-2.5 px-3 text-right uppercase tracking-wider text-xs">
+                    <td colSpan={8} className="py-2.5 px-2 text-right uppercase tracking-wider text-xs">
                       REMAINING ADVANCE BALANCE (EXCESS):
                     </td>
-                    <td className="py-2.5 px-3 text-right text-xs sm:text-sm font-black whitespace-nowrap" style={{ minWidth: '140px' }}>
+                    <td className="py-2.5 px-2 font-black whitespace-nowrap text-xs sm:text-sm" style={{ textAlign: 'right', minWidth: '110px' }}>
                       ₹{remainingAdvanceBalance.toLocaleString('en-IN')}
                     </td>
-                    <td className="py-2.5 px-3 no-print"></td>
+                    <td className="py-2.5 px-2 no-print"></td>
                   </tr>
                 ) : (
                   <tr className="print-bold-row bg-[#1e1906] text-amber-400 font-black">
-                    <td colSpan={8} className="py-2.5 px-3 text-right uppercase tracking-wider text-xs">
+                    <td colSpan={8} className="py-2.5 px-2 text-right uppercase tracking-wider text-xs">
                       REMAINING ADVANCE BALANCE (EXCESS):
                     </td>
-                    <td className="py-2.5 px-3 text-right text-xs sm:text-sm font-black whitespace-nowrap" style={{ minWidth: '140px' }}>
+                    <td className="py-2.5 px-2 font-black whitespace-nowrap text-xs sm:text-sm" style={{ textAlign: 'right', minWidth: '110px' }}>
                       ₹{netPayableAmount.toLocaleString('en-IN')}
                     </td>
-                    <td className="py-2.5 px-3 no-print"></td>
+                    <td className="py-2.5 px-2 no-print"></td>
                   </tr>
                 )}
               </tfoot>
