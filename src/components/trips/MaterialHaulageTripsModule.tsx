@@ -453,7 +453,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
       {/* Main Table / Print Section */}
       <div id="print-area" className="bg-[#0B1220] border border-[#1E293B] rounded-[1.2rem] sm:rounded-3xl overflow-hidden shadow-2xl">
         
-        {/* Printable Header with Vendor Name */}
+        {/* Printable Header with Updated Vendor Name, Material Purchased, Date, & Payable Amount */}
         <div className="hidden print-header p-4">
           <div className="flex justify-between items-start border-b-2 border-black pb-3">
             <div>
@@ -473,7 +473,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
               <div className="text-[10px] font-bold text-black uppercase tracking-wider">
                 TOTAL PAYABLE AMOUNT
               </div>
-              <div className="text-xl font-black text-black">
+              <div className="text-xl font-black text-black font-mono">
                 ₹{overallTotals.amount.toLocaleString('en-IN')}
               </div>
               <div className="text-[10px] text-black font-medium mt-0.5">
@@ -509,7 +509,6 @@ export const MaterialHaulageTripsModule: React.FC = () => {
               ) : (
                 filtered.map((t) => (
                   <tr key={t.id} className="hover:bg-[#121c33]/50 transition-colors">
-                    {/* Date Only */}
                     <td className="py-2.5 px-3 font-mono font-bold text-slate-300 text-center whitespace-nowrap">
                       {t.tripDate}
                     </td>
