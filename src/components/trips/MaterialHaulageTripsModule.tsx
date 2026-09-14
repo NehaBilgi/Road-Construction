@@ -1,6 +1,3 @@
-Here is your complete component code. The Print button now connects directly to `handlePrint` (which clears the browser title before opening the print dialog), and `@page { margin: 0; }` is applied to remove the browser-generated header text and footer URL.
-
-```tsx
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useERP } from '../../context/ERPContext';
 import {
@@ -333,8 +330,8 @@ export const MaterialHaulageTripsModule: React.FC = () => {
   };
 
   return (
-    <div className="space-y-4 sm:space-y-6 font-sans text-slate-100 print:text-black print:space-y-3 print:bg-white print:p-8">
-      {/* Complete Pure White Margin & Portrait Styles */}
+    <div className="space-y-4 sm:space-y-6 font-sans text-slate-100 print:text-black print:space-y-3 print:bg-white print:p-0 print:m-0 print:w-full">
+      {/* 100% Margin / Full Width Print Styles */}
       <style dangerouslySetInnerHTML={{ __html: `
         @media print {
           @page {
@@ -358,6 +355,8 @@ export const MaterialHaulageTripsModule: React.FC = () => {
             max-height: none !important;
             width: 100% !important;
             max-width: 100% !important;
+            margin: 0 !important;
+            padding: 0 !important;
           }
 
           * {
@@ -381,27 +380,28 @@ export const MaterialHaulageTripsModule: React.FC = () => {
             width: 100% !important;
             border-collapse: collapse !important;
             background-color: #ffffff !important;
+            margin: 0 !important;
           }
 
           .print-clean-table th {
             background-color: #ffffff !important;
             border-bottom: 2px solid #000000 !important;
-            padding: 6px 8px !important;
-            font-size: 10px !important;
+            padding: 8px 10px !important;
+            font-size: 11px !important;
             font-weight: 800 !important;
           }
 
           .print-clean-table td {
             background-color: #ffffff !important;
             border-bottom: 1px solid #d1d5db !important;
-            padding: 6px 8px !important;
-            font-size: 10.5px !important;
+            padding: 8px 10px !important;
+            font-size: 11px !important;
           }
 
           .print-clean-table tfoot td {
             background-color: #ffffff !important;
-            padding: 6px 8px !important;
-            font-size: 11px !important;
+            padding: 8px 10px !important;
+            font-size: 11.5px !important;
           }
 
           .print-clean-table tfoot tr {
@@ -410,8 +410,8 @@ export const MaterialHaulageTripsModule: React.FC = () => {
         }
       `}} />
 
-      {/* Printable Only Header: Bold Black Supplier Name & Site Name */}
-      <div className="hidden print:flex items-center justify-between border-b-2 border-black pb-3 mb-2">
+      {/* Printable Only Header: Bold Black Supplier Name & Site Name across 100% Width */}
+      <div className="hidden print:flex items-center justify-between border-b-2 border-black pb-3 mb-3 w-full px-4 pt-4">
         <div className="text-2xl font-black uppercase text-black tracking-wide">
           {currentSupplierName}
         </div>
@@ -510,8 +510,8 @@ export const MaterialHaulageTripsModule: React.FC = () => {
       </div>
 
       {/* Main Table */}
-      <div className="bg-[#0B1220] border border-[#1E293B] rounded-2xl overflow-hidden shadow-2xl print:border-none print:shadow-none print:rounded-none print:overflow-visible print:bg-white">
-        <div className="overflow-x-auto print:overflow-visible">
+      <div className="bg-[#0B1220] border border-[#1E293B] rounded-2xl overflow-hidden shadow-2xl print:border-none print:shadow-none print:rounded-none print:overflow-visible print:bg-white print:w-full">
+        <div className="overflow-x-auto print:overflow-visible print:w-full">
           <table className="w-full text-left text-xs border-collapse print-clean-table">
             <thead>
               <tr className="border-b border-[#1E293B] text-[10px] font-extrabold uppercase text-slate-400 bg-[#080d19]/80 print:bg-white print:text-black">
@@ -797,5 +797,3 @@ export const MaterialHaulageTripsModule: React.FC = () => {
     </div>
   );
 };
-
-```
