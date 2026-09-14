@@ -321,12 +321,12 @@ export const MaterialHaulageTripsModule: React.FC = () => {
   return (
     <div className="space-y-4 sm:space-y-6 font-sans text-slate-100">
       
-      {/* Exact Match Print Styling for Rounded Card Statement */}
+      {/* Spacious, Elegant A4 Print Stylesheet with Generous Padding */}
       <style>{`
         @media print {
           @page {
             size: A4 portrait;
-            margin: 10mm;
+            margin: 15mm 15mm 15mm 15mm;
           }
           * {
             -webkit-print-color-adjust: exact !important;
@@ -356,7 +356,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
             background: #ffffff !important;
             color: #000000 !important;
             border: 2px solid #000000 !important;
-            border-radius: 16px !important;
+            border-radius: 18px !important;
             overflow: hidden !important;
           }
           .no-print {
@@ -364,19 +364,19 @@ export const MaterialHaulageTripsModule: React.FC = () => {
           }
           .print-header {
             display: block !important;
-            padding: 16px 20px 14px 20px !important;
+            padding: 22px 24px 18px 24px !important;
             border-bottom: 2px solid #000000 !important;
             background: #ffffff !important;
           }
           table {
             width: 100% !important;
             border-collapse: collapse !important;
-            font-size: 8.5pt !important;
+            font-size: 9pt !important;
             table-layout: fixed !important;
           }
           th, td {
             border: 1px solid #000000 !important;
-            padding: 6px 7px !important;
+            padding: 8px 10px !important;
             color: #000000 !important;
             word-wrap: break-word !important;
             overflow: hidden !important;
@@ -385,15 +385,18 @@ export const MaterialHaulageTripsModule: React.FC = () => {
             background-color: #ffffff !important;
             font-weight: 800 !important;
             text-transform: uppercase !important;
-            font-size: 8pt !important;
+            font-size: 8.5pt !important;
+            letter-spacing: 0.3px !important;
           }
           tfoot tr td {
             background-color: #ffffff !important;
             font-weight: 800 !important;
+            padding: 9px 10px !important;
           }
           .print-bold-row td {
             font-weight: 900 !important;
-            font-size: 9pt !important;
+            font-size: 9.5pt !important;
+            padding: 10px 10px !important;
           }
         }
       `}</style>
@@ -488,15 +491,15 @@ export const MaterialHaulageTripsModule: React.FC = () => {
       {/* Main Print Container & Table */}
       <div id="print-area" className="bg-[#0B1220] border border-[#1E293B] rounded-[1.2rem] sm:rounded-3xl overflow-hidden shadow-2xl">
         
-        {/* Printable Header matching reference image */}
+        {/* Printable Header with Vendor Name */}
         <div className="hidden print-header">
-          <h1 className="text-[17pt] font-black uppercase text-black tracking-tight leading-none m-0">
+          <h1 className="text-[18pt] font-black uppercase text-black tracking-tight leading-none m-0">
             {activeVendorName}
           </h1>
-          <p className="text-[9pt] font-black uppercase tracking-wide text-black mt-1 m-0">
+          <p className="text-[9.5pt] font-black uppercase tracking-wide text-black mt-1.5 m-0">
             MATERIAL PURCHASED
           </p>
-          <div className="text-[9pt] text-black font-bold mt-1">
+          <div className="text-[9.5pt] text-black font-bold mt-1.5">
             <span>Site: {activeSiteName}</span>
           </div>
         </div>
@@ -553,7 +556,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
               )}
             </tbody>
 
-            {/* Table Footer matching reference screenshot style */}
+            {/* Table Footer */}
             {filtered.length > 0 && (
               <tfoot className="border-t-2 border-[#1E293B] bg-[#070c18] font-mono">
                 {/* 1. Gross Material Purchase */}
