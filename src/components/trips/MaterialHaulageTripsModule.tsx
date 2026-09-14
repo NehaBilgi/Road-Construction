@@ -8,7 +8,8 @@ import {
   Edit2,
   Truck,
   Store,
-  ChevronDown
+  ChevronDown,
+  Printer
 } from 'lucide-react';
 
 export interface HaulageTripRecord {
@@ -277,6 +278,10 @@ export const MaterialHaulageTripsModule: React.FC = () => {
     }
   };
 
+  const handlePrint = () => {
+    window.print();
+  };
+
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
     if (dayTrips === '' || brassPerTrip === '' || ratePerBrass === '') return;
@@ -313,10 +318,55 @@ export const MaterialHaulageTripsModule: React.FC = () => {
   };
 
   return (
-    <div className="space-y-4 sm:space-y-6 font-sans text-slate-100">
-      
-      {/* Screen Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div className="space-y-4 sm:space-y-6 font-sans text-slate-100 print:text-black print:space-y-3">
+      {/* Print-specific Stylesheet */}
+      <style dangerouslySetInnerHTML={{ __html: `
+        @media print {
+          @page {
+            size: A4 landscape;
+            margin: 10mm 12mm;
+          }
+          body {
+            background-color: #ffffff !important;
+            color: #000000 !important;
+          }
+          .no-print {
+            display: none !important;
+          }
+          .print-clean-card {
+            border: 1px solid #cbd5e1 !important;
+            background-color: #f8fafc !important;
+            color: #000000 !important;
+            box-shadow: none !important;
+          }
+          .print-clean-table th {
+            background-color: #f1f5f9 !important;
+            color: #000000 !important;
+            border-bottom: 2px solid #000000 !important;
+          }
+          .print-clean-table td {
+            color: #000000 !important;
+            border-bottom: 1px solid #e2e8f0 !important;
+          }
+        }
+      `}} />
+
+      {/* Printable Letterhead (Only visible when printing) */}
+      <div className="hidden print:block border-b-2 border-slate-900 pb-3 mb-2">
+        <div className="flex justify-between items-end">
+          <div>
+            <h1 className="text-xl font-black tracking-tight text-slate-900 uppercase">CONSTRUCTION PRO ERP</h1>
+            <p className="text-xs font-semibold text-slate-700">Material Haulage & Supplier Billing Statement</p>
+          </div>
+          <div className="text-right text-[11px] text-slate-600 font-mono">
+            <p><strong>Site:</strong> {activeSiteName}</p>
+            <p><strong>Printed On:</strong> {new Date().toLocaleDateString('en-GB')}</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Screen Header (Hidden on Print) */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 no-print">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-2xl bg-blue-600/20 border border-blue-500/30 flex items-center justify-center text-blue-400 shrink-0">
             <Truck className="w-5 h-5" />
@@ -330,6 +380,16 @@ export const MaterialHaulageTripsModule: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-2">
+          {/* Print to PDF Action Button */}
+          <button
+            onClick={handlePrint}
+            className="px-3.5 py-2.5 rounded-xl bg-[#131d33] hover:bg-[#1a2847] border border-[#1E293B] hover:border-slate-600 text-slate-200 text-xs font-bold flex items-center gap-1.5 transition-all shadow-sm cursor-pointer"
+            title="Print or Export to PDF"
+          >
+            <Printer className="w-4 h-4 text-slate-300" />
+            <span>Print to PDF</span>
+          </button>
+
           <button
             onClick={handleOpenAdd}
             className="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-black flex items-center gap-1.5 shadow-lg shadow-blue-600/30 cursor-pointer"
@@ -342,47 +402,47 @@ export const MaterialHaulageTripsModule: React.FC = () => {
 
       {/* Summary Stat Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-        <div className="p-4 rounded-2xl bg-[#0B1220] border border-[#1E293B] shadow-lg flex flex-col justify-between">
-          <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Total Material Purchase</div>
-          <div className="text-2xl font-black text-white font-mono mt-1">₹{overallTotals.amount.toLocaleString('en-IN')}</div>
-          <div className="text-[10px] text-slate-500">{overallTotals.trips} Trips ({overallTotals.brass} Brass)</div>
+        <div className="p-4 rounded-2xl bg-[#0B1220] border border-[#1E293B] shadow-lg flex flex-col justify-between print-clean-card">
+          <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 print:text-slate-700">Total Material Purchase</div>
+          <div className="text-2xl font-black text-white font-mono mt-1 print:text-black">₹{overallTotals.amount.toLocaleString('en-IN')}</div>
+          <div className="text-[10px] text-slate-500 print:text-slate-600 font-medium">{overallTotals.trips} Trips ({overallTotals.brass} Brass)</div>
         </div>
 
-        <div className="p-4 rounded-2xl bg-[#0B1220] border border-[#1E293B] shadow-lg flex flex-col justify-between">
-          <div className="text-[10px] font-bold uppercase tracking-wider text-rose-400">(-) Less: Advance Paid</div>
-          <div className="text-2xl font-black text-rose-400 font-mono mt-1">₹{totalVendorAdvancePaid.toLocaleString('en-IN')}</div>
-          <div className="text-[10px] text-slate-500">
+        <div className="p-4 rounded-2xl bg-[#0B1220] border border-[#1E293B] shadow-lg flex flex-col justify-between print-clean-card">
+          <div className="text-[10px] font-bold uppercase tracking-wider text-rose-400 print:text-slate-700">(-) Less: Advance Paid</div>
+          <div className="text-2xl font-black text-rose-400 font-mono mt-1 print:text-black">₹{totalVendorAdvancePaid.toLocaleString('en-IN')}</div>
+          <div className="text-[10px] text-slate-500 print:text-slate-600 font-medium">
             {advanceDatesSummary ? `Paid on: ${advanceDatesSummary}` : 'Auto-deducted from Advances ledger'}
           </div>
         </div>
 
-        <div className={`p-4 rounded-2xl border shadow-lg flex flex-col justify-between transition-all ${
+        <div className={`p-4 rounded-2xl border shadow-lg flex flex-col justify-between transition-all print-clean-card ${
           netPayableAmount > 0 
             ? 'bg-amber-950/20 border-amber-500/30' 
             : 'bg-[#0B1220] border-[#1E293B] opacity-75'
         }`}>
-          <div className="text-[10px] font-bold uppercase tracking-wider text-amber-400">(=) Net Payable Amount</div>
-          <div className="text-2xl font-black text-amber-400 font-mono mt-1">₹{netPayableAmount.toLocaleString('en-IN')}</div>
-          <div className="text-[10px] text-slate-400">
+          <div className="text-[10px] font-bold uppercase tracking-wider text-amber-400 print:text-slate-700">(=) Net Payable Amount</div>
+          <div className="text-2xl font-black text-amber-400 font-mono mt-1 print:text-black">₹{netPayableAmount.toLocaleString('en-IN')}</div>
+          <div className="text-[10px] text-slate-400 print:text-slate-600 font-medium">
             {netPayableAmount > 0 ? 'Remaining balance to pay vendor' : 'Cleared by Advance'}
           </div>
         </div>
 
-        <div className={`p-4 rounded-2xl border shadow-lg flex flex-col justify-between transition-all ${
+        <div className={`p-4 rounded-2xl border shadow-lg flex flex-col justify-between transition-all print-clean-card ${
           remainingAdvanceBalance > 0 
             ? 'bg-emerald-950/30 border-emerald-500/40' 
             : 'bg-[#0B1220] border-[#1E293B] opacity-75'
         }`}>
-          <div className="text-[10px] font-bold uppercase tracking-wider text-emerald-400">Remaining Advance Balance</div>
-          <div className="text-2xl font-black text-emerald-400 font-mono mt-1">₹{remainingAdvanceBalance.toLocaleString('en-IN')}</div>
-          <div className="text-[10px] text-emerald-500/80 font-bold">
+          <div className="text-[10px] font-bold uppercase tracking-wider text-emerald-400 print:text-slate-700">Remaining Advance Balance</div>
+          <div className="text-2xl font-black text-emerald-400 font-mono mt-1 print:text-black">₹{remainingAdvanceBalance.toLocaleString('en-IN')}</div>
+          <div className="text-[10px] text-emerald-500/80 font-bold print:text-slate-600">
             {remainingAdvanceBalance > 0 ? 'Unused Advance with Vendor' : 'No Surplus Advance'}
           </div>
         </div>
       </div>
 
-      {/* Search Bar */}
-      <div className="p-3 rounded-2xl bg-[#0c1427] border border-[#182643] flex items-center gap-3 text-xs">
+      {/* Search Bar (Hidden on Print) */}
+      <div className="p-3 rounded-2xl bg-[#0c1427] border border-[#182643] flex items-center gap-3 text-xs no-print">
         <div className="relative flex-1">
           <Search className="absolute left-3.5 top-2.5 w-4 h-4 text-slate-500" />
           <input
@@ -396,9 +456,9 @@ export const MaterialHaulageTripsModule: React.FC = () => {
       </div>
 
       {/* Main Table */}
-      <div className="bg-[#0B1220] border border-[#1E293B] rounded-2xl overflow-hidden shadow-2xl">
+      <div className="bg-[#0B1220] border border-[#1E293B] rounded-2xl overflow-hidden shadow-2xl print:border-slate-300 print:shadow-none print:rounded-none">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs border-collapse">
+          <table className="w-full text-left text-xs border-collapse print-clean-table">
             <thead>
               <tr className="border-b border-[#1E293B] text-[10px] font-extrabold uppercase text-slate-400 bg-[#080d19]/80">
                 <th className="py-3 px-3 text-left">DATE</th>
@@ -410,7 +470,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
                 <th className="py-3 px-2 text-right">QTY/TRIP</th>
                 <th className="py-3 px-2 text-right">RATE (₹)</th>
                 <th className="py-3 px-3 text-right">AMOUNT (₹)</th>
-                <th className="py-3 px-3 text-center">ACTION</th>
+                <th className="py-3 px-3 text-center no-print">ACTION</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#1E293B]/60 text-slate-200">
@@ -423,18 +483,18 @@ export const MaterialHaulageTripsModule: React.FC = () => {
               ) : (
                 filtered.map((t) => (
                   <tr key={t.id} className="hover:bg-[#121c33]/50">
-                    <td className="py-2.5 px-3 font-mono text-left text-slate-300 whitespace-nowrap">
+                    <td className="py-2.5 px-3 font-mono text-left text-slate-300 print:text-black whitespace-nowrap">
                       {formatDateDMY(t.tripDate)}
                     </td>
-                    <td className="py-2.5 px-3 font-bold text-cyan-400 text-center">{t.siteName}</td>
-                    <td className="py-2.5 px-3 font-semibold text-emerald-400">{t.purchasedFrom || 'Direct Quarry'}</td>
-                    <td className="py-2.5 px-3 font-mono text-slate-300 text-center">{t.vehicleNumber}</td>
-                    <td className="py-2.5 px-3 font-bold text-amber-300">{t.materialName}</td>
-                    <td className="py-2.5 px-2 text-center font-mono">{t.dayTrips}</td>
-                    <td className="py-2.5 px-2 text-right font-mono">{t.brassPerTrip}</td>
-                    <td className="py-2.5 px-2 text-right font-mono text-emerald-400">₹{t.ratePerBrass.toLocaleString('en-IN')}</td>
-                    <td className="py-2.5 px-3 text-right font-mono font-black text-amber-400">₹{t.totalAmount.toLocaleString('en-IN')}</td>
-                    <td className="py-2.5 px-3 text-center">
+                    <td className="py-2.5 px-3 font-bold text-cyan-400 print:text-black text-center">{t.siteName}</td>
+                    <td className="py-2.5 px-3 font-semibold text-emerald-400 print:text-black">{t.purchasedFrom || 'Direct Quarry'}</td>
+                    <td className="py-2.5 px-3 font-mono text-slate-300 print:text-black text-center">{t.vehicleNumber}</td>
+                    <td className="py-2.5 px-3 font-bold text-amber-300 print:text-black">{t.materialName}</td>
+                    <td className="py-2.5 px-2 text-center font-mono print:text-black">{t.dayTrips}</td>
+                    <td className="py-2.5 px-2 text-right font-mono print:text-black">{t.brassPerTrip}</td>
+                    <td className="py-2.5 px-2 text-right font-mono text-emerald-400 print:text-black">₹{t.ratePerBrass.toLocaleString('en-IN')}</td>
+                    <td className="py-2.5 px-3 text-right font-mono font-black text-amber-400 print:text-black">₹{t.totalAmount.toLocaleString('en-IN')}</td>
+                    <td className="py-2.5 px-3 text-center no-print">
                       <div className="flex items-center justify-center gap-1">
                         <button onClick={() => handleEdit(t)} className="p-1 rounded text-slate-400 hover:text-blue-400">
                           <Edit2 className="w-3.5 h-3.5" />
@@ -451,47 +511,47 @@ export const MaterialHaulageTripsModule: React.FC = () => {
 
             {/* Table Footer */}
             {filtered.length > 0 && (
-              <tfoot className="border-t-2 border-[#1E293B] bg-[#070c18] font-mono">
-                <tr className="border-b border-[#1E293B]/60">
-                  <td colSpan={5} className="py-2.5 px-3 font-bold uppercase text-slate-300 text-right">
+              <tfoot className="border-t-2 border-[#1E293B] print:border-t-2 print:border-black bg-[#070c18] font-mono print:bg-white">
+                <tr className="border-b border-[#1E293B]/60 print:border-b print:border-slate-300">
+                  <td colSpan={5} className="py-2.5 px-3 font-bold uppercase text-slate-300 print:text-black text-right">
                     Total Material Purchased:
                   </td>
-                  <td className="py-2.5 px-2 text-center font-bold text-cyan-400">{overallTotals.trips} Trips</td>
-                  <td className="py-2.5 px-2 text-right font-bold text-white">{overallTotals.brass} Brass</td>
-                  <td className="py-2.5 px-2 text-right text-slate-500">—</td>
-                  <td className="py-2.5 px-3 text-right font-bold text-white">₹{overallTotals.amount.toLocaleString('en-IN')}</td>
-                  <td className="py-2.5 px-3"></td>
+                  <td className="py-2.5 px-2 text-center font-bold text-cyan-400 print:text-black">{overallTotals.trips} Trips</td>
+                  <td className="py-2.5 px-2 text-right font-bold text-white print:text-black">{overallTotals.brass} Brass</td>
+                  <td className="py-2.5 px-2 text-right text-slate-500 print:text-black">—</td>
+                  <td className="py-2.5 px-3 text-right font-bold text-white print:text-black">₹{overallTotals.amount.toLocaleString('en-IN')}</td>
+                  <td className="py-2.5 px-3 no-print"></td>
                 </tr>
 
-                <tr className="border-b border-[#1E293B]/60 text-rose-400">
+                <tr className="border-b border-[#1E293B]/60 print:border-b print:border-slate-300 text-rose-400 print:text-black">
                   <td colSpan={8} className="py-2 px-3 font-bold uppercase text-right">
                     (-) Less: Advance Payment Received {advanceDatesSummary ? `(${advanceDatesSummary})` : ''}:
                   </td>
                   <td className="py-2 px-3 text-right font-bold">
                     - ₹{totalVendorAdvancePaid.toLocaleString('en-IN')}
                   </td>
-                  <td className="py-2 px-3"></td>
+                  <td className="py-2 px-3 no-print"></td>
                 </tr>
 
                 {remainingAdvanceBalance > 0 ? (
-                  <tr className="bg-[#082216] text-emerald-400 font-black">
+                  <tr className="bg-[#082216] text-emerald-400 print:bg-slate-100 print:text-black font-black">
                     <td colSpan={8} className="py-3 px-3 text-right uppercase tracking-wider text-xs sm:text-sm">
                       REMAINING ADVANCE BALANCE (EXCESS):
                     </td>
                     <td className="py-3 px-3 text-right text-sm sm:text-base font-black">
                       ₹{remainingAdvanceBalance.toLocaleString('en-IN')}
                     </td>
-                    <td className="py-3 px-3"></td>
+                    <td className="py-3 px-3 no-print"></td>
                   </tr>
                 ) : (
-                  <tr className="bg-[#1e1906] text-amber-400 font-black">
+                  <tr className="bg-[#1e1906] text-amber-400 print:bg-slate-100 print:text-black font-black">
                     <td colSpan={8} className="py-3 px-3 text-right uppercase tracking-wider text-xs sm:text-sm">
                       (=) NET PAYABLE AMOUNT:
                     </td>
                     <td className="py-3 px-3 text-right text-sm sm:text-base font-black">
                       ₹{netPayableAmount.toLocaleString('en-IN')}
                     </td>
-                    <td className="py-3 px-3"></td>
+                    <td className="py-3 px-3 no-print"></td>
                   </tr>
                 )}
               </tfoot>
@@ -500,9 +560,9 @@ export const MaterialHaulageTripsModule: React.FC = () => {
         </div>
       </div>
 
-      {/* Modal Form */}
+      {/* Modal Form (Hidden on Print) */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm no-print">
           <div className="bg-[#121927] border border-[#1E293B] rounded-2xl w-full max-w-lg p-5 space-y-4 max-h-[92vh] overflow-y-auto">
             <div className="flex justify-between items-center border-b border-[#1E293B] pb-3">
               <h3 className="text-sm font-bold text-white flex items-center gap-2">
