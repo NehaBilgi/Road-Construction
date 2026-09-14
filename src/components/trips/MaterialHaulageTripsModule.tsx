@@ -322,23 +322,14 @@ export const MaterialHaulageTripsModule: React.FC = () => {
 
   return (
     <div className="space-y-4 sm:space-y-6 font-sans text-slate-100 print:text-black print:space-y-3">
-      {/* Strictly Pure Black & White Print Styles */}
+      {/* Print Styles */}
       <style dangerouslySetInnerHTML={{ __html: `
         @media print {
           @page {
             size: portrait;
             margin: 10mm 12mm;
           }
-          * {
-            background: transparent !important;
-            color: #000000 !important;
-            box-shadow: none !important;
-            text-shadow: none !important;
-            -webkit-print-color-adjust: exact !important;
-            print-color-adjust: exact !important;
-          }
           html, body, #root, main, div, table {
-            background-color: #ffffff !important;
             overflow: visible !important;
             height: auto !important;
             max-height: none !important;
@@ -354,35 +345,29 @@ export const MaterialHaulageTripsModule: React.FC = () => {
           .no-print {
             display: none !important;
           }
-          a[href]:after {
-            content: none !important;
+          body {
+            background-color: #ffffff !important;
+            color: #000000 !important;
           }
           .print-clean-table {
             width: 100% !important;
             border-collapse: collapse !important;
           }
           .print-clean-table th {
+            background-color: #f1f5f9 !important;
+            color: #000000 !important;
             border-bottom: 2px solid #000000 !important;
             padding: 6px 8px !important;
-            font-size: 10px !important;
-            font-weight: 800 !important;
           }
           .print-clean-table td {
-            border-bottom: 1px solid #d1d5db !important;
+            color: #000000 !important;
+            border-bottom: 1px solid #e2e8f0 !important;
             padding: 6px 8px !important;
-            font-size: 10.5px !important;
-          }
-          .print-clean-table tfoot td {
-            padding: 6px 8px !important;
-            font-size: 11px !important;
-          }
-          .print-clean-table tfoot tr {
-            border-bottom: 1px solid #d1d5db !important;
           }
         }
       `}} />
 
-      {/* Printable Only Header: Bold Black Supplier Name & Site Name */}
+      {/* Printable Only Header: Bold Supplier Name & Bold Site Name */}
       <div className="hidden print:flex items-center justify-between border-b-2 border-black pb-3 mb-2">
         <div className="text-2xl font-black uppercase text-black tracking-wide">
           {currentSupplierName}
@@ -426,7 +411,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
         </div>
       </div>
 
-      {/* Summary Stat Cards (Hidden on Print) */}
+      {/* Summary Stat Cards (Hidden on Print via no-print) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 no-print">
         <div className="p-4 rounded-2xl bg-[#0B1220] border border-[#1E293B] shadow-lg flex flex-col justify-between">
           <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Total Material Purchase</div>
@@ -502,7 +487,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
             <tbody className="divide-y divide-[#1E293B]/60 text-slate-200">
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={10} className="py-8 text-center text-slate-500 print:text-black">
+                  <td colSpan={10} className="py-8 text-center text-slate-500">
                     No records found for {activeSiteName}.
                   </td>
                 </tr>
@@ -537,8 +522,8 @@ export const MaterialHaulageTripsModule: React.FC = () => {
 
             {/* Table Footer */}
             {filtered.length > 0 && (
-              <tfoot className="border-t-2 border-[#1E293B] print:border-t-2 print:border-black bg-[#070c18] font-mono">
-                <tr className="border-b border-[#1E293B]/60">
+              <tfoot className="border-t-2 border-[#1E293B] print:border-t-2 print:border-black bg-[#070c18] font-mono print:bg-white">
+                <tr className="border-b border-[#1E293B]/60 print:border-b print:border-slate-300">
                   <td colSpan={5} className="py-2.5 px-3 font-bold uppercase text-slate-300 print:text-black text-right">
                     Total Material Purchased:
                   </td>
@@ -549,7 +534,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
                   <td className="py-2.5 px-3 no-print"></td>
                 </tr>
 
-                <tr className="border-b border-[#1E293B]/60 text-rose-400 print:text-black">
+                <tr className="border-b border-[#1E293B]/60 print:border-b print:border-slate-300 text-rose-400 print:text-black">
                   <td colSpan={8} className="py-2 px-3 font-bold uppercase text-right">
                     (-) Less: Advance Payment Received {advanceDatesSummary ? `(${advanceDatesSummary})` : ''}:
                   </td>
@@ -560,7 +545,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
                 </tr>
 
                 {remainingAdvanceBalance > 0 ? (
-                  <tr className="bg-[#082216] text-emerald-400 print:text-black font-black">
+                  <tr className="bg-[#082216] text-emerald-400 print:bg-slate-100 print:text-black font-black">
                     <td colSpan={8} className="py-3 px-3 text-right uppercase tracking-wider text-xs">
                       REMAINING ADVANCE BALANCE (EXCESS):
                     </td>
@@ -570,7 +555,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
                     <td className="py-3 px-3 no-print"></td>
                   </tr>
                 ) : (
-                  <tr className="bg-[#1e1906] text-amber-400 print:text-black font-black">
+                  <tr className="bg-[#1e1906] text-amber-400 print:bg-slate-100 print:text-black font-black">
                     <td colSpan={8} className="py-3 px-3 text-right uppercase tracking-wider text-xs">
                       (=) NET PAYABLE AMOUNT:
                     </td>
