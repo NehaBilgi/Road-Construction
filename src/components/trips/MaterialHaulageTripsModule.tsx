@@ -321,23 +321,25 @@ export const MaterialHaulageTripsModule: React.FC = () => {
   return (
     <div className="space-y-4 sm:space-y-6 font-sans text-slate-100">
       
-      {/* Complete White-Margin A4 Print Stylesheet with Proportional Spacing */}
+      {/* Complete Clean White Background A4 Print Stylesheet */}
       <style>{`
         @media print {
           @page {
             size: A4 portrait;
-            margin: 20mm 16mm;
+            margin: 12mm 14mm;
           }
           * {
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
             box-shadow: none !important;
           }
-          body {
-            background: #ffffff !important;
+          html, body {
+            background-color: #ffffff !important;
             color: #000000 !important;
             margin: 0 !important;
             padding: 0 !important;
+            width: 100% !important;
+            height: 100% !important;
           }
           body * {
             visibility: hidden;
@@ -346,18 +348,18 @@ export const MaterialHaulageTripsModule: React.FC = () => {
             visibility: visible;
           }
           #print-area {
-            position: relative !important;
-            left: auto !important;
-            top: auto !important;
+            position: absolute !important;
+            left: 0 !important;
+            top: 0 !important;
             width: 100% !important;
-            max-width: 100% !important;
-            margin: 0 auto !important;
+            margin: 0 !important;
             padding: 0 !important;
             background: #ffffff !important;
             color: #000000 !important;
             border: 1.5px solid #000000 !important;
             border-radius: 12px !important;
             overflow: hidden !important;
+            box-sizing: border-box !important;
           }
           .no-print {
             display: none !important;
@@ -371,12 +373,12 @@ export const MaterialHaulageTripsModule: React.FC = () => {
           table {
             width: 100% !important;
             border-collapse: collapse !important;
-            font-size: 8pt !important;
+            font-size: 8.5pt !important;
             table-layout: fixed !important;
           }
           th, td {
             border: 1px solid #000000 !important;
-            padding: 6px 5px !important;
+            padding: 7px 6px !important;
             color: #000000 !important;
             word-wrap: break-word !important;
             overflow: hidden !important;
@@ -391,11 +393,11 @@ export const MaterialHaulageTripsModule: React.FC = () => {
           tfoot tr td {
             background-color: #ffffff !important;
             font-weight: 800 !important;
-            padding: 7px 6px !important;
+            padding: 8px 6px !important;
           }
           .print-bold-row td {
             font-weight: 900 !important;
-            font-size: 8.5pt !important;
+            font-size: 9pt !important;
           }
         }
       `}</style>
@@ -490,7 +492,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
       {/* Main Print Container & Table */}
       <div id="print-area" className="bg-[#0B1220] border border-[#1E293B] rounded-[1.2rem] sm:rounded-3xl overflow-hidden shadow-2xl">
         
-        {/* Printable Header */}
+        {/* Printable Header with Vendor Name */}
         <div className="hidden print-header">
           <h1 className="text-[16pt] font-black uppercase text-black tracking-tight leading-none m-0">
             {activeVendorName}
@@ -529,18 +531,18 @@ export const MaterialHaulageTripsModule: React.FC = () => {
               ) : (
                 filtered.map((t) => (
                   <tr key={t.id} className="hover:bg-[#121c33]/50">
-                    <td className="py-2 px-2 font-mono text-left text-slate-300 whitespace-nowrap">
+                    <td className="py-2.5 px-2 font-mono text-left text-slate-300 whitespace-nowrap">
                       {formatDateDMY(t.tripDate)}
                     </td>
-                    <td className="py-2 px-2 font-bold text-cyan-400 text-center whitespace-nowrap">{t.siteName}</td>
-                    <td className="py-2 px-2 font-semibold text-emerald-400 truncate">{t.purchasedFrom || 'Direct Quarry'}</td>
-                    <td className="py-2 px-2 font-mono text-slate-300 text-center whitespace-nowrap">{t.vehicleNumber}</td>
-                    <td className="py-2 px-2 font-bold text-amber-300" style={{ wordBreak: 'break-word', whiteSpace: 'normal' }}>{t.materialName}</td>
-                    <td className="py-2 px-1 text-center font-mono whitespace-nowrap">{t.dayTrips}</td>
-                    <td className="py-2 px-1.5 text-right font-mono whitespace-nowrap">{t.brassPerTrip}</td>
-                    <td className="py-2 px-2 font-mono text-emerald-400 whitespace-nowrap" style={{ textAlign: 'right' }}>₹{t.ratePerBrass.toLocaleString('en-IN')}</td>
-                    <td className="py-2 px-2 font-mono font-black text-amber-400 whitespace-nowrap" style={{ textAlign: 'right' }}>₹{t.totalAmount.toLocaleString('en-IN')}</td>
-                    <td className="py-2 px-2 text-center no-print">
+                    <td className="py-2.5 px-2 font-bold text-cyan-400 text-center whitespace-nowrap">{t.siteName}</td>
+                    <td className="py-2.5 px-2 font-semibold text-emerald-400 truncate">{t.purchasedFrom || 'Direct Quarry'}</td>
+                    <td className="py-2.5 px-2 font-mono text-slate-300 text-center whitespace-nowrap">{t.vehicleNumber}</td>
+                    <td className="py-2.5 px-2 font-bold text-amber-300" style={{ wordBreak: 'break-word', whiteSpace: 'normal' }}>{t.materialName}</td>
+                    <td className="py-2.5 px-1 text-center font-mono whitespace-nowrap">{t.dayTrips}</td>
+                    <td className="py-2.5 px-1.5 text-right font-mono whitespace-nowrap">{t.brassPerTrip}</td>
+                    <td className="py-2.5 px-2 font-mono text-emerald-400 whitespace-nowrap" style={{ textAlign: 'right' }}>₹{t.ratePerBrass.toLocaleString('en-IN')}</td>
+                    <td className="py-2.5 px-2 font-mono font-black text-amber-400 whitespace-nowrap" style={{ textAlign: 'right' }}>₹{t.totalAmount.toLocaleString('en-IN')}</td>
+                    <td className="py-2.5 px-2 text-center no-print">
                       <div className="flex items-center justify-center gap-1">
                         <button onClick={() => handleEdit(t)} className="p-1 rounded text-slate-400 hover:text-blue-400">
                           <Edit2 className="w-3.5 h-3.5" />
@@ -575,7 +577,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
                   <td colSpan={8} className="py-2 px-2 font-bold uppercase text-right">
                     (-) LESS: ADVANCE PAYMENT RECEIVED {advanceDatesSummary ? `(${advanceDatesSummary})` : ''}:
                   </td>
-                  <td className="py-2 px-2 font-bold whitespace-nowrap" style={{ textAlign: 'right', minWidth: '110px' }}>
+                  <td className="py-2 px-2 font-bold whitespace-nowrap" style={{ textAlign: 'right', minWidth: '120px' }}>
                     - ₹{totalVendorAdvancePaid.toLocaleString('en-IN')}
                   </td>
                   <td className="py-2 px-2 no-print"></td>
@@ -587,7 +589,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
                     <td colSpan={8} className="py-2.5 px-2 text-right uppercase tracking-wider text-xs">
                       REMAINING ADVANCE BALANCE (EXCESS):
                     </td>
-                    <td className="py-2.5 px-2 font-black whitespace-nowrap text-xs sm:text-sm" style={{ textAlign: 'right', minWidth: '110px' }}>
+                    <td className="py-2.5 px-2 font-black whitespace-nowrap text-xs sm:text-sm" style={{ textAlign: 'right', minWidth: '120px' }}>
                       ₹{remainingAdvanceBalance.toLocaleString('en-IN')}
                     </td>
                     <td className="py-2.5 px-2 no-print"></td>
@@ -597,7 +599,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
                     <td colSpan={8} className="py-2.5 px-2 text-right uppercase tracking-wider text-xs">
                       REMAINING ADVANCE BALANCE (EXCESS):
                     </td>
-                    <td className="py-2.5 px-2 font-black whitespace-nowrap text-xs sm:text-sm" style={{ textAlign: 'right', minWidth: '110px' }}>
+                    <td className="py-2.5 px-2 font-black whitespace-nowrap text-xs sm:text-sm" style={{ textAlign: 'right', minWidth: '120px' }}>
                       ₹{netPayableAmount.toLocaleString('en-IN')}
                     </td>
                     <td className="py-2.5 px-2 no-print"></td>
