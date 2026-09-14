@@ -181,7 +181,6 @@ export const MaterialHaulageTripsModule: React.FC = () => {
     });
   }, [trips, activeSiteName, searchQuery]);
 
-  // Derive supplier name for the printable header
   const currentSupplierName = useMemo(() => {
     const vendors = Array.from(
       new Set(filtered.map((t) => t.purchasedFrom?.trim()).filter(Boolean))
@@ -322,13 +321,21 @@ export const MaterialHaulageTripsModule: React.FC = () => {
   };
 
   return (
-    <div className="space-y-4 sm:space-y-6 font-sans text-slate-100 print:text-black print:space-y-4">
-      {/* Print Styles */}
+    <div className="space-y-4 sm:space-y-6 font-sans text-slate-100 print:text-black print:space-y-3">
+      {/* Print Specific CSS for standard A4 Portrait */}
       <style dangerouslySetInnerHTML={{ __html: `
         @media print {
           @page {
-            size: A4 landscape;
-            margin: 12mm 15mm;
+            size: A4 portrait;
+            margin: 10mm 12mm;
+          }
+          html, body {
+            width: 100% !important;
+            background-color: #ffffff !important;
+            color: #000000 !important;
+            font-size: 10px !important;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
           }
           nav,
           header,
@@ -336,28 +343,36 @@ export const MaterialHaulageTripsModule: React.FC = () => {
           .no-print {
             display: none !important;
           }
-          body {
-            background-color: #ffffff !important;
-            color: #000000 !important;
+          .print-clean-table {
+            width: 100% !important;
+            border-collapse: collapse !important;
           }
           .print-clean-table th {
             background-color: #f1f5f9 !important;
             color: #000000 !important;
             border-bottom: 2px solid #000000 !important;
+            padding: 5px 6px !important;
+            font-size: 9px !important;
           }
           .print-clean-table td {
             color: #000000 !important;
             border-bottom: 1px solid #e2e8f0 !important;
+            padding: 4px 6px !important;
+            font-size: 9.5px !important;
+          }
+          .print-clean-table tfoot td {
+            padding: 4px 6px !important;
+            font-size: 10px !important;
           }
         }
       `}} />
 
       {/* Printable Only Header: Bold Supplier Name & Bold Site Name */}
-      <div className="hidden print:flex items-center justify-between border-b-2 border-black pb-3">
-        <div className="text-2xl font-black uppercase text-black tracking-wide">
+      <div className="hidden print:flex items-center justify-between border-b-2 border-black pb-2 mb-2">
+        <div className="text-xl font-black uppercase text-black tracking-wide">
           {currentSupplierName}
         </div>
-        <div className="text-2xl font-black uppercase text-black tracking-wide">
+        <div className="text-xl font-black uppercase text-black tracking-wide">
           SITE: {activeSiteName}
         </div>
       </div>
@@ -452,7 +467,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
       </div>
 
       {/* Main Table */}
-      <div className="bg-[#0B1220] border border-[#1E293B] rounded-2xl overflow-hidden shadow-2xl print:border-slate-300 print:shadow-none print:rounded-none">
+      <div className="bg-[#0B1220] border border-[#1E293B] rounded-2xl overflow-hidden shadow-2xl print:border-none print:shadow-none print:rounded-none">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs border-collapse print-clean-table">
             <thead>
@@ -531,23 +546,23 @@ export const MaterialHaulageTripsModule: React.FC = () => {
 
                 {remainingAdvanceBalance > 0 ? (
                   <tr className="bg-[#082216] text-emerald-400 print:bg-slate-100 print:text-black font-black">
-                    <td colSpan={8} className="py-3 px-3 text-right uppercase tracking-wider text-xs sm:text-sm">
+                    <td colSpan={8} className="py-2.5 px-3 text-right uppercase tracking-wider text-xs">
                       REMAINING ADVANCE BALANCE (EXCESS):
                     </td>
-                    <td className="py-3 px-3 text-right text-sm sm:text-base font-black">
+                    <td className="py-2.5 px-3 text-right text-sm font-black">
                       ₹{remainingAdvanceBalance.toLocaleString('en-IN')}
                     </td>
-                    <td className="py-3 px-3 no-print"></td>
+                    <td className="py-2.5 px-3 no-print"></td>
                   </tr>
                 ) : (
                   <tr className="bg-[#1e1906] text-amber-400 print:bg-slate-100 print:text-black font-black">
-                    <td colSpan={8} className="py-3 px-3 text-right uppercase tracking-wider text-xs sm:text-sm">
+                    <td colSpan={8} className="py-2.5 px-3 text-right uppercase tracking-wider text-xs">
                       (=) NET PAYABLE AMOUNT:
                     </td>
-                    <td className="py-3 px-3 text-right text-sm sm:text-base font-black">
+                    <td className="py-2.5 px-3 text-right text-sm font-black">
                       ₹{netPayableAmount.toLocaleString('en-IN')}
                     </td>
-                    <td className="py-3 px-3 no-print"></td>
+                    <td className="py-2.5 px-3 no-print"></td>
                   </tr>
                 )}
               </tfoot>
