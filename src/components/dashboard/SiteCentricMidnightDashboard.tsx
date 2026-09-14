@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useERP } from '../../context/ERPContext';
 import {
   Layers,
+  DollarSign,
   Truck,
   Fuel,
   Calculator,
@@ -19,6 +20,7 @@ interface Props {
 export const SiteCentricMidnightDashboard: React.FC<Props> = ({ onNavigateTab }) => {
   const { siteSheets = [], selectedSiteId } = useERP();
 
+  // 1. Identify active site
   const activeSite = useMemo(() => {
     return (
       siteSheets.find((s: any) => s.siteId === selectedSiteId) ||
@@ -29,9 +31,12 @@ export const SiteCentricMidnightDashboard: React.FC<Props> = ({ onNavigateTab })
     );
   }, [siteSheets, selectedSiteId]);
 
+  // 2. Local State Stores
   const [trips, setTrips] = useState<any[]>([]);
   const [diesel, setDiesel] = useState<any[]>([]);
+  const [expenses, setExpenses] = useState<any[]>([]);
 
+  // 3. Load & Listen to Live Data Sync
   const loadDashboardData = useCallback(() => {
     try {
       const savedTrips = localStorage.getItem('CONSTRUCTION_PRO_HAULAGE_TRIPS_V2');
@@ -39,9 +44,15 @@ export const SiteCentricMidnightDashboard: React.FC<Props> = ({ onNavigateTab })
 
       const savedDiesel = localStorage.getItem('CONSTRUCTION_PRO_DIESEL_LOGS_V1');
       setDiesel(savedDiesel ? JSON.parse(savedDiesel) || [] : []);
+
+      const savedExpenses =
+        localStorage.getItem('CONSTRUCTION_PRO_SITE_EXPENSES_V1') ||
+        localStorage.getItem('road_erp_expenses');
+      setExpenses(savedExpenses ? JSON.parse(savedExpenses) || [] : []);
     } catch {
       setTrips([]);
       setDiesel([]);
+      setExpenses([]);
     }
   }, []);
 
@@ -56,29 +67,62 @@ export const SiteCentricMidnightDashboard: React.FC<Props> = ({ onNavigateTab })
     };
   }, [loadDashboardData, selectedSiteId]);
 
+  // 4. Scoped Site Filters
   const siteTrips = useMemo(
-    () => (trips || []).filter((t) => t?.siteName === activeSite?.siteName || t?.siteName?.includes('Ongoing')),
-    [trips, activeSite?.siteName]
+    () =>
+      (trips || []).filter(
+        (t) =>
+          t?.siteName === activeSite?.siteName ||
+          t?.siteId === activeSite?.siteId ||
+          t?.siteName?.includes('Ongoing')
+      ),
+    [trips, activeSite]
   );
 
   const siteDiesel = useMemo(
-    () => (diesel || []).filter((d) => d?.siteName === activeSite?.siteName || d?.siteName?.includes('Ongoing')),
-    [diesel, activeSite?.siteName]
+    () =>
+      (diesel || []).filter(
+        (d) =>
+          d?.siteName === activeSite?.siteName ||
+          d?.siteId === activeSite?.siteId ||
+          d?.siteName?.includes('Ongoing')
+      ),
+    [diesel, activeSite]
   );
 
+  const siteExpenses = useMemo(
+    () =>
+      (expenses || []).filter(
+        (e) =>
+          e?.siteName === activeSite?.siteName ||
+          e?.costCenterChainage?.includes(activeSite?.siteName) ||
+          e?.siteName?.includes('Ongoing')
+      ),
+    [expenses, activeSite]
+  );
+
+  // 5. Dynamic Calculations with Safe 0 Fallbacks
   const totalBrassToday = siteTrips.reduce((sum, t) => {
     const dayTrips = Number(t?.dayTrips || 0);
     const brassPerTrip = Number(t?.brassPerTrip || 0);
-    return sum + (dayTrips * brassPerTrip);
-  }, 0) || 0;
+    return sum + dayTrips * brassPerTrip;
+  }, 0);
 
   const activeTripsCount = siteTrips.reduce((sum, t) => {
     return sum + (Number(t?.dayTrips) || 0);
-  }, 0) || 0;
+  }, 0);
 
   const totalDieselDispensed = siteDiesel.reduce((sum, d) => {
     return sum + (Number(d?.litres) || 0);
-  }, 0) || 0;
+  }, 0);
+
+  // Total Site Expense sum calculated directly from recorded vouchers
+  const totalSiteExpense = siteExpenses.reduce((sum, e) => {
+    const amount = Number(e?.amount || 0);
+    return sum + (!isNaN(amount) && amount > 0 ? amount : 0);
+  }, 0);
+
+  const expenseCount = siteExpenses.length;
 
   return (
     <div className="space-y-4 sm:space-y-6 font-sans text-slate-100 animate-in fade-in duration-300">
@@ -101,7 +145,7 @@ export const SiteCentricMidnightDashboard: React.FC<Props> = ({ onNavigateTab })
               {activeSite?.siteName}
             </h1>
             <p className="text-xs sm:text-sm text-slate-400 max-w-xl leading-relaxed">
-              Live site metrics, equipment telematics, and material haulage.
+              Live site metrics, equipment telematics, material haulage, and petty cash ledger.
             </p>
           </div>
 
@@ -145,10 +189,10 @@ export const SiteCentricMidnightDashboard: React.FC<Props> = ({ onNavigateTab })
         </div>
       </div>
 
-      {/* KPI Cards: 3-Column Layout */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4">
+      {/* KPI Cards: 4-Column Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         
-        {/* Total Material Laid */}
+        {/* Card 1: Total Material Laid */}
         <div 
           onClick={() => onNavigateTab('haulage-trips')}
           className="p-4 sm:p-5 rounded-[1.2rem] sm:rounded-[1.5rem] bg-[#0B1220] border border-[#1E293B] shadow-xl hover:border-blue-500/50 transition-all cursor-pointer group flex flex-col justify-between"
@@ -183,7 +227,40 @@ export const SiteCentricMidnightDashboard: React.FC<Props> = ({ onNavigateTab })
           </div>
         </div>
 
-        {/* Active Trips Today */}
+        {/* Card 2: Total Site Expense (Linked to Sidebar 'site-expenses') */}
+        <div 
+          onClick={() => onNavigateTab('site-expenses')}
+          className="p-4 sm:p-5 rounded-[1.2rem] sm:rounded-[1.5rem] bg-[#0B1220] border border-[#1E293B] shadow-xl hover:border-emerald-500/50 transition-all cursor-pointer group flex flex-col justify-between"
+        >
+          <div className="space-y-3 sm:space-y-4">
+            <div className="flex justify-between items-start">
+              <div className="text-[10px] sm:text-[11px] font-bold text-slate-400 tracking-wider">
+                TOTAL SITE EXPENSE
+              </div>
+              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-emerald-950/60 flex items-center justify-center border border-emerald-500/30 shrink-0">
+                <DollarSign className="w-4 h-4 text-emerald-400" />
+              </div>
+            </div>
+            <div className="flex items-baseline gap-1">
+              <span className="text-3xl sm:text-4xl font-black text-emerald-400 font-mono tracking-tight truncate">
+                ₹{totalSiteExpense.toLocaleString('en-IN')}
+              </span>
+            </div>
+          </div>
+          <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-[#1E293B] space-y-2 sm:space-y-3">
+            <div className="flex items-center gap-1.5 text-[10px] sm:text-[11px] font-medium text-slate-400 truncate">
+              {expenseCount > 0
+                ? `${expenseCount} ${expenseCount === 1 ? 'expense voucher' : 'expense vouchers'}`
+                : '0 expense vouchers'}
+            </div>
+            <div className="flex items-center gap-1 text-[10px] sm:text-[11px] font-bold text-slate-400 group-hover:text-emerald-400 transition-colors">
+              <span>Open expenses ledger</span>
+              <ArrowRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" />
+            </div>
+          </div>
+        </div>
+
+        {/* Card 3: Active Trips Today */}
         <div 
           onClick={() => onNavigateTab('haulage-trips')}
           className="p-4 sm:p-5 rounded-[1.2rem] sm:rounded-[1.5rem] bg-[#0B1220] border border-[#1E293B] shadow-xl hover:border-cyan-500/50 transition-all cursor-pointer group flex flex-col justify-between"
@@ -215,7 +292,7 @@ export const SiteCentricMidnightDashboard: React.FC<Props> = ({ onNavigateTab })
           </div>
         </div>
 
-        {/* Diesel Dispensed */}
+        {/* Card 4: Diesel Dispensed */}
         <div 
           onClick={() => onNavigateTab('diesel')}
           className="p-4 sm:p-5 rounded-[1.2rem] sm:rounded-[1.5rem] bg-[#0B1220] border border-[#1E293B] shadow-xl hover:border-amber-500/50 transition-all cursor-pointer group flex flex-col justify-between"
@@ -269,21 +346,21 @@ export const SiteCentricMidnightDashboard: React.FC<Props> = ({ onNavigateTab })
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 flex-1">
             <div className="p-3 sm:p-4 rounded-2xl bg-[#080C14] border border-[#1E293B] flex flex-col justify-center">
               <div className="text-[10px] font-bold text-slate-500 mb-1">Active Excavators</div>
-              <div className="text-xl sm:text-2xl font-black text-white mb-1 sm:mb-2">
+              <div className="text-xl sm:text-2xl font-black text-white mb-1 sm:mb-2 font-mono">
                 0 <span className="text-xs sm:text-sm font-medium text-slate-500">Units</span>
               </div>
               <div className="text-[10px] text-slate-600">0 active machinery</div>
             </div>
             <div className="p-3 sm:p-4 rounded-2xl bg-[#080C14] border border-[#1E293B] flex flex-col justify-center">
               <div className="text-[10px] font-bold text-slate-500 mb-1">Backhoe Loaders</div>
-              <div className="text-xl sm:text-2xl font-black text-white mb-1 sm:mb-2">
+              <div className="text-xl sm:text-2xl font-black text-white mb-1 sm:mb-2 font-mono">
                 0 <span className="text-xs sm:text-sm font-medium text-slate-500">Units</span>
               </div>
               <div className="text-[10px] text-slate-600">0 active machinery</div>
             </div>
             <div className="p-3 sm:p-4 rounded-2xl bg-[#080C14] border border-[#1E293B] flex flex-col justify-center">
               <div className="text-[10px] font-bold text-slate-500 mb-1">Tipper Dumpers</div>
-              <div className="text-xl sm:text-2xl font-black text-white mb-1 sm:mb-2">
+              <div className="text-xl sm:text-2xl font-black text-white mb-1 sm:mb-2 font-mono">
                 0 <span className="text-xs sm:text-sm font-medium text-slate-500">Units</span>
               </div>
               <div className="text-[10px] text-slate-600">0 active tippers</div>
