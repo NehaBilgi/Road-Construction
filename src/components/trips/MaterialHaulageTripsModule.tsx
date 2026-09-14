@@ -321,23 +321,23 @@ export const MaterialHaulageTripsModule: React.FC = () => {
   return (
     <div className="space-y-4 sm:space-y-6 font-sans text-slate-100">
       
-      {/* Print-specific stylesheet with card container styling */}
+      {/* Exact Match Print Styling for Rounded Card Statement */}
       <style>{`
         @media print {
           @page {
             size: A4 portrait;
-            margin: 8mm;
+            margin: 10mm;
           }
           * {
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
+            box-shadow: none !important;
           }
           body {
             background: #ffffff !important;
             color: #000000 !important;
             margin: 0 !important;
             padding: 0 !important;
-            font-size: 10px !important;
           }
           body * {
             visibility: hidden;
@@ -355,8 +355,8 @@ export const MaterialHaulageTripsModule: React.FC = () => {
             padding: 0 !important;
             background: #ffffff !important;
             color: #000000 !important;
-            border: 1.5px solid #0f172a !important;
-            border-radius: 20px !important;
+            border: 2px solid #000000 !important;
+            border-radius: 16px !important;
             overflow: hidden !important;
           }
           .no-print {
@@ -364,20 +364,20 @@ export const MaterialHaulageTripsModule: React.FC = () => {
           }
           .print-header {
             display: block !important;
-            padding: 16px 20px 12px 20px !important;
-            border-bottom: 2px solid #0f172a !important;
+            padding: 16px 20px 14px 20px !important;
+            border-bottom: 2px solid #000000 !important;
             background: #ffffff !important;
           }
           table {
             width: 100% !important;
             border-collapse: collapse !important;
-            font-size: 9px !important;
+            font-size: 8.5pt !important;
             table-layout: fixed !important;
           }
           th, td {
-            border: 1px solid #64748b !important;
+            border: 1px solid #000000 !important;
             padding: 6px 7px !important;
-            color: #0f172a !important;
+            color: #000000 !important;
             word-wrap: break-word !important;
             overflow: hidden !important;
           }
@@ -385,14 +385,15 @@ export const MaterialHaulageTripsModule: React.FC = () => {
             background-color: #ffffff !important;
             font-weight: 800 !important;
             text-transform: uppercase !important;
+            font-size: 8pt !important;
           }
           tfoot tr td {
             background-color: #ffffff !important;
             font-weight: 800 !important;
           }
-          .print-final-row td {
-            border-top: 1.5px solid #0f172a !important;
-            padding: 8px 10px !important;
+          .print-bold-row td {
+            font-weight: 900 !important;
+            font-size: 9pt !important;
           }
         }
       `}</style>
@@ -487,16 +488,16 @@ export const MaterialHaulageTripsModule: React.FC = () => {
       {/* Main Print Container & Table */}
       <div id="print-area" className="bg-[#0B1220] border border-[#1E293B] rounded-[1.2rem] sm:rounded-3xl overflow-hidden shadow-2xl">
         
-        {/* Printable Header with Vendor Name */}
+        {/* Printable Header matching reference image */}
         <div className="hidden print-header">
-          <h1 className="text-xl font-black uppercase text-black tracking-tight leading-tight">
+          <h1 className="text-[17pt] font-black uppercase text-black tracking-tight leading-none m-0">
             {activeVendorName}
           </h1>
-          <p className="text-xs text-black font-bold uppercase tracking-wider mt-0.5">
+          <p className="text-[9pt] font-black uppercase tracking-wide text-black mt-1 m-0">
             MATERIAL PURCHASED
           </p>
-          <div className="text-[11px] text-black font-semibold mt-1">
-            <span><strong>Site:</strong> {activeSiteName}</span>
+          <div className="text-[9pt] text-black font-bold mt-1">
+            <span>Site: {activeSiteName}</span>
           </div>
         </div>
 
@@ -552,7 +553,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
               )}
             </tbody>
 
-            {/* Table Footer */}
+            {/* Table Footer matching reference screenshot style */}
             {filtered.length > 0 && (
               <tfoot className="border-t-2 border-[#1E293B] bg-[#070c18] font-mono">
                 {/* 1. Gross Material Purchase */}
@@ -580,7 +581,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
 
                 {/* 3. Final Balance Row */}
                 {remainingAdvanceBalance > 0 ? (
-                  <tr className="print-final-row bg-[#082216] text-emerald-400 font-black">
+                  <tr className="print-bold-row bg-[#082216] text-emerald-400 font-black">
                     <td colSpan={8} className="py-2.5 px-3 text-right uppercase tracking-wider text-xs">
                       REMAINING ADVANCE BALANCE (EXCESS):
                     </td>
@@ -590,9 +591,9 @@ export const MaterialHaulageTripsModule: React.FC = () => {
                     <td className="py-2.5 px-3 no-print"></td>
                   </tr>
                 ) : (
-                  <tr className="print-final-row bg-[#1e1906] text-amber-400 font-black">
+                  <tr className="print-bold-row bg-[#1e1906] text-amber-400 font-black">
                     <td colSpan={8} className="py-2.5 px-3 text-right uppercase tracking-wider text-xs">
-                      (=) NET PAYABLE AMOUNT:
+                      REMAINING ADVANCE BALANCE (EXCESS):
                     </td>
                     <td className="py-2.5 px-3 text-right text-xs sm:text-sm font-black whitespace-nowrap">
                       ₹{netPayableAmount.toLocaleString('en-IN')}
