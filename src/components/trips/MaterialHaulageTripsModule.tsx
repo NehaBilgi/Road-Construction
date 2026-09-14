@@ -88,6 +88,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
     }
   });
 
+  // State for loaded vendor advances
   const [advances, setAdvances] = useState<any[]>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_VENDOR_ADVANCES_KEY);
@@ -97,6 +98,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
     }
   });
 
+  // Keep advances synced
   useEffect(() => {
     const handleSync = () => {
       try {
@@ -142,6 +144,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
     }
   };
 
+  // Close dropdown on outside click
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (vendorDropdownRef.current && !vendorDropdownRef.current.contains(event.target as Node)) {
@@ -181,6 +184,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
     });
   }, [trips, activeSiteName, searchQuery]);
 
+  // Totals
   const overallTotals = useMemo(() => {
     return filtered.reduce(
       (acc, t) => {
@@ -197,11 +201,13 @@ export const MaterialHaulageTripsModule: React.FC = () => {
     );
   }, [filtered]);
 
+  // Primary active vendor name
   const activeVendorName = useMemo(() => {
     const vendors = Array.from(new Set(filtered.map((t) => t.purchasedFrom?.trim()).filter(Boolean)));
     return vendors.length > 0 ? vendors.join(', ') : 'Direct Supplier';
   }, [filtered]);
 
+  // Calculate Advances linked to the vendors of the current filtered site
   const totalVendorAdvancePaid = useMemo(() => {
     const currentVendorNames = Array.from(new Set(filtered.map((t) => t.purchasedFrom?.trim().toLowerCase()).filter(Boolean)));
     return advances
@@ -213,6 +219,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
       .reduce((sum, a) => sum + (Number(a.amount) || 0), 0);
   }, [advances, filtered, activeSiteName]);
 
+  // Extract formatted dates of advances linked to this vendor/site in DD-MM-YYYY format
   const advanceDatesSummary = useMemo(() => {
     const currentVendorNames = Array.from(new Set(filtered.map((t) => t.purchasedFrom?.trim().toLowerCase()).filter(Boolean)));
     const matchedDates = advances
@@ -227,6 +234,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
     return uniqueDates.length > 0 ? uniqueDates.join(', ') : '';
   }, [advances, filtered, activeSiteName]);
 
+  // Net Balance Calculations
   const rawBalance = overallTotals.amount - totalVendorAdvancePaid;
   const isAdvanceExcess = rawBalance < 0;
   const netPayableAmount = isAdvanceExcess ? 0 : rawBalance;
@@ -625,7 +633,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
                   <input
                     type="text"
                     required
-                    placeholder="e.g. gigaonkar"
+                    placeholder="e.g. Supplier Name"
                     value={purchasedFrom}
                     onChange={(e) => {
                       setPurchasedFrom(e.target.value);
