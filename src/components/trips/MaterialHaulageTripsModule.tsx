@@ -78,6 +78,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
     }
   });
 
+  // State for loaded vendor advances
   const [advances, setAdvances] = useState<any[]>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_VENDOR_ADVANCES_KEY);
@@ -87,6 +88,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
     }
   });
 
+  // Keep advances synced
   useEffect(() => {
     const handleSync = () => {
       try {
@@ -172,6 +174,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
     });
   }, [trips, activeSiteName, searchQuery]);
 
+  // Totals
   const overallTotals = useMemo(() => {
     return filtered.reduce(
       (acc, t) => {
@@ -188,11 +191,13 @@ export const MaterialHaulageTripsModule: React.FC = () => {
     );
   }, [filtered]);
 
+  // Primary active vendor name
   const activeVendorName = useMemo(() => {
     const vendors = Array.from(new Set(filtered.map((t) => t.purchasedFrom?.trim()).filter(Boolean)));
     return vendors.length > 0 ? vendors.join(', ') : 'Direct Supplier';
   }, [filtered]);
 
+  // Calculate Advances linked to the vendors of the current filtered site
   const totalVendorAdvancePaid = useMemo(() => {
     const currentVendorNames = Array.from(new Set(filtered.map((t) => t.purchasedFrom?.trim().toLowerCase()).filter(Boolean)));
     return advances
@@ -204,6 +209,22 @@ export const MaterialHaulageTripsModule: React.FC = () => {
       .reduce((sum, a) => sum + (Number(a.amount) || 0), 0);
   }, [advances, filtered, activeSiteName]);
 
+  // Extract formatted dates of advances linked to this vendor/site
+  const advanceDatesSummary = useMemo(() => {
+    const currentVendorNames = Array.from(new Set(filtered.map((t) => t.purchasedFrom?.trim().toLowerCase()).filter(Boolean)));
+    const matchedDates = advances
+      .filter((a) => {
+        const matchSite = !activeSiteName || a.siteName === activeSiteName;
+        const matchVendor = currentVendorNames.length === 0 || currentVendorNames.includes(a.vendorName?.trim().toLowerCase());
+        return matchSite && matchVendor && a.date;
+      })
+      .map((a) => a.date);
+
+    const uniqueDates = Array.from(new Set(matchedDates));
+    return uniqueDates.length > 0 ? uniqueDates.join(', ') : '';
+  }, [advances, filtered, activeSiteName]);
+
+  // Net Balance Calculations
   const rawBalance = overallTotals.amount - totalVendorAdvancePaid;
   const isAdvanceExcess = rawBalance < 0;
   const netPayableAmount = isAdvanceExcess ? 0 : rawBalance;
@@ -385,7 +406,9 @@ export const MaterialHaulageTripsModule: React.FC = () => {
         <div className="p-4 rounded-2xl bg-[#0B1220] border border-[#1E293B] shadow-lg flex flex-col justify-between">
           <div className="text-[10px] font-bold uppercase tracking-wider text-rose-400">(-) Less: Advance Paid</div>
           <div className="text-2xl font-black text-rose-400 font-mono mt-1">₹{totalVendorAdvancePaid.toLocaleString('en-IN')}</div>
-          <div className="text-[10px] text-slate-500">Auto-deducted from Advances ledger</div>
+          <div className="text-[10px] text-slate-500">
+            {advanceDatesSummary ? `Paid on: ${advanceDatesSummary}` : 'Auto-deducted from Advances ledger'}
+          </div>
         </div>
 
         <div className={`p-4 rounded-2xl border shadow-lg flex flex-col justify-between transition-all ${
@@ -489,7 +512,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
               )}
             </tbody>
 
-            {/* Footer with Subtotal, Advance Deduction, and Net / Remaining Balance */}
+            {/* Footer with Subtotal, Advance Deduction (with Date), and Net / Remaining Balance */}
             {filtered.length > 0 && (
               <tfoot className="border-t-2 border-[#1E293B] bg-[#070c18] font-mono">
                 <tr className="border-b border-[#1E293B]/60">
@@ -505,7 +528,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
 
                 <tr className="border-b border-[#1E293B]/60 text-rose-400">
                   <td colSpan={8} className="py-2 px-3 font-bold uppercase text-right">
-                    (-) Less: Advance Payment Received:
+                    (-) Less: Advance Payment Received {advanceDatesSummary ? `(${advanceDatesSummary})` : ''}:
                   </td>
                   <td className="py-2 px-3 text-right font-bold">
                     - ₹{totalVendorAdvancePaid.toLocaleString('en-IN')}
