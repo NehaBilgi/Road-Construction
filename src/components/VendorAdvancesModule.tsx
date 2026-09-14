@@ -270,7 +270,7 @@ export const VendorAdvancesModule: React.FC = () => {
                   type="text"
                   list="vendor-adv-list"
                   required
-                  placeholder="e.g. gigaonkar, Mahalaxmi Stone Crusher..."
+                  placeholder="e.g. Supplier Name "
                   value={vendorName}
                   onChange={(e) => setVendorName(e.target.value)}
                   className="w-full px-3 py-2 bg-[#162032] border border-[#1E293B] rounded-xl text-white outline-none"
