@@ -621,7 +621,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
                   <input
                     type="text"
                     required
-                    placeholder="e.g. gigaonkar"
+                    placeholder="e.g. Supplier Name"
                     value={purchasedFrom}
                     onChange={(e) => {
                       setPurchasedFrom(e.target.value);
