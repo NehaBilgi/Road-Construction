@@ -181,7 +181,6 @@ export const MaterialHaulageTripsModule: React.FC = () => {
     });
   }, [trips, activeSiteName, searchQuery]);
 
-  // Derive supplier name for the printable header
   const currentSupplierName = useMemo(() => {
     const vendors = Array.from(
       new Set(filtered.map((t) => t.purchasedFrom?.trim()).filter(Boolean))
@@ -322,13 +321,23 @@ export const MaterialHaulageTripsModule: React.FC = () => {
   };
 
   return (
-    <div className="space-y-4 sm:space-y-6 font-sans text-slate-100 print:text-black print:space-y-4">
+    <div className="space-y-4 sm:space-y-6 font-sans text-slate-100 print:text-black print:space-y-3">
       {/* Print Styles */}
       <style dangerouslySetInnerHTML={{ __html: `
         @media print {
           @page {
-            size:  A4 landscape ;
-            margin: 12mm 15mm;
+            size: portrait;
+            margin: 10mm 12mm;
+          }
+          html, body, #root, main, div, table {
+            overflow: visible !important;
+            height: auto !important;
+            max-height: none !important;
+            scrollbar-width: none !important;
+            -ms-overflow-style: none !important;
+          }
+          ::-webkit-scrollbar {
+            display: none !important;
           }
           nav,
           header,
@@ -340,26 +349,26 @@ export const MaterialHaulageTripsModule: React.FC = () => {
             background-color: #ffffff !important;
             color: #000000 !important;
           }
-          .print-clean-card {
-            border: 1px solid #cbd5e1 !important;
-            background-color: #f8fafc !important;
-            color: #000000 !important;
-            box-shadow: none !important;
+          .print-clean-table {
+            width: 100% !important;
+            border-collapse: collapse !important;
           }
           .print-clean-table th {
             background-color: #f1f5f9 !important;
             color: #000000 !important;
             border-bottom: 2px solid #000000 !important;
+            padding: 6px 8px !important;
           }
           .print-clean-table td {
             color: #000000 !important;
             border-bottom: 1px solid #e2e8f0 !important;
+            padding: 6px 8px !important;
           }
         }
       `}} />
 
       {/* Printable Only Header: Bold Supplier Name & Bold Site Name */}
-      <div className="hidden print:flex items-center justify-between border-b-2 border-black pb-3">
+      <div className="hidden print:flex items-center justify-between border-b-2 border-black pb-3 mb-2">
         <div className="text-2xl font-black uppercase text-black tracking-wide">
           {currentSupplierName}
         </div>
@@ -402,42 +411,42 @@ export const MaterialHaulageTripsModule: React.FC = () => {
         </div>
       </div>
 
-      {/* Summary Stat Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-        <div className="p-4 rounded-2xl bg-[#0B1220] border border-[#1E293B] shadow-lg flex flex-col justify-between print-clean-card">
-          <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 print:text-slate-700">Total Material Purchase</div>
-          <div className="text-2xl font-black text-white font-mono mt-1 print:text-black">₹{overallTotals.amount.toLocaleString('en-IN')}</div>
-          <div className="text-[10px] text-slate-500 print:text-slate-600 font-medium">{overallTotals.trips} Trips ({overallTotals.brass} Brass)</div>
+      {/* Summary Stat Cards (Hidden on Print via no-print) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 no-print">
+        <div className="p-4 rounded-2xl bg-[#0B1220] border border-[#1E293B] shadow-lg flex flex-col justify-between">
+          <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Total Material Purchase</div>
+          <div className="text-2xl font-black text-white font-mono mt-1">₹{overallTotals.amount.toLocaleString('en-IN')}</div>
+          <div className="text-[10px] text-slate-500 font-medium">{overallTotals.trips} Trips ({overallTotals.brass} Brass)</div>
         </div>
 
-        <div className="p-4 rounded-2xl bg-[#0B1220] border border-[#1E293B] shadow-lg flex flex-col justify-between print-clean-card">
-          <div className="text-[10px] font-bold uppercase tracking-wider text-rose-400 print:text-slate-700">(-) Less: Advance Paid</div>
-          <div className="text-2xl font-black text-rose-400 font-mono mt-1 print:text-black">₹{totalVendorAdvancePaid.toLocaleString('en-IN')}</div>
-          <div className="text-[10px] text-slate-500 print:text-slate-600 font-medium">
+        <div className="p-4 rounded-2xl bg-[#0B1220] border border-[#1E293B] shadow-lg flex flex-col justify-between">
+          <div className="text-[10px] font-bold uppercase tracking-wider text-rose-400">(-) Less: Advance Paid</div>
+          <div className="text-2xl font-black text-rose-400 font-mono mt-1">₹{totalVendorAdvancePaid.toLocaleString('en-IN')}</div>
+          <div className="text-[10px] text-slate-500 font-medium">
             {advanceDatesSummary ? `Paid on: ${advanceDatesSummary}` : 'Auto-deducted from Advances ledger'}
           </div>
         </div>
 
-        <div className={`p-4 rounded-2xl border shadow-lg flex flex-col justify-between transition-all print-clean-card ${
+        <div className={`p-4 rounded-2xl border shadow-lg flex flex-col justify-between transition-all ${
           netPayableAmount > 0 
             ? 'bg-amber-950/20 border-amber-500/30' 
             : 'bg-[#0B1220] border-[#1E293B] opacity-75'
         }`}>
-          <div className="text-[10px] font-bold uppercase tracking-wider text-amber-400 print:text-slate-700">(=) Net Payable Amount</div>
-          <div className="text-2xl font-black text-amber-400 font-mono mt-1 print:text-black">₹{netPayableAmount.toLocaleString('en-IN')}</div>
-          <div className="text-[10px] text-slate-400 print:text-slate-600 font-medium">
+          <div className="text-[10px] font-bold uppercase tracking-wider text-amber-400">(=) Net Payable Amount</div>
+          <div className="text-2xl font-black text-amber-400 font-mono mt-1">₹{netPayableAmount.toLocaleString('en-IN')}</div>
+          <div className="text-[10px] text-slate-400 font-medium">
             {netPayableAmount > 0 ? 'Remaining balance to pay vendor' : 'Cleared by Advance'}
           </div>
         </div>
 
-        <div className={`p-4 rounded-2xl border shadow-lg flex flex-col justify-between transition-all print-clean-card ${
+        <div className={`p-4 rounded-2xl border shadow-lg flex flex-col justify-between transition-all ${
           remainingAdvanceBalance > 0 
             ? 'bg-emerald-950/30 border-emerald-500/40' 
             : 'bg-[#0B1220] border-[#1E293B] opacity-75'
         }`}>
-          <div className="text-[10px] font-bold uppercase tracking-wider text-emerald-400 print:text-slate-700">Remaining Advance Balance</div>
-          <div className="text-2xl font-black text-emerald-400 font-mono mt-1 print:text-black">₹{remainingAdvanceBalance.toLocaleString('en-IN')}</div>
-          <div className="text-[10px] text-emerald-500/80 font-bold print:text-slate-600">
+          <div className="text-[10px] font-bold uppercase tracking-wider text-emerald-400">Remaining Advance Balance</div>
+          <div className="text-2xl font-black text-emerald-400 font-mono mt-1">₹{remainingAdvanceBalance.toLocaleString('en-IN')}</div>
+          <div className="text-[10px] text-emerald-500/80 font-bold">
             {remainingAdvanceBalance > 0 ? 'Unused Advance with Vendor' : 'No Surplus Advance'}
           </div>
         </div>
@@ -458,8 +467,8 @@ export const MaterialHaulageTripsModule: React.FC = () => {
       </div>
 
       {/* Main Table */}
-      <div className="bg-[#0B1220] border border-[#1E293B] rounded-2xl overflow-hidden shadow-2xl print:border-slate-300 print:shadow-none print:rounded-none">
-        <div className="overflow-x-auto">
+      <div className="bg-[#0B1220] border border-[#1E293B] rounded-2xl overflow-hidden shadow-2xl print:border-none print:shadow-none print:rounded-none print:overflow-visible">
+        <div className="overflow-x-auto print:overflow-visible">
           <table className="w-full text-left text-xs border-collapse print-clean-table">
             <thead>
               <tr className="border-b border-[#1E293B] text-[10px] font-extrabold uppercase text-slate-400 bg-[#080d19]/80">
@@ -537,20 +546,20 @@ export const MaterialHaulageTripsModule: React.FC = () => {
 
                 {remainingAdvanceBalance > 0 ? (
                   <tr className="bg-[#082216] text-emerald-400 print:bg-slate-100 print:text-black font-black">
-                    <td colSpan={8} className="py-3 px-3 text-right uppercase tracking-wider text-xs sm:text-sm">
+                    <td colSpan={8} className="py-3 px-3 text-right uppercase tracking-wider text-xs">
                       REMAINING ADVANCE BALANCE (EXCESS):
                     </td>
-                    <td className="py-3 px-3 text-right text-sm sm:text-base font-black">
+                    <td className="py-3 px-3 text-right text-sm font-black">
                       ₹{remainingAdvanceBalance.toLocaleString('en-IN')}
                     </td>
                     <td className="py-3 px-3 no-print"></td>
                   </tr>
                 ) : (
                   <tr className="bg-[#1e1906] text-amber-400 print:bg-slate-100 print:text-black font-black">
-                    <td colSpan={8} className="py-3 px-3 text-right uppercase tracking-wider text-xs sm:text-sm">
+                    <td colSpan={8} className="py-3 px-3 text-right uppercase tracking-wider text-xs">
                       (=) NET PAYABLE AMOUNT:
                     </td>
-                    <td className="py-3 px-3 text-right text-sm sm:text-base font-black">
+                    <td className="py-3 px-3 text-right text-sm font-black">
                       ₹{netPayableAmount.toLocaleString('en-IN')}
                     </td>
                     <td className="py-3 px-3 no-print"></td>
