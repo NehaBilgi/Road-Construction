@@ -1,269 +1,392 @@
-import React from 'react';
-import { useERP } from '../context/ERPContext';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { useERP } from '../../context/ERPContext';
 import {
-  LayoutDashboard,
+  Layers,
+  DollarSign,
   Truck,
   Fuel,
-  DollarSign,
   Calculator,
+  Plus,
+  ArrowRight,
   HardHat,
-  LogOut,
-  Milestone,
-  Users,
-  Package,
-  ArrowLeftRight,
-  FileText,
-  Bell,
-  ShoppingCart,
-  Cpu,
-  CalendarCheck,
-  Tag,
-  Archive,
-  Building2,
-  X
+  ChevronRight,
+  MapPin
 } from 'lucide-react';
 
 interface Props {
-  activeTab: string;
-  setActiveTab: (tab: string) => void;
-  projectType?: 'ROAD' | 'BUILDING';
-  onSwitchDomain?: () => void;
-  onClose?: () => void; // Added for mobile drawer auto-close
+  onNavigateTab: (tabId: string) => void;
 }
 
-interface NavItem {
-  id: string;
-  label: string;
-  icon: React.ComponentType<{ className?: string }>;
-  badge?: string | number;
-  badgeStyle?: string;
-}
+export const SiteCentricMidnightDashboard: React.FC<Props> = ({ onNavigateTab }) => {
+  const { siteSheets = [], selectedSiteId } = useERP();
 
-export const Sidebar: React.FC<Props> = ({
-  activeTab,
-  setActiveTab,
-  projectType = 'ROAD',
-  onSwitchDomain,
-  onClose
-}) => {
-  const { currentUser, logout } = useERP();
-  const isBuilding = projectType === 'BUILDING';
+  const activeSite = useMemo(() => {
+    return (
+      siteSheets.find((s: any) => s.siteId === selectedSiteId) ||
+      siteSheets[0] || {
+        siteId: 'site-1789375276548',
+        siteName: 'SINDAGI'
+      }
+    );
+  }, [siteSheets, selectedSiteId]);
 
-  // ==========================================
-  // ROAD CONSTRUCTION NAVIGATION ITEMS
-  // ==========================================
-  const roadOperationsItems: NavItem[] = [
-    { id: 'dashboard', label: 'Site Overview', icon: LayoutDashboard },
-    {
-      id: 'road-sites',
-      label: 'Ongoing Site',
-      icon: Milestone,
-      badge: 'Sites',
-      badgeStyle: 'bg-blue-900/40 text-blue-300 border border-blue-500/40'
-    },
-    {
-      id: 'haulage-trips',
-      label: 'Trips',
-      icon: Truck,
-      badge: 'Trips',
-      badgeStyle: 'bg-[#064E3B] text-[#34D399] border border-[#065F46]'
-    },
-    {
-      id: 'diesel',
-      label: 'Diesel',
-      icon: Fuel,
-      badge: 'Diesel',
-      badgeStyle: 'bg-amber-950/60 text-amber-300 border border-amber-800'
-    },
-    {
-      id: 'site-expenses',
-      label: 'Site Expense',
-      icon: DollarSign,
-      badge: 'Petty Cash',
-      badgeStyle: 'bg-[#162032] text-blue-400 border border-[#1E293B]'
+  const [trips, setTrips] = useState<any[]>([]);
+  const [diesel, setDiesel] = useState<any[]>([]);
+  const [expenses, setExpenses] = useState<any[]>([]);
+
+  const loadDashboardData = useCallback(() => {
+    try {
+      const savedTrips = localStorage.getItem('CONSTRUCTION_PRO_HAULAGE_TRIPS_V2');
+      setTrips(savedTrips ? JSON.parse(savedTrips) || [] : []);
+
+      const savedDiesel = localStorage.getItem('CONSTRUCTION_PRO_DIESEL_LOGS_V1');
+      setDiesel(savedDiesel ? JSON.parse(savedDiesel) || [] : []);
+
+      const savedExpenses = localStorage.getItem('CONSTRUCTION_PRO_SITE_EXPENSES_V1');
+      setExpenses(savedExpenses ? JSON.parse(savedExpenses) || [] : []);
+    } catch {
+      setTrips([]);
+      setDiesel([]);
+      setExpenses([]);
     }
-  ];
+  }, []);
 
-  const roadEngineeringItems: NavItem[] = [
-    {
-      id: 'yield_calculator',
-      label: 'Road Trip Calculator',
-      icon: Calculator,
-      badge: 'MoRTH',
-      badgeStyle: 'bg-blue-900/60 text-blue-300 border border-blue-500/40 font-mono'
-    },
-    {
-      id: 'machinery_fleet',
-      label: 'Machinery',
-      icon: HardHat
-    }
-  ];
+  useEffect(() => {
+    loadDashboardData();
+    const handleSync = () => loadDashboardData();
+    window.addEventListener('storage', handleSync);
+    window.addEventListener('focus', handleSync);
+    return () => {
+      window.removeEventListener('storage', handleSync);
+      window.removeEventListener('focus', handleSync);
+    };
+  }, [loadDashboardData, selectedSiteId]);
 
-  const roadConfigItems: NavItem[] = [
-    {
-      id: 'categories',
-      label: 'Categories',
-      icon: Tag,
-      badge: 'Rates',
-      badgeStyle: 'bg-emerald-950/60 text-emerald-300 border border-emerald-800'
-    },
-    {
-      id: 'users',
-      label: 'User Management',
-      icon: Users,
-      badge: 'RBAC',
-      badgeStyle: 'bg-indigo-900/40 text-indigo-300 border border-indigo-500/40'
-    }
-  ];
-
-  // ==========================================
-  // BUILDING CONSTRUCTION NAVIGATION ITEMS
-  // ==========================================
-  const buildingCoreItems: NavItem[] = [
-    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    {
-      id: 'road-sites',
-      label: 'Ongoing Site',
-      icon: Milestone,
-      badge: 'Sites',
-      badgeStyle: 'bg-emerald-950 text-emerald-400 border border-emerald-800'
-    },
-    { id: 'products', label: 'Products', icon: Package },
-    { id: 'transactions', label: 'Transactions', icon: ArrowLeftRight }
-  ];
-
-  const buildingAnalysisItems: NavItem[] = [
-    { id: 'reports', label: 'Reports', icon: FileText },
-    {
-      id: 'alerts',
-      label: 'Alerts',
-      icon: Bell,
-      badge: 3,
-      badgeStyle: 'bg-rose-600 text-white rounded-full w-4 h-4 flex items-center justify-center text-[10px] font-black'
-    },
-    { id: 'reorder-suggestions', label: 'Reorder Suggestions', icon: ShoppingCart },
-    { id: 'equipment-register', label: 'Equipment Register', icon: Cpu },
-    { id: 'attendance-salary', label: 'Attendance & Salary', icon: CalendarCheck }
-  ];
-
-  const buildingConfigItems: NavItem[] = [
-    { id: 'categories', label: 'Categories', icon: Tag },
-    { id: 'users', label: 'User Management', icon: Users },
-    { id: 'yearly-archive', label: 'Yearly Archive', icon: Archive }
-  ];
-
-  const renderNavGroup = (title: string | null, items: NavItem[]) => (
-    <div className="space-y-1">
-      {title && (
-        <div className="px-3 text-[10px] font-extrabold uppercase tracking-widest text-[#94A3B8] mb-1">
-          {title}
-        </div>
-      )}
-      <nav className="space-y-1">
-        {items.map((item) => {
-          const Icon = item.icon;
-          const isActive = activeTab === item.id;
-
-          return (
-            <button
-              key={item.id}
-              onClick={() => {
-                setActiveTab(item.id);
-                if (onClose) onClose(); // Auto-close drawer on mobile when clicking a link
-              }}
-              className={`w-full flex items-center justify-between px-3 py-2.5 sm:py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer active:scale-[0.98] ${
-                isActive ? 'bg-[#2563EB] text-white shadow-lg shadow-blue-600/30' : 'text-[#94A3B8] hover:bg-[#162032] hover:text-white'
-              }`}
-            >
-              <div className="flex items-center gap-2.5">
-                <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-white' : 'text-[#94A3B8]'}`} />
-                <span>{item.label}</span>
-              </div>
-              {item.badge !== undefined && (
-                <span className={item.badgeStyle || `text-[9px] px-1.5 py-0.5 rounded font-black ${isActive ? 'bg-white/20 text-white' : 'bg-blue-900/40 text-blue-300 border border-blue-500/40'}`}>
-                  {item.badge}
-                </span>
-              )}
-            </button>
-          );
-        })}
-      </nav>
-    </div>
+  const siteTrips = useMemo(
+    () => (trips || []).filter((t) => t?.siteName === activeSite?.siteName || t?.siteName?.includes('Ongoing')),
+    [trips, activeSite?.siteName]
   );
+
+  const siteDiesel = useMemo(
+    () => (diesel || []).filter((d) => d?.siteName === activeSite?.siteName || d?.siteName?.includes('Ongoing')),
+    [diesel, activeSite?.siteName]
+  );
+
+  const siteExpenses = useMemo(
+    () => (expenses || []).filter((e) => e?.siteName === activeSite?.siteName || e?.costCenterChainage?.includes(activeSite?.siteName) || e?.siteName?.includes('Ongoing')),
+    [expenses, activeSite?.siteName]
+  );
+
+  // Fallbacks: All calculate to strictly 0 if no records exist
+  const totalBrassToday = siteTrips.reduce((sum, t) => {
+    const dayTrips = Number(t?.dayTrips || 0);
+    const brassPerTrip = Number(t?.brassPerTrip || 0);
+    return sum + (dayTrips * brassPerTrip);
+  }, 0) || 0;
+
+  const activeTripsCount = siteTrips.reduce((sum, t) => {
+    return sum + (Number(t?.dayTrips) || 0);
+  }, 0) || 0;
+
+  const totalDieselDispensed = siteDiesel.reduce((sum, d) => {
+    return sum + (Number(d?.litres) || 0);
+  }, 0) || 0;
+
+  // Total Site Expense Calculation (Defaults strictly to 0)
+  const totalSiteExpense = siteExpenses.reduce((sum, e) => {
+    const val = Number(e?.amount);
+    return sum + (!isNaN(val) && val > 0 ? val : 0);
+  }, 0) || 0;
+
+  const expenseVoucherCount = siteExpenses.length || 0;
 
   return (
-    <aside className="w-full h-full bg-[#0D111D] border-r border-[#1E293B] flex flex-col justify-between shrink-0 overflow-y-auto select-none font-sans z-30 scrollbar-thin scrollbar-thumb-[#1E293B]">
-      <div className="p-3.5 space-y-5">
-        <div className="p-3 bg-[#121927] border border-[#1E293B] rounded-2xl flex items-center justify-between shadow-sm relative">
-          <div className="flex items-center gap-2.5 overflow-hidden pr-8">
-            <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-white font-black shrink-0 shadow-md ${isBuilding ? 'bg-gradient-to-br from-emerald-600 to-teal-700' : 'bg-gradient-to-br from-blue-600 to-indigo-700'}`}>
-              {isBuilding ? <Building2 className="w-4 h-4" /> : <HardHat className="w-4 h-4" />}
+    <div className="space-y-4 sm:space-y-6 font-sans text-slate-100 animate-in fade-in duration-300">
+      
+      {/* Top Banner */}
+      <div className="p-4 sm:p-6 lg:p-8 rounded-[1.5rem] sm:rounded-[2rem] bg-[#0B1220] border border-[#1E293B] shadow-2xl relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-96 h-96 bg-blue-600/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none" />
+        
+        <div className="relative z-10 flex flex-col xl:flex-row xl:items-start justify-between gap-4 sm:gap-6">
+          <div className="space-y-2 sm:space-y-3">
+            <div className="flex items-center gap-2 text-[9px] sm:text-[10px] font-black tracking-widest uppercase text-blue-400">
+              <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span>Site Operations Command</span>
+              <span className="text-slate-600 hidden sm:inline">•</span>
+              <span className="text-slate-500 font-mono lowercase tracking-normal hidden sm:inline">
+                {activeSite?.siteId}
+              </span>
             </div>
-            <div className="truncate">
-              <div className="text-xs font-black text-white uppercase tracking-wider truncate">CONSTRUCTION PRO</div>
-              <div className="text-[10px] text-blue-400 font-mono truncate">
-                {isBuilding ? 'Building Construction ERP' : 'Road Construction ERP'}
+            <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black text-white tracking-tight uppercase break-words">
+              {activeSite?.siteName}
+            </h1>
+            <p className="text-xs sm:text-sm text-slate-400 max-w-xl leading-relaxed">
+              Live site metrics, equipment telematics, material haulage, and petty cash ledger.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-2 sm:gap-3 shrink-0 w-full xl:w-auto">
+            <button 
+              onClick={() => onNavigateTab('road-sites')}
+              className="w-full sm:w-auto justify-center px-3 py-2.5 sm:px-4 sm:py-2.5 rounded-xl bg-[#121927] hover:bg-[#1b263b] border border-[#1E293B] text-slate-300 text-[11px] sm:text-xs font-bold flex items-center gap-1.5 sm:gap-2 transition-all cursor-pointer"
+            >
+              <MapPin className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+              <span className="truncate">+ Add Section</span>
+            </button>
+            <button 
+              onClick={() => onNavigateTab('yield_calculator')}
+              className="w-full sm:w-auto justify-center px-3 py-2.5 sm:px-4 sm:py-2.5 rounded-xl bg-[#121927] hover:bg-[#1b263b] border border-[#1E293B] text-slate-300 text-[11px] sm:text-xs font-bold flex items-center gap-1.5 sm:gap-2 transition-all cursor-pointer"
+            >
+              <Calculator className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+              <span className="truncate">Yield Calc</span>
+            </button>
+            <button 
+              onClick={() => onNavigateTab('diesel')}
+              className="w-full sm:w-auto justify-center px-3 py-2.5 sm:px-4 sm:py-2.5 rounded-xl bg-[#121927] hover:bg-[#1b263b] border border-[#1E293B] text-slate-300 text-[11px] sm:text-xs font-bold flex items-center gap-1.5 sm:gap-2 transition-all cursor-pointer"
+            >
+              <Fuel className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+              <span className="truncate">+ Log Diesel</span>
+            </button>
+            <button 
+              onClick={() => onNavigateTab('haulage-trips')}
+              className="w-full sm:w-auto justify-center px-3 py-2.5 sm:px-4 sm:py-2.5 rounded-xl bg-[#121927] hover:bg-[#1b263b] border border-[#1E293B] text-slate-300 text-[11px] sm:text-xs font-bold flex items-center gap-1.5 sm:gap-2 transition-all cursor-pointer"
+            >
+              <Truck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+              <span className="truncate">+ Log Trip</span>
+            </button>
+            <button 
+              onClick={() => onNavigateTab('site-expenses')}
+              className="col-span-2 sm:col-span-1 w-full sm:w-auto justify-center px-4 py-2.5 sm:px-5 sm:py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-black flex items-center gap-2 transition-all shadow-lg shadow-blue-600/30 cursor-pointer"
+            >
+              <Plus className="w-4 h-4 shrink-0" />
+              <span>+ Expense</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* KPI Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        
+        {/* Total Material Laid */}
+        <div 
+          onClick={() => onNavigateTab('haulage-trips')}
+          className="p-4 sm:p-5 rounded-[1.2rem] sm:rounded-[1.5rem] bg-[#0B1220] border border-[#1E293B] shadow-xl hover:border-blue-500/50 transition-all cursor-pointer group flex flex-col justify-between"
+        >
+          <div className="space-y-3 sm:space-y-4">
+            <div className="flex justify-between items-start">
+              <div className="text-[10px] sm:text-[11px] font-bold text-slate-400 tracking-wider">
+                TOTAL MATERIAL LAID<br/>(TODAY)
+              </div>
+              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-blue-900/30 flex items-center justify-center border border-blue-800/50 shrink-0">
+                <Layers className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-400" />
               </div>
             </div>
+            <div className="flex items-baseline gap-2">
+              <span className="text-3xl sm:text-4xl font-black text-white font-mono tracking-tight">
+                {totalBrassToday}
+              </span>
+              <span className="text-xs sm:text-sm font-medium text-slate-500">Brass</span>
+            </div>
           </div>
+          <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-[#1E293B] space-y-2 sm:space-y-3">
+            <div className="flex items-center gap-1.5 text-[10px] sm:text-[11px] font-medium text-blue-400 truncate">
+              <div className="w-1.5 h-1.5 rounded-full bg-blue-500 shrink-0" />
+              <span className="truncate">
+                {siteTrips.length} material batches logged
+              </span>
+            </div>
+            <div className="flex items-center gap-1 text-[10px] sm:text-[11px] font-bold text-slate-400 group-hover:text-blue-400 transition-colors">
+              <span>View haulage logs</span>
+              <ArrowRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" />
+            </div>
+          </div>
+        </div>
 
-          {/* Mobile Close Button */}
-          {onClose && (
-            <button
-              onClick={onClose}
-              className="absolute right-3 lg:hidden p-1.5 rounded-xl bg-slate-800 text-slate-300 hover:text-white cursor-pointer"
-              title="Close Menu"
+        {/* Total Site Expense Card */}
+        <div 
+          onClick={() => onNavigateTab('site-expenses')}
+          className="p-4 sm:p-5 rounded-[1.2rem] sm:rounded-[1.5rem] bg-[#0B1220] border border-[#1E293B] shadow-xl hover:border-emerald-500/50 transition-all cursor-pointer group flex flex-col justify-between"
+        >
+          <div className="space-y-3 sm:space-y-4">
+            <div className="flex justify-between items-start">
+              <div className="text-[10px] sm:text-[11px] font-bold text-slate-400 tracking-wider">
+                TOTAL SITE EXPENSE
+              </div>
+              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-emerald-950/60 flex items-center justify-center border border-emerald-500/30 shrink-0">
+                <DollarSign className="w-4 h-4 text-emerald-400" />
+              </div>
+            </div>
+            <div className="flex items-baseline gap-1">
+              <span className="text-3xl sm:text-4xl font-black text-emerald-400 font-mono tracking-tight truncate">
+                ₹{totalSiteExpense.toLocaleString('en-IN')}
+              </span>
+            </div>
+          </div>
+          <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-[#1E293B] space-y-2 sm:space-y-3">
+            <div className="flex items-center gap-1.5 text-[10px] sm:text-[11px] font-medium text-slate-400 truncate">
+              {expenseVoucherCount > 0 ? `${expenseVoucherCount} ${expenseVoucherCount === 1 ? 'expense voucher' : 'expense vouchers'}` : '0 expense vouchers'}
+            </div>
+            <div className="flex items-center gap-1 text-[10px] sm:text-[11px] font-bold text-slate-400 group-hover:text-emerald-400 transition-colors">
+              <span>Open expenses ledger</span>
+              <ArrowRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" />
+            </div>
+          </div>
+        </div>
+
+        {/* Active Trips Today */}
+        <div 
+          onClick={() => onNavigateTab('haulage-trips')}
+          className="p-4 sm:p-5 rounded-[1.2rem] sm:rounded-[1.5rem] bg-[#0B1220] border border-[#1E293B] shadow-xl hover:border-cyan-500/50 transition-all cursor-pointer group flex flex-col justify-between"
+        >
+          <div className="space-y-3 sm:space-y-4">
+            <div className="flex justify-between items-start">
+              <div className="text-[10px] sm:text-[11px] font-bold text-slate-400 tracking-wider">
+                ACTIVE TRIPS TODAY
+              </div>
+              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-cyan-900/30 flex items-center justify-center border border-cyan-800/50 shrink-0">
+                <Truck className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-cyan-400" />
+              </div>
+            </div>
+            <div className="flex items-baseline gap-2">
+              <span className="text-3xl sm:text-4xl font-black text-white font-mono tracking-tight">
+                {activeTripsCount}
+              </span>
+              <span className="text-xs sm:text-sm font-medium text-slate-500">Trips</span>
+            </div>
+          </div>
+          <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-[#1E293B] space-y-2 sm:space-y-3">
+            <div className="flex items-center gap-1.5 text-[10px] sm:text-[11px] font-medium text-cyan-400 truncate">
+              {siteTrips.length} vehicles active
+            </div>
+            <div className="flex items-center gap-1 text-[10px] sm:text-[11px] font-bold text-slate-400 group-hover:text-cyan-400 transition-colors">
+              <span>Check trip records</span>
+              <ArrowRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" />
+            </div>
+          </div>
+        </div>
+
+        {/* Diesel Dispensed */}
+        <div 
+          onClick={() => onNavigateTab('diesel')}
+          className="p-4 sm:p-5 rounded-[1.2rem] sm:rounded-[1.5rem] bg-[#0B1220] border border-[#1E293B] shadow-xl hover:border-amber-500/50 transition-all cursor-pointer group flex flex-col justify-between"
+        >
+          <div className="space-y-3 sm:space-y-4">
+            <div className="flex justify-between items-start">
+              <div className="text-[10px] sm:text-[11px] font-bold text-slate-400 tracking-wider">
+                DIESEL DISPENSED
+              </div>
+              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-amber-900/30 flex items-center justify-center border border-amber-800/50 shrink-0">
+                <Fuel className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-400" />
+              </div>
+            </div>
+            <div className="flex items-baseline gap-2">
+              <span className="text-3xl sm:text-4xl font-black text-amber-400 font-mono tracking-tight">
+                {totalDieselDispensed}
+              </span>
+              <span className="text-xs sm:text-sm font-medium text-slate-500">Litres</span>
+            </div>
+          </div>
+          <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-[#1E293B] space-y-2 sm:space-y-3">
+            <div className="flex items-center gap-1.5 text-[10px] sm:text-[11px] font-medium text-slate-400 truncate">
+              {siteDiesel.length} Field fuel voucher logs
+            </div>
+            <div className="flex items-center gap-1 text-[10px] sm:text-[11px] font-bold text-slate-400 group-hover:text-amber-400 transition-colors">
+              <span>Manage diesel log</span>
+              <ArrowRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" />
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      {/* Bottom Panels */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 pt-2">
+        <div className="lg:col-span-2 p-4 sm:p-6 rounded-[1.5rem] sm:rounded-[2rem] bg-[#0B1220] border border-[#1E293B] shadow-2xl flex flex-col">
+          <div className="flex items-center justify-between mb-4 sm:mb-6">
+            <div className="flex items-center gap-2">
+              <HardHat className="w-4 h-4 sm:w-5 sm:h-5 text-amber-400 shrink-0" />
+              <h2 className="text-sm sm:text-base font-bold text-white truncate">Machine & Operator Deployment</h2>
+            </div>
+            <button 
+              onClick={() => onNavigateTab('machinery_fleet')}
+              className="text-xs font-bold text-blue-400 hover:text-blue-300 flex items-center gap-1 transition-colors shrink-0 cursor-pointer"
             >
-              <X className="w-4 h-4" />
+              <span>View Full Fleet</span>
+              <ChevronRight className="w-4 h-4" />
             </button>
-          )}
-        </div>
-
-        {isBuilding ? (
-          <div className="space-y-4">
-            {renderNavGroup(null, buildingCoreItems)}
-            {renderNavGroup('ANALYSIS', buildingAnalysisItems)}
-            {renderNavGroup('CONFIGURATION', buildingConfigItems)}
           </div>
-        ) : (
-          <div className="space-y-4">
-            {renderNavGroup('SITE OPERATIONS', roadOperationsItems)}
-            {renderNavGroup('ENGINEERING', roadEngineeringItems)}
-            {renderNavGroup('CONFIGURATION', roadConfigItems)}
-          </div>
-        )}
-      </div>
-
-      <div className="p-3 border-t border-[#1E293B] bg-[#080C14] space-y-2 sticky bottom-0 z-10 shadow-lg">
-        {onSwitchDomain && (
-          <button
-            onClick={() => {
-              onSwitchDomain();
-              if (onClose) onClose();
-            }}
-            className="w-full py-2.5 px-2 bg-[#121927] hover:bg-[#1b263b] border border-[#1E293B] rounded-xl text-xs font-bold text-slate-300 flex items-center justify-center gap-1.5 transition-colors cursor-pointer active:scale-[0.98]"
-          >
-            <span>Switch to {isBuilding ? 'Roads' : 'Buildings'}</span>
-          </button>
-        )}
-
-        <div className="p-2 rounded-xl bg-[#121927] border border-[#1E293B] flex items-center justify-between">
-          <div className="flex items-center gap-2.5 overflow-hidden">
-            <div className="w-8 h-8 rounded-full bg-blue-600/20 border border-blue-500/30 flex items-center justify-center font-bold text-xs text-blue-400 shrink-0">
-              {currentUser?.name ? currentUser.name.charAt(0).toUpperCase() : 'H'}
+          
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 flex-1">
+            <div className="p-3 sm:p-4 rounded-2xl bg-[#080C14] border border-[#1E293B] flex flex-col justify-center">
+              <div className="text-[10px] font-bold text-slate-500 mb-1">Active Excavators</div>
+              <div className="text-xl sm:text-2xl font-black text-white mb-1 sm:mb-2">
+                0 <span className="text-xs sm:text-sm font-medium text-slate-500">Units</span>
+              </div>
+              <div className="text-[10px] text-slate-600">0 active machinery</div>
             </div>
-            <div className="truncate">
-              <div className="text-xs font-bold text-white truncate">{currentUser?.name || 'Habibulla Bilgi'}</div>
-              <div className="text-[10px] text-[#94A3B8] truncate">Site Engineer & Admin</div>
+            <div className="p-3 sm:p-4 rounded-2xl bg-[#080C14] border border-[#1E293B] flex flex-col justify-center">
+              <div className="text-[10px] font-bold text-slate-500 mb-1">Backhoe Loaders</div>
+              <div className="text-xl sm:text-2xl font-black text-white mb-1 sm:mb-2">
+                0 <span className="text-xs sm:text-sm font-medium text-slate-500">Units</span>
+              </div>
+              <div className="text-[10px] text-slate-600">0 active machinery</div>
+            </div>
+            <div className="p-3 sm:p-4 rounded-2xl bg-[#080C14] border border-[#1E293B] flex flex-col justify-center">
+              <div className="text-[10px] font-bold text-slate-500 mb-1">Tipper Dumpers</div>
+              <div className="text-xl sm:text-2xl font-black text-white mb-1 sm:mb-2">
+                0 <span className="text-xs sm:text-sm font-medium text-slate-500">Units</span>
+              </div>
+              <div className="text-[10px] text-slate-600">0 active tippers</div>
             </div>
           </div>
-          <button onClick={logout} title="Logout" className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-[#162032] transition-colors cursor-pointer shrink-0">
-            <LogOut className="w-4 h-4" />
-          </button>
         </div>
+
+        <div className="p-4 sm:p-6 rounded-[1.5rem] sm:rounded-[2rem] bg-[#0B1220] border border-[#1E293B] shadow-2xl flex flex-col">
+          <div className="flex items-center justify-between mb-4 sm:mb-6">
+            <div className="flex items-center gap-2">
+              <Calculator className="w-4 h-4 sm:w-5 sm:h-5 text-cyan-400 shrink-0" />
+              <h2 className="text-sm sm:text-base font-bold text-white truncate">Engineering Shortcuts</h2>
+            </div>
+            <span className="text-[8px] sm:text-[9px] font-mono text-slate-500 uppercase tracking-widest shrink-0">
+              MoRTH 5th Rev
+            </span>
+          </div>
+
+          <div className="space-y-3 flex-1 flex flex-col justify-center">
+            <button 
+              onClick={() => onNavigateTab('yield_calculator')}
+              className="w-full p-3 sm:p-4 rounded-2xl bg-[#080C14] border border-[#1E293B] hover:border-cyan-500/50 hover:bg-[#121c33]/50 transition-all text-left group flex items-center justify-between cursor-pointer"
+            >
+              <div>
+                <div className="text-xs font-bold text-white mb-1 group-hover:text-cyan-400 transition-colors">
+                  Road Layer Yield & Thickness Calc
+                </div>
+                <div className="text-[10px] text-slate-500">
+                  Calculate GSB, WMM, DBM, BC tonnage & brass yield
+                </div>
+              </div>
+              <ArrowRight className="w-4 h-4 text-slate-600 group-hover:text-cyan-400 transition-transform group-hover:translate-x-1 shrink-0" />
+            </button>
+
+            <button 
+              onClick={() => onNavigateTab('categories')}
+              className="w-full p-3 sm:p-4 rounded-2xl bg-[#080C14] border border-[#1E293B] hover:border-blue-500/50 hover:bg-[#121c33]/50 transition-all text-left group flex items-center justify-between cursor-pointer"
+            >
+              <div>
+                <div className="text-xs font-bold text-white mb-1 group-hover:text-blue-400 transition-colors">
+                  Material Rates & Master Spec
+                </div>
+                <div className="text-[10px] text-slate-500">
+                  Manage schedule of rates and category specs
+                </div>
+              </div>
+              <ArrowRight className="w-4 h-4 text-slate-600 group-hover:text-blue-400 transition-transform group-hover:translate-x-1 shrink-0" />
+            </button>
+          </div>
+        </div>
+
       </div>
-    </aside>
+    </div>
   );
 };
-
-export default Sidebar;
