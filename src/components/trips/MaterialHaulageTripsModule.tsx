@@ -1,3 +1,6 @@
+Here is your complete component code. The Print button now connects directly to `handlePrint` (which clears the browser title before opening the print dialog), and `@page { margin: 0; }` is applied to remove the browser-generated header text and footer URL.
+
+```tsx
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useERP } from '../../context/ERPContext';
 import {
@@ -291,7 +294,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
     window.print();
     setTimeout(() => {
       document.title = prevTitle;
-    }, 800);
+    }, 1000);
   };
 
   const handleSave = (e: React.FormEvent) => {
@@ -330,61 +333,77 @@ export const MaterialHaulageTripsModule: React.FC = () => {
   };
 
   return (
-    <div className="space-y-4 sm:space-y-6 font-sans text-slate-100 print:text-black print:space-y-3">
-      {/* Pure Black & White Portrait Print Styles */}
+    <div className="space-y-4 sm:space-y-6 font-sans text-slate-100 print:text-black print:space-y-3 print:bg-white print:p-8">
+      {/* Complete Pure White Margin & Portrait Styles */}
       <style dangerouslySetInnerHTML={{ __html: `
         @media print {
           @page {
             size: portrait;
-            margin: 10mm 12mm;
+            margin: 0 !important;
           }
-          * {
-            background: transparent !important;
+          
+          html,
+          body,
+          #root,
+          main,
+          section,
+          aside,
+          div {
+            background-color: #ffffff !important;
+            background: #ffffff !important;
             color: #000000 !important;
             box-shadow: none !important;
-            text-shadow: none !important;
-            -webkit-print-color-adjust: exact !important;
-            print-color-adjust: exact !important;
-          }
-          html, body, #root, main, div, table {
-            background-color: #ffffff !important;
             overflow: visible !important;
             height: auto !important;
             max-height: none !important;
-            scrollbar-width: none !important;
-            -ms-overflow-style: none !important;
+            width: 100% !important;
+            max-width: 100% !important;
           }
-          ::-webkit-scrollbar {
-            display: none !important;
+
+          * {
+            color: #000000 !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
           }
+
           nav,
           header,
           aside,
           .no-print {
             display: none !important;
           }
+
           a[href]:after {
             content: none !important;
           }
+
           .print-clean-table {
             width: 100% !important;
             border-collapse: collapse !important;
+            background-color: #ffffff !important;
           }
+
           .print-clean-table th {
+            background-color: #ffffff !important;
             border-bottom: 2px solid #000000 !important;
             padding: 6px 8px !important;
             font-size: 10px !important;
             font-weight: 800 !important;
           }
+
           .print-clean-table td {
+            background-color: #ffffff !important;
             border-bottom: 1px solid #d1d5db !important;
             padding: 6px 8px !important;
             font-size: 10.5px !important;
           }
+
           .print-clean-table tfoot td {
+            background-color: #ffffff !important;
             padding: 6px 8px !important;
             font-size: 11px !important;
           }
+
           .print-clean-table tfoot tr {
             border-bottom: 1px solid #d1d5db !important;
           }
@@ -491,11 +510,11 @@ export const MaterialHaulageTripsModule: React.FC = () => {
       </div>
 
       {/* Main Table */}
-      <div className="bg-[#0B1220] border border-[#1E293B] rounded-2xl overflow-hidden shadow-2xl print:border-none print:shadow-none print:rounded-none print:overflow-visible">
+      <div className="bg-[#0B1220] border border-[#1E293B] rounded-2xl overflow-hidden shadow-2xl print:border-none print:shadow-none print:rounded-none print:overflow-visible print:bg-white">
         <div className="overflow-x-auto print:overflow-visible">
           <table className="w-full text-left text-xs border-collapse print-clean-table">
             <thead>
-              <tr className="border-b border-[#1E293B] text-[10px] font-extrabold uppercase text-slate-400 bg-[#080d19]/80">
+              <tr className="border-b border-[#1E293B] text-[10px] font-extrabold uppercase text-slate-400 bg-[#080d19]/80 print:bg-white print:text-black">
                 <th className="py-3 px-3 text-left">DATE</th>
                 <th className="py-3 px-3 text-center">SITE</th>
                 <th className="py-3 px-3">PURCHASED FROM</th>
@@ -508,7 +527,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
                 <th className="py-3 px-3 text-center no-print">ACTION</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#1E293B]/60 text-slate-200">
+            <tbody className="divide-y divide-[#1E293B]/60 text-slate-200 print:divide-slate-300">
               {filtered.length === 0 ? (
                 <tr>
                   <td colSpan={10} className="py-8 text-center text-slate-500 print:text-black">
@@ -546,8 +565,8 @@ export const MaterialHaulageTripsModule: React.FC = () => {
 
             {/* Table Footer */}
             {filtered.length > 0 && (
-              <tfoot className="border-t-2 border-[#1E293B] print:border-t-2 print:border-black bg-[#070c18] font-mono">
-                <tr className="border-b border-[#1E293B]/60">
+              <tfoot className="border-t-2 border-[#1E293B] print:border-t-2 print:border-black bg-[#070c18] font-mono print:bg-white">
+                <tr className="border-b border-[#1E293B]/60 print:border-b print:border-slate-300">
                   <td colSpan={5} className="py-2.5 px-3 font-bold uppercase text-slate-300 print:text-black text-right">
                     Total Material Purchased:
                   </td>
@@ -569,7 +588,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
                 </tr>
 
                 {remainingAdvanceBalance > 0 ? (
-                  <tr className="bg-[#082216] text-emerald-400 print:text-black font-black">
+                  <tr className="bg-[#082216] text-emerald-400 print:bg-white print:text-black font-black">
                     <td colSpan={8} className="py-3 px-3 text-right uppercase tracking-wider text-xs">
                       REMAINING ADVANCE BALANCE (EXCESS):
                     </td>
@@ -579,7 +598,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
                     <td className="py-3 px-3 no-print"></td>
                   </tr>
                 ) : (
-                  <tr className="bg-[#1e1906] text-amber-400 print:text-black font-black">
+                  <tr className="bg-[#1e1906] text-amber-400 print:bg-white print:text-black font-black">
                     <td colSpan={8} className="py-3 px-3 text-right uppercase tracking-wider text-xs">
                       (=) NET PAYABLE AMOUNT:
                     </td>
@@ -778,3 +797,5 @@ export const MaterialHaulageTripsModule: React.FC = () => {
     </div>
   );
 };
+
+```
