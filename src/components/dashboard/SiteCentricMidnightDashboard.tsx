@@ -39,52 +39,62 @@ export const SiteCentricMidnightDashboard: React.FC<Props> = ({ onNavigateTab })
   useEffect(() => {
     try {
       const savedTrips = localStorage.getItem('CONSTRUCTION_PRO_HAULAGE_TRIPS_V2');
-      if (savedTrips) setTrips(JSON.parse(savedTrips));
+      if (savedTrips) setTrips(JSON.parse(savedTrips) || []);
 
       const savedDiesel = localStorage.getItem('CONSTRUCTION_PRO_DIESEL_LOGS_V1');
-      if (savedDiesel) setDiesel(JSON.parse(savedDiesel));
+      if (savedDiesel) setDiesel(JSON.parse(savedDiesel) || []);
 
       const savedExpenses = localStorage.getItem('CONSTRUCTION_PRO_SITE_EXPENSES_V1');
-      if (savedExpenses) setExpenses(JSON.parse(savedExpenses));
+      if (savedExpenses) setExpenses(JSON.parse(savedExpenses) || []);
     } catch (e) {
       console.error('Error loading dashboard records', e);
+      setTrips([]);
+      setDiesel([]);
+      setExpenses([]);
     }
   }, [selectedSiteId]);
 
   // 3. Compute live metrics scoped flexibly to active site and sample records
   const siteTrips = useMemo(
-    () => trips.filter((t) => t.siteName === activeSite.siteName || t.siteName.includes('Ongoing')),
-    [trips, activeSite.siteName]
+    () => (trips || []).filter((t) => t?.siteName === activeSite?.siteName || t?.siteName?.includes('Ongoing')),
+    [trips, activeSite?.siteName]
   );
-  // Relaxed date filter so sample records show up immediately
   const todayTrips = siteTrips;
 
   const siteDiesel = useMemo(
-    () => diesel.filter((d) => d.siteName === activeSite.siteName || d.siteName.includes('Ongoing')),
-    [diesel, activeSite.siteName]
-  );
-  const siteExpenses = useMemo(
-    () => expenses.filter((e) => e.siteName === activeSite.siteName || e.siteName.includes('Ongoing')),
-    [expenses, activeSite.siteName]
+    () => (diesel || []).filter((d) => d?.siteName === activeSite?.siteName || d?.siteName?.includes('Ongoing')),
+    [diesel, activeSite?.siteName]
   );
 
-  // KPIs
-  const totalBrassToday = todayTrips.reduce(
-    (sum, t) => sum + (Number(t.dayTrips) || 0) * (Number(t.brassPerTrip) || 0),
-    0
+  const siteExpenses = useMemo(
+    () => (expenses || []).filter((e) => e?.siteName === activeSite?.siteName || e?.siteName?.includes('Ongoing')),
+    [expenses, activeSite?.siteName]
   );
-  const activeTripsCount = todayTrips.reduce(
-    (sum, t) => sum + (Number(t.dayTrips) || 0),
-    0
-  );
-  const totalDieselDispensed = siteDiesel.reduce(
-    (sum, d) => sum + (Number(d.litres) || 0),
-    0
-  );
-  const totalSiteExpense = siteExpenses.reduce(
-    (sum, e) => sum + (Number(e.amount) || 0),
-    0
-  );
+
+  // Safe KPIs with fallback to 0
+  const totalBrassToday = (todayTrips || []).reduce((sum, t) => {
+    const dayTrips = Number(t?.dayTrips);
+    const brassPerTrip = Number(t?.brassPerTrip);
+    const itemTotal = (isNaN(dayTrips) ? 0 : dayTrips) * (isNaN(brassPerTrip) ? 0 : brassPerTrip);
+    return sum + itemTotal;
+  }, 0) || 0;
+
+  const activeTripsCount = (todayTrips || []).reduce((sum, t) => {
+    const dayTrips = Number(t?.dayTrips);
+    return sum + (isNaN(dayTrips) ? 0 : dayTrips);
+  }, 0) || 0;
+
+  const totalDieselDispensed = (siteDiesel || []).reduce((sum, d) => {
+    const litres = Number(d?.litres);
+    return sum + (isNaN(litres) ? 0 : litres);
+  }, 0) || 0;
+
+  const totalSiteExpense = (siteExpenses || []).reduce((sum, e) => {
+    const amount = Number(e?.amount);
+    return sum + (isNaN(amount) ? 0 : amount);
+  }, 0) || 0;
+
+  const expenseCount = siteExpenses?.length || 0;
 
   return (
     <div className="space-y-4 sm:space-y-6 font-sans text-slate-100 animate-in fade-in duration-300">
@@ -100,11 +110,11 @@ export const SiteCentricMidnightDashboard: React.FC<Props> = ({ onNavigateTab })
               <span>Site Operations Command</span>
               <span className="text-slate-600 hidden sm:inline">•</span>
               <span className="text-slate-500 font-mono lowercase tracking-normal hidden sm:inline">
-                {activeSite.siteId}
+                {activeSite?.siteId || 'N/A'}
               </span>
             </div>
             <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black text-white tracking-tight uppercase break-words">
-              {activeSite.siteName}
+              {activeSite?.siteName || 'NO ACTIVE SITE'}
             </h1>
             <p className="text-xs sm:text-sm text-slate-400 max-w-xl leading-relaxed">
               Live site metrics, equipment telematics, material haulage, and petty cash ledger.
@@ -180,7 +190,7 @@ export const SiteCentricMidnightDashboard: React.FC<Props> = ({ onNavigateTab })
             <div className="flex items-center gap-1.5 text-[10px] sm:text-[11px] font-medium text-blue-400 truncate">
               <div className="w-1.5 h-1.5 rounded-full bg-blue-500 shrink-0" />
               <span className="truncate">
-                {totalBrassToday > 0 ? `${todayTrips.length} material batches logged` : 'No material logged yet'}
+                {totalBrassToday > 0 ? `${todayTrips.length} material batches logged` : '0 material batches logged'}
               </span>
             </div>
             <div className="flex items-center gap-1 text-[10px] sm:text-[11px] font-bold text-slate-400 group-hover:text-blue-400 transition-colors">
@@ -206,13 +216,13 @@ export const SiteCentricMidnightDashboard: React.FC<Props> = ({ onNavigateTab })
             </div>
             <div className="flex items-baseline gap-1">
               <span className="text-3xl sm:text-4xl font-black text-emerald-400 font-mono tracking-tight truncate">
-                ₹{totalSiteExpense.toLocaleString()}
+                ₹{totalSiteExpense.toLocaleString('en-IN')}
               </span>
             </div>
           </div>
           <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-[#1E293B] space-y-2 sm:space-y-3">
             <div className="flex items-center gap-1.5 text-[10px] sm:text-[11px] font-medium text-slate-400 truncate">
-              {totalSiteExpense > 0 ? `${siteExpenses.length} expense vouchers` : 'No expenses recorded'}
+              {expenseCount} {expenseCount === 1 ? 'expense voucher' : 'expense vouchers'}
             </div>
             <div className="flex items-center gap-1 text-[10px] sm:text-[11px] font-bold text-slate-400 group-hover:text-emerald-400 transition-colors">
               <span>Open expenses ledger</span>
@@ -244,7 +254,7 @@ export const SiteCentricMidnightDashboard: React.FC<Props> = ({ onNavigateTab })
           </div>
           <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-[#1E293B] space-y-2 sm:space-y-3">
             <div className="flex items-center gap-1.5 text-[10px] sm:text-[11px] font-medium text-cyan-400 truncate">
-              {activeTripsCount > 0 ? `${todayTrips.length} vehicles active` : '0 tippers active'}
+              {activeTripsCount > 0 ? `${todayTrips.length} vehicles active` : '0 vehicles active'}
             </div>
             <div className="flex items-center gap-1 text-[10px] sm:text-[11px] font-bold text-slate-400 group-hover:text-cyan-400 transition-colors">
               <span>Check trip records</span>
