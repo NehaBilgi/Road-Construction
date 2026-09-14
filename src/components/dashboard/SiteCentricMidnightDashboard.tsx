@@ -1,6 +1,5 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useERP } from '../../context/ERPContext';
-import { useRoadERP } from '../../context/RoadERPContext';
 import {
   Layers,
   DollarSign,
@@ -20,165 +19,77 @@ interface Props {
 
 export const SiteCentricMidnightDashboard: React.FC<Props> = ({ onNavigateTab }) => {
   const { siteSheets = [], selectedSiteId } = useERP();
-  const roadERP = useRoadERP?.() || {};
 
-  // 1. Identify active site
+  // 1. Identify active site from context
   const activeSite = useMemo(() => {
     return (
       siteSheets.find((s: any) => s.siteId === selectedSiteId) ||
       siteSheets[0] || {
-        siteId: 'site-1789375276548',
-        siteName: 'SINDAGI'
+        siteId: 'default-001',
+        siteName: 'SINDAGI - ALMEL ROAD'
       }
     );
   }, [siteSheets, selectedSiteId]);
 
-  // 2. Data state stores
+  // 2. Load and listen to local record stores
   const [trips, setTrips] = useState<any[]>([]);
   const [diesel, setDiesel] = useState<any[]>([]);
   const [expenses, setExpenses] = useState<any[]>([]);
-  const [machinery, setMachinery] = useState<any[]>([]);
-
-  // 3. Sync from RoadERPContext and localStorage
-  const loadLiveRecords = useCallback(() => {
-    try {
-      // Haulage Trips
-      const savedTrips = localStorage.getItem('CONSTRUCTION_PRO_HAULAGE_TRIPS_V2');
-      if (savedTrips) {
-        setTrips(JSON.parse(savedTrips) || []);
-      } else if (roadERP.haulageTrips) {
-        setTrips(roadERP.haulageTrips);
-      } else {
-        setTrips([]);
-      }
-
-      // Diesel Logs
-      const savedDiesel = localStorage.getItem('CONSTRUCTION_PRO_DIESEL_LOGS_V1');
-      if (savedDiesel) {
-        setDiesel(JSON.parse(savedDiesel) || []);
-      } else if (roadERP.dieselLogs) {
-        setDiesel(roadERP.dieselLogs);
-      } else {
-        setDiesel([]);
-      }
-
-      // Site Expenses
-      const savedExpenses = localStorage.getItem('CONSTRUCTION_PRO_SITE_EXPENSES_V1');
-      if (savedExpenses) {
-        setExpenses(JSON.parse(savedExpenses) || []);
-      } else if (roadERP.expenses) {
-        setExpenses(roadERP.expenses);
-      } else {
-        setExpenses([]);
-      }
-
-      // Machinery Fleet
-      const savedMachinery = localStorage.getItem('CONSTRUCTION_PRO_MACHINERY_V1');
-      if (savedMachinery) {
-        setMachinery(JSON.parse(savedMachinery) || []);
-      } else if (roadERP.machineryFleet) {
-        setMachinery(roadERP.machineryFleet);
-      } else {
-        setMachinery([]);
-      }
-    } catch (e) {
-      console.error('Error loading dashboard records', e);
-      setTrips([]);
-      setDiesel([]);
-      setExpenses([]);
-      setMachinery([]);
-    }
-  }, [roadERP]);
 
   useEffect(() => {
-    loadLiveRecords();
-    const handleSync = () => loadLiveRecords();
-    window.addEventListener('storage', handleSync);
-    window.addEventListener('focus', handleSync);
-    return () => {
-      window.removeEventListener('storage', handleSync);
-      window.removeEventListener('focus', handleSync);
-    };
-  }, [loadLiveRecords, selectedSiteId]);
+    try {
+      const savedTrips = localStorage.getItem('CONSTRUCTION_PRO_HAULAGE_TRIPS_V2');
+      if (savedTrips) setTrips(JSON.parse(savedTrips));
 
-  // 4. Scoped Site Filters
-  const siteTrips = useMemo(() => {
-    return (trips || []).filter(
-      (t) =>
-        t?.siteName === activeSite?.siteName ||
-        t?.siteId === activeSite?.siteId ||
-        t?.siteName?.includes('Ongoing')
-    );
-  }, [trips, activeSite]);
+      const savedDiesel = localStorage.getItem('CONSTRUCTION_PRO_DIESEL_LOGS_V1');
+      if (savedDiesel) setDiesel(JSON.parse(savedDiesel));
 
-  const siteDiesel = useMemo(() => {
-    return (diesel || []).filter(
-      (d) =>
-        d?.siteName === activeSite?.siteName ||
-        d?.siteId === activeSite?.siteId ||
-        d?.siteName?.includes('Ongoing')
-    );
-  }, [diesel, activeSite]);
+      const savedExpenses = localStorage.getItem('CONSTRUCTION_PRO_SITE_EXPENSES_V1');
+      if (savedExpenses) setExpenses(JSON.parse(savedExpenses));
+    } catch (e) {
+      console.error('Error loading dashboard records', e);
+    }
+  }, [selectedSiteId]);
 
-  const siteExpenses = useMemo(() => {
-    return (expenses || []).filter(
-      (e) =>
-        e?.siteName === activeSite?.siteName ||
-        e?.costCenterChainage?.includes(activeSite?.siteName) ||
-        e?.siteName?.includes('Ongoing')
-    );
-  }, [expenses, activeSite]);
+  // 3. Compute live metrics scoped flexibly to active site and sample records
+  const siteTrips = useMemo(
+    () => trips.filter((t) => t.siteName === activeSite.siteName || t.siteName.includes('Ongoing')),
+    [trips, activeSite.siteName]
+  );
+  // Relaxed date filter so sample records show up immediately
+  const todayTrips = siteTrips;
 
-  const siteMachinery = useMemo(() => {
-    return (machinery || []).filter(
-      (m) =>
-        m?.siteName === activeSite?.siteName ||
-        m?.assignedSite === activeSite?.siteName ||
-        m?.status === 'ACTIVE'
-    );
-  }, [machinery, activeSite]);
+  const siteDiesel = useMemo(
+    () => diesel.filter((d) => d.siteName === activeSite.siteName || d.siteName.includes('Ongoing')),
+    [diesel, activeSite.siteName]
+  );
+  const siteExpenses = useMemo(
+    () => expenses.filter((e) => e.siteName === activeSite.siteName || e.siteName.includes('Ongoing')),
+    [expenses, activeSite.siteName]
+  );
 
-  // 5. Safe Zero KPIs
-  const totalBrassToday = (siteTrips || []).reduce((sum, t) => {
-    const tripsCount = Number(t?.dayTrips ?? t?.trips ?? 0);
-    const brassPerTrip = Number(t?.brassPerTrip ?? t?.capacityBrass ?? 0);
-    return sum + (isNaN(tripsCount) ? 0 : tripsCount) * (isNaN(brassPerTrip) ? 0 : brassPerTrip);
-  }, 0) || 0;
-
-  const totalExpensesAmount = (siteExpenses || []).reduce((sum, e) => {
-    const amt = Number(e?.amount ?? 0);
-    return sum + (isNaN(amt) ? 0 : amt);
-  }, 0) || 0;
-
-  const activeTripsCount = (siteTrips || []).reduce((sum, t) => {
-    const tripsCount = Number(t?.dayTrips ?? t?.trips ?? 0);
-    return sum + (isNaN(tripsCount) ? 0 : tripsCount);
-  }, 0) || 0;
-
-  const totalDieselLitres = (siteDiesel || []).reduce((sum, d) => {
-    const litres = Number(d?.litres ?? d?.qtyLitres ?? 0);
-    return sum + (isNaN(litres) ? 0 : litres);
-  }, 0) || 0;
-
-  // Fleet Categorization
-  const excavatorCount = siteMachinery.filter((m) =>
-    (m?.type || m?.category || '').toLowerCase().includes('excavator')
-  ).length || 0;
-
-  const backhoeCount = siteMachinery.filter((m) =>
-    (m?.type || m?.category || '').toLowerCase().includes('backhoe') ||
-    (m?.type || m?.category || '').toLowerCase().includes('loader')
-  ).length || 0;
-
-  const tipperCount = siteMachinery.filter((m) =>
-    (m?.type || m?.category || '').toLowerCase().includes('tipper') ||
-    (m?.type || m?.category || '').toLowerCase().includes('dumper')
-  ).length || 0;
+  // KPIs
+  const totalBrassToday = todayTrips.reduce(
+    (sum, t) => sum + (Number(t.dayTrips) || 0) * (Number(t.brassPerTrip) || 0),
+    0
+  );
+  const activeTripsCount = todayTrips.reduce(
+    (sum, t) => sum + (Number(t.dayTrips) || 0),
+    0
+  );
+  const totalDieselDispensed = siteDiesel.reduce(
+    (sum, d) => sum + (Number(d.litres) || 0),
+    0
+  );
+  const totalSiteExpense = siteExpenses.reduce(
+    (sum, e) => sum + (Number(e.amount) || 0),
+    0
+  );
 
   return (
     <div className="space-y-4 sm:space-y-6 font-sans text-slate-100 animate-in fade-in duration-300">
       
-      {/* 1. Header Command Banner */}
+      {/* Top Command Banner */}
       <div className="p-4 sm:p-6 lg:p-8 rounded-[1.5rem] sm:rounded-[2rem] bg-[#0B1220] border border-[#1E293B] shadow-2xl relative overflow-hidden">
         <div className="absolute top-0 right-0 w-96 h-96 bg-blue-600/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none" />
         
@@ -189,35 +100,33 @@ export const SiteCentricMidnightDashboard: React.FC<Props> = ({ onNavigateTab })
               <span>Site Operations Command</span>
               <span className="text-slate-600 hidden sm:inline">•</span>
               <span className="text-slate-500 font-mono lowercase tracking-normal hidden sm:inline">
-                {activeSite?.siteId || 'site-0'}
+                {activeSite.siteId}
               </span>
             </div>
             <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black text-white tracking-tight uppercase break-words">
-              {activeSite?.siteName || 'SINDAGI'}
+              {activeSite.siteName}
             </h1>
             <p className="text-xs sm:text-sm text-slate-400 max-w-xl leading-relaxed">
               Live site metrics, equipment telematics, material haulage, and petty cash ledger.
             </p>
           </div>
 
-          {/* Top Quick Actions */}
+          {/* Action Buttons */}
           <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-2 sm:gap-3 shrink-0 w-full xl:w-auto">
             <button 
-              onClick={() => onNavigateTab('ongoing-site')}
+              onClick={() => onNavigateTab('road-sites')}
               className="w-full sm:w-auto justify-center px-3 py-2.5 sm:px-4 sm:py-2.5 rounded-xl bg-[#121927] hover:bg-[#1b263b] border border-[#1E293B] text-slate-300 text-[11px] sm:text-xs font-bold flex items-center gap-1.5 sm:gap-2 transition-all cursor-pointer"
             >
               <MapPin className="w-3.5 h-3.5 text-blue-400 shrink-0" />
               <span className="truncate">+ Add Section</span>
             </button>
-
             <button 
-              onClick={() => onNavigateTab('road-trip-calculator')}
+              onClick={() => onNavigateTab('yield_calculator')}
               className="w-full sm:w-auto justify-center px-3 py-2.5 sm:px-4 sm:py-2.5 rounded-xl bg-[#121927] hover:bg-[#1b263b] border border-[#1E293B] text-slate-300 text-[11px] sm:text-xs font-bold flex items-center gap-1.5 sm:gap-2 transition-all cursor-pointer"
             >
               <Calculator className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
               <span className="truncate">Yield Calc</span>
             </button>
-
             <button 
               onClick={() => onNavigateTab('diesel')}
               className="w-full sm:w-auto justify-center px-3 py-2.5 sm:px-4 sm:py-2.5 rounded-xl bg-[#121927] hover:bg-[#1b263b] border border-[#1E293B] text-slate-300 text-[11px] sm:text-xs font-bold flex items-center gap-1.5 sm:gap-2 transition-all cursor-pointer"
@@ -225,17 +134,15 @@ export const SiteCentricMidnightDashboard: React.FC<Props> = ({ onNavigateTab })
               <Fuel className="w-3.5 h-3.5 text-amber-400 shrink-0" />
               <span className="truncate">+ Log Diesel</span>
             </button>
-
             <button 
-              onClick={() => onNavigateTab('trips')}
+              onClick={() => onNavigateTab('haulage-trips')}
               className="w-full sm:w-auto justify-center px-3 py-2.5 sm:px-4 sm:py-2.5 rounded-xl bg-[#121927] hover:bg-[#1b263b] border border-[#1E293B] text-slate-300 text-[11px] sm:text-xs font-bold flex items-center gap-1.5 sm:gap-2 transition-all cursor-pointer"
             >
               <Truck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
               <span className="truncate">+ Log Trip</span>
             </button>
-
             <button 
-              onClick={() => onNavigateTab('site-expense')}
+              onClick={() => onNavigateTab('site-expenses')}
               className="col-span-2 sm:col-span-1 w-full sm:w-auto justify-center px-4 py-2.5 sm:px-5 sm:py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-black flex items-center gap-2 transition-all shadow-lg shadow-blue-600/30 cursor-pointer"
             >
               <Plus className="w-4 h-4 shrink-0" />
@@ -245,12 +152,12 @@ export const SiteCentricMidnightDashboard: React.FC<Props> = ({ onNavigateTab })
         </div>
       </div>
 
-      {/* 2. Main 4 KPI Metrics */}
+      {/* KPI Metric Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         
-        {/* Card 1: Material Laid -> Trips */}
+        {/* Card 1: Material Laid */}
         <div 
-          onClick={() => onNavigateTab('trips')}
+          onClick={() => onNavigateTab('haulage-trips')}
           className="p-4 sm:p-5 rounded-[1.2rem] sm:rounded-[1.5rem] bg-[#0B1220] border border-[#1E293B] shadow-xl hover:border-blue-500/50 transition-all cursor-pointer group flex flex-col justify-between"
         >
           <div className="space-y-3 sm:space-y-4">
@@ -273,7 +180,7 @@ export const SiteCentricMidnightDashboard: React.FC<Props> = ({ onNavigateTab })
             <div className="flex items-center gap-1.5 text-[10px] sm:text-[11px] font-medium text-blue-400 truncate">
               <div className="w-1.5 h-1.5 rounded-full bg-blue-500 shrink-0" />
               <span className="truncate">
-                {siteTrips.length} material batches logged
+                {totalBrassToday > 0 ? `${todayTrips.length} material batches logged` : 'No material logged yet'}
               </span>
             </div>
             <div className="flex items-center gap-1 text-[10px] sm:text-[11px] font-bold text-slate-400 group-hover:text-blue-400 transition-colors">
@@ -283,9 +190,9 @@ export const SiteCentricMidnightDashboard: React.FC<Props> = ({ onNavigateTab })
           </div>
         </div>
 
-        {/* Card 2: Total Site Expense -> Site Expense */}
+        {/* Card 2: Site Expense */}
         <div 
-          onClick={() => onNavigateTab('site-expense')}
+          onClick={() => onNavigateTab('site-expenses')}
           className="p-4 sm:p-5 rounded-[1.2rem] sm:rounded-[1.5rem] bg-[#0B1220] border border-[#1E293B] shadow-xl hover:border-emerald-500/50 transition-all cursor-pointer group flex flex-col justify-between"
         >
           <div className="space-y-3 sm:space-y-4">
@@ -293,19 +200,19 @@ export const SiteCentricMidnightDashboard: React.FC<Props> = ({ onNavigateTab })
               <div className="text-[10px] sm:text-[11px] font-bold text-slate-400 tracking-wider">
                 TOTAL SITE EXPENSE
               </div>
-              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-emerald-950/60 flex items-center justify-center border border-emerald-500/30 shrink-0">
-                <DollarSign className="w-4 h-4 text-emerald-400" />
+              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-emerald-900/30 flex items-center justify-center border border-emerald-800/50 shrink-0">
+                <DollarSign className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-400" />
               </div>
             </div>
             <div className="flex items-baseline gap-1">
               <span className="text-3xl sm:text-4xl font-black text-emerald-400 font-mono tracking-tight truncate">
-                ₹{totalExpensesAmount.toLocaleString('en-IN')}
+                ₹{totalSiteExpense.toLocaleString()}
               </span>
             </div>
           </div>
           <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-[#1E293B] space-y-2 sm:space-y-3">
             <div className="flex items-center gap-1.5 text-[10px] sm:text-[11px] font-medium text-slate-400 truncate">
-              {siteExpenses.length} {siteExpenses.length === 1 ? 'expense voucher' : 'expense vouchers'}
+              {totalSiteExpense > 0 ? `${siteExpenses.length} expense vouchers` : 'No expenses recorded'}
             </div>
             <div className="flex items-center gap-1 text-[10px] sm:text-[11px] font-bold text-slate-400 group-hover:text-emerald-400 transition-colors">
               <span>Open expenses ledger</span>
@@ -314,9 +221,9 @@ export const SiteCentricMidnightDashboard: React.FC<Props> = ({ onNavigateTab })
           </div>
         </div>
 
-        {/* Card 3: Active Trips -> Trips */}
+        {/* Card 3: Active Trips */}
         <div 
-          onClick={() => onNavigateTab('trips')}
+          onClick={() => onNavigateTab('haulage-trips')}
           className="p-4 sm:p-5 rounded-[1.2rem] sm:rounded-[1.5rem] bg-[#0B1220] border border-[#1E293B] shadow-xl hover:border-cyan-500/50 transition-all cursor-pointer group flex flex-col justify-between"
         >
           <div className="space-y-3 sm:space-y-4">
@@ -337,7 +244,7 @@ export const SiteCentricMidnightDashboard: React.FC<Props> = ({ onNavigateTab })
           </div>
           <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-[#1E293B] space-y-2 sm:space-y-3">
             <div className="flex items-center gap-1.5 text-[10px] sm:text-[11px] font-medium text-cyan-400 truncate">
-              {siteTrips.length} vehicles active
+              {activeTripsCount > 0 ? `${todayTrips.length} vehicles active` : '0 tippers active'}
             </div>
             <div className="flex items-center gap-1 text-[10px] sm:text-[11px] font-bold text-slate-400 group-hover:text-cyan-400 transition-colors">
               <span>Check trip records</span>
@@ -346,7 +253,7 @@ export const SiteCentricMidnightDashboard: React.FC<Props> = ({ onNavigateTab })
           </div>
         </div>
 
-        {/* Card 4: Diesel Dispensed -> Diesel */}
+        {/* Card 4: Diesel Dispensed */}
         <div 
           onClick={() => onNavigateTab('diesel')}
           className="p-4 sm:p-5 rounded-[1.2rem] sm:rounded-[1.5rem] bg-[#0B1220] border border-[#1E293B] shadow-xl hover:border-amber-500/50 transition-all cursor-pointer group flex flex-col justify-between"
@@ -362,7 +269,7 @@ export const SiteCentricMidnightDashboard: React.FC<Props> = ({ onNavigateTab })
             </div>
             <div className="flex items-baseline gap-2">
               <span className="text-3xl sm:text-4xl font-black text-amber-400 font-mono tracking-tight">
-                {totalDieselLitres}
+                {totalDieselDispensed}
               </span>
               <span className="text-xs sm:text-sm font-medium text-slate-500">Litres</span>
             </div>
@@ -380,10 +287,10 @@ export const SiteCentricMidnightDashboard: React.FC<Props> = ({ onNavigateTab })
 
       </div>
 
-      {/* 3. Bottom Panels: Machinery Fleet & Engineering Shortcuts */}
+      {/* Bottom Shortcuts & Fleet Overview */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 pt-2">
         
-        {/* Machinery Panel -> Machinery */}
+        {/* Fleet Deployment Panel */}
         <div className="lg:col-span-2 p-4 sm:p-6 rounded-[1.5rem] sm:rounded-[2rem] bg-[#0B1220] border border-[#1E293B] shadow-2xl flex flex-col">
           <div className="flex items-center justify-between mb-4 sm:mb-6">
             <div className="flex items-center gap-2">
@@ -391,7 +298,7 @@ export const SiteCentricMidnightDashboard: React.FC<Props> = ({ onNavigateTab })
               <h2 className="text-sm sm:text-base font-bold text-white truncate">Machine & Operator Deployment</h2>
             </div>
             <button 
-              onClick={() => onNavigateTab('machinery')}
+              onClick={() => onNavigateTab('machinery_fleet')}
               className="text-xs font-bold text-blue-400 hover:text-blue-300 flex items-center gap-1 transition-colors shrink-0 cursor-pointer"
             >
               <span>View Full Fleet</span>
@@ -400,48 +307,31 @@ export const SiteCentricMidnightDashboard: React.FC<Props> = ({ onNavigateTab })
           </div>
           
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 flex-1">
-            <div 
-              onClick={() => onNavigateTab('machinery')}
-              className="p-3 sm:p-4 rounded-2xl bg-[#080C14] border border-[#1E293B] hover:border-slate-700 flex flex-col justify-center cursor-pointer transition-all"
-            >
+            <div className="p-3 sm:p-4 rounded-2xl bg-[#080C14] border border-[#1E293B] flex flex-col justify-center">
               <div className="text-[10px] font-bold text-slate-500 mb-1">Active Excavators</div>
-              <div className="text-xl sm:text-2xl font-black text-white mb-1 sm:mb-2 font-mono">
-                {excavatorCount} <span className="text-xs sm:text-sm font-medium text-slate-500">Units</span>
+              <div className="text-xl sm:text-2xl font-black text-white mb-1 sm:mb-2">
+                0 <span className="text-xs sm:text-sm font-medium text-slate-500">Units</span>
               </div>
-              <div className="text-[10px] text-slate-600">
-                {excavatorCount > 0 ? `${excavatorCount} machines active` : '0 active machinery'}
-              </div>
+              <div className="text-[10px] text-slate-600">No active machinery</div>
             </div>
-
-            <div 
-              onClick={() => onNavigateTab('machinery')}
-              className="p-3 sm:p-4 rounded-2xl bg-[#080C14] border border-[#1E293B] hover:border-slate-700 flex flex-col justify-center cursor-pointer transition-all"
-            >
+            <div className="p-3 sm:p-4 rounded-2xl bg-[#080C14] border border-[#1E293B] flex flex-col justify-center">
               <div className="text-[10px] font-bold text-slate-500 mb-1">Backhoe Loaders</div>
-              <div className="text-xl sm:text-2xl font-black text-white mb-1 sm:mb-2 font-mono">
-                {backhoeCount} <span className="text-xs sm:text-sm font-medium text-slate-500">Units</span>
+              <div className="text-xl sm:text-2xl font-black text-white mb-1 sm:mb-2">
+                0 <span className="text-xs sm:text-sm font-medium text-slate-500">Units</span>
               </div>
-              <div className="text-[10px] text-slate-600">
-                {backhoeCount > 0 ? `${backhoeCount} loaders active` : '0 active machinery'}
-              </div>
+              <div className="text-[10px] text-slate-600">No active machinery</div>
             </div>
-
-            <div 
-              onClick={() => onNavigateTab('machinery')}
-              className="p-3 sm:p-4 rounded-2xl bg-[#080C14] border border-[#1E293B] hover:border-slate-700 flex flex-col justify-center cursor-pointer transition-all"
-            >
+            <div className="p-3 sm:p-4 rounded-2xl bg-[#080C14] border border-[#1E293B] flex flex-col justify-center">
               <div className="text-[10px] font-bold text-slate-500 mb-1">Tipper Dumpers</div>
-              <div className="text-xl sm:text-2xl font-black text-white mb-1 sm:mb-2 font-mono">
-                {tipperCount} <span className="text-xs sm:text-sm font-medium text-slate-500">Units</span>
+              <div className="text-xl sm:text-2xl font-black text-white mb-1 sm:mb-2">
+                0 <span className="text-xs sm:text-sm font-medium text-slate-500">Units</span>
               </div>
-              <div className="text-[10px] text-slate-600">
-                {tipperCount > 0 ? `${tipperCount} tippers running` : '0 active tippers'}
-              </div>
+              <div className="text-[10px] text-slate-600">No active tippers</div>
             </div>
           </div>
         </div>
 
-        {/* Shortcuts Panel -> Road Trip Calculator & Categories */}
+        {/* Engineering Shortcuts Panel */}
         <div className="p-4 sm:p-6 rounded-[1.5rem] sm:rounded-[2rem] bg-[#0B1220] border border-[#1E293B] shadow-2xl flex flex-col">
           <div className="flex items-center justify-between mb-4 sm:mb-6">
             <div className="flex items-center gap-2">
@@ -455,7 +345,7 @@ export const SiteCentricMidnightDashboard: React.FC<Props> = ({ onNavigateTab })
 
           <div className="space-y-3 flex-1 flex flex-col justify-center">
             <button 
-              onClick={() => onNavigateTab('road-trip-calculator')}
+              onClick={() => onNavigateTab('yield_calculator')}
               className="w-full p-3 sm:p-4 rounded-2xl bg-[#080C14] border border-[#1E293B] hover:border-cyan-500/50 hover:bg-[#121c33]/50 transition-all text-left group flex items-center justify-between cursor-pointer"
             >
               <div>
@@ -470,15 +360,15 @@ export const SiteCentricMidnightDashboard: React.FC<Props> = ({ onNavigateTab })
             </button>
 
             <button 
-              onClick={() => onNavigateTab('categories')}
+              onClick={() => onNavigateTab('reports')}
               className="w-full p-3 sm:p-4 rounded-2xl bg-[#080C14] border border-[#1E293B] hover:border-blue-500/50 hover:bg-[#121c33]/50 transition-all text-left group flex items-center justify-between cursor-pointer"
             >
               <div>
                 <div className="text-xs font-bold text-white mb-1 group-hover:text-blue-400 transition-colors">
-                  Material Rates & Master Spec
+                  Daily Progress Report (DPR)
                 </div>
                 <div className="text-[10px] text-slate-500">
-                  Manage schedule of rates and category specs
+                  Auto-generate aggregate consumption summary
                 </div>
               </div>
               <ArrowRight className="w-4 h-4 text-slate-600 group-hover:text-blue-400 transition-transform group-hover:translate-x-1 shrink-0" />
