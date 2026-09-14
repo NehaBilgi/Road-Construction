@@ -8,6 +8,7 @@ import { SiteSelectionPage } from './components/auth/SiteSelectionPage';
 import { SiteCentricMidnightDashboard } from './components/dashboard/SiteCentricMidnightDashboard';
 import { RoadSitesManagerModule } from './components/sites/RoadSitesManagerModule';
 import { MaterialHaulageTripsModule } from './components/trips/MaterialHaulageTripsModule';
+import { VendorAdvancesModule } from './components/VendorAdvancesModule';
 import { DieselFuelManagementModule } from './components/diesel/DieselFuelManagementModule';
 import { SiteCostExpensesModule } from './components/costing/SiteCostExpensesModule';
 import { RoadYieldCalculatorModule } from './components/calculator/RoadYieldCalculatorModule';
@@ -21,7 +22,7 @@ import {
   LayoutDashboard, Truck, Fuel, DollarSign, Calculator, HardHat,
   LogOut, Milestone, Users, Package, ArrowLeftRight, FileText,
   Bell, ShoppingCart, Cpu, CalendarCheck, Tag, Archive, Building2,
-  X, Plus, Edit2, Trash2, Menu, ChevronDown, Check, AlertTriangle
+  X, Plus, Edit2, Trash2, Menu, ChevronDown, Check, AlertTriangle, CreditCard
 } from 'lucide-react';
 
 // ==========================================
@@ -181,6 +182,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { id: 'dashboard', label: 'Site Overview', icon: LayoutDashboard },
     { id: 'road-sites', label: 'Ongoing Site', icon: Milestone, badge: 'Sites', badgeStyle: 'bg-blue-900/40 text-blue-300 border border-blue-500/40' },
     { id: 'haulage-trips', label: 'Trips', icon: Truck, badge: 'Trips', badgeStyle: 'bg-[#064E3B] text-[#34D399] border border-[#065F46]' },
+    { id: 'vendor-advances', label: 'Vendor Advance', icon: CreditCard, badge: 'Advance', badgeStyle: 'bg-amber-950/80 text-amber-400 border border-amber-800/60' },
     { id: 'diesel', label: 'Diesel', icon: Fuel, badge: 'Diesel', badgeStyle: 'bg-amber-950/60 text-amber-300 border border-amber-800' },
     { id: 'site-expenses', label: 'Site Expense', icon: DollarSign, badge: 'Petty Cash', badgeStyle: 'bg-[#162032] text-blue-400 border border-[#1E293B]' }
   ];
@@ -681,6 +683,7 @@ export const AppContent: React.FC = () => {
             {projectType === 'ROAD' && (
               <>
                 {activeTab === 'haulage-trips' && <MaterialHaulageTripsModule />}
+                {activeTab === 'vendor-advances' && <VendorAdvancesModule />}
                 {activeTab === 'diesel' && <DieselFuelManagementModule />}
                 {activeTab === 'site-expenses' && <SiteCostExpensesModule />}
                 {(activeTab === 'yield_calculator' || activeTab === 'road-yield') && <RoadYieldCalculatorModule />}
