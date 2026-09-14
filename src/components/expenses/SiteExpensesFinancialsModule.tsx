@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useRoadERP } from '../../context/RoadERPContext';
 import { useERP } from '../../context/ERPContext';
 import { SiteExpenseCategory, SiteExpenseVoucher, ExpensePaymentMode } from '../../types/roadERP';
@@ -35,21 +35,57 @@ const CATEGORY_META: Record<SiteExpenseCategory, { label: string; icon: string }
   OTHER_CIVIL_EXPENSES: { label: 'Other Miscellaneous Civil Expenses', icon: '📦' }
 };
 
+const EXPENSE_STORAGE_KEY = 'CONSTRUCTION_PRO_SITE_EXPENSES_V1';
+
 export const SiteExpensesFinancialsModule: React.FC = () => {
   const {
-    expenses,
+    expenses = [],
     addExpenseVoucher,
     updateExpenseStatus,
     deleteExpenseVoucher,
-    pettyCashWallets,
+    pettyCashWallets = [],
     refillPettyCash,
-    kpis,
+    kpis = { totalSiteExpensesINR: 0, averageCostPerKmINR: 0, totalFuelCostINR: 0 },
     project
   } = useRoadERP();
 
-  const { currentUser, userRole } = useERP();
+  const { currentUser, userRole, siteSheets = [], selectedSiteId } = useERP();
 
-  // Strict Admin Check: Only Admin can delete expense vouchers
+  // Active site fallback
+  const activeSite = useMemo(() => {
+    return (
+      siteSheets.find((s: any) => s.siteId === selectedSiteId) ||
+      siteSheets[0] || {
+        siteId: 'default-001',
+        siteName: 'SINDAGI'
+      }
+    );
+  }, [siteSheets, selectedSiteId]);
+
+  // Sync dashboard localStorage whenever expenses change
+  useEffect(() => {
+    try {
+      const formattedForDashboard = (expenses || []).map((e) => ({
+        id: e.id,
+        voucherNumber: e.voucherNumber,
+        siteName: e.costCenterChainage?.includes('SINDAGI')
+          ? 'SINDAGI'
+          : activeSite.siteName || 'SINDAGI',
+        amount: Number(e.amount) || 0,
+        category: e.category,
+        date: e.date,
+        description: e.description,
+        status: e.status
+      }));
+
+      localStorage.setItem(EXPENSE_STORAGE_KEY, JSON.stringify(formattedForDashboard));
+      window.dispatchEvent(new Event('storage'));
+    } catch (err) {
+      console.error('Error syncing expenses to dashboard storage', err);
+    }
+  }, [expenses, activeSite.siteName]);
+
+  // Strict Admin Check
   const currentRoleStr = String(currentUser?.role || userRole || '').toLowerCase();
   const isAdmin = currentRoleStr.includes('admin');
 
@@ -74,43 +110,52 @@ export const SiteExpensesFinancialsModule: React.FC = () => {
 
   // Filtered expenses
   const filteredExpenses = useMemo(() => {
-    return expenses.filter((e) => {
+    return (expenses || []).filter((e) => {
       const matchCat = categoryFilter === 'ALL' || e.category === categoryFilter;
       const matchStatus = statusFilter === 'ALL' || e.status === statusFilter;
       const q = searchTerm.toLowerCase();
       const matchSearch =
         !searchTerm ||
-        e.voucherNumber.toLowerCase().includes(q) ||
-        e.payeeVendorName.toLowerCase().includes(q) ||
-        e.description.toLowerCase().includes(q) ||
-        e.costCenterChainage.toLowerCase().includes(q);
+        (e?.voucherNumber || '').toLowerCase().includes(q) ||
+        (e?.payeeVendorName || '').toLowerCase().includes(q) ||
+        (e?.description || '').toLowerCase().includes(q) ||
+        (e?.costCenterChainage || '').toLowerCase().includes(q);
       return matchCat && matchStatus && matchSearch;
     });
   }, [expenses, categoryFilter, statusFilter, searchTerm]);
 
-  // Primary Wallet
+  // Primary Wallet with Safe Defaults
   const primaryWallet = pettyCashWallets[0] || {
-    walletSupervisorName: 'Ibrahim (Site Engineer)',
-    totalAllocatedBudget: 100000,
-    spentAmount: 38500,
-    remainingBalance: 61500
+    id: 'default-wallet-01',
+    walletSupervisorName: 'Site Supervisor',
+    totalAllocatedBudget: 0,
+    spentAmount: 0,
+    remainingBalance: 0
   };
+
+  // Safe Metric Calculation Fallbacks
+  const safeTotalSiteExpenses = Number(kpis?.totalSiteExpensesINR ?? 0) || 0;
+  const safeTotalFuelCost = Number(kpis?.totalFuelCostINR ?? 0) || 0;
+  const safeAvgCostPerKm = Number(kpis?.averageCostPerKmINR ?? 0) || 0;
+  const safePettyCashRemaining = Number(primaryWallet?.remainingBalance ?? 0) || 0;
+  const safePettyCashAllocated = Number(primaryWallet?.totalAllocatedBudget ?? 0) || 0;
 
   // Submit Voucher
   const handleCreateVoucher = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formPayee || !formAmount) return;
+    const parsedAmount = Number(formAmount);
+    if (!formPayee.trim() || isNaN(parsedAmount) || parsedAmount <= 0) return;
 
     addExpenseVoucher({
       date: formDate,
       category: formCategory,
-      costCenterChainage: formChainage,
-      amount: Number(formAmount),
+      costCenterChainage: formChainage.trim() || activeSite.siteName,
+      amount: parsedAmount,
       paymentMode: formMode,
       payeeVendorName: formPayee.trim(),
       description: formDesc.trim() || 'Site operational disbursement',
       invoiceReceiptNumber: formRefNo.trim() || undefined,
-      requestedBy: currentUser?.name || 'Ibrahim (Site Supervisor)',
+      requestedBy: currentUser?.name || 'Site Supervisor',
       status: 'SUBMITTED'
     });
 
@@ -124,7 +169,7 @@ export const SiteExpensesFinancialsModule: React.FC = () => {
   const handleRefillSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (primaryWallet.id) {
-      refillPettyCash(primaryWallet.id, refillAmount);
+      refillPettyCash(primaryWallet.id, Number(refillAmount) || 0);
     }
     setIsRefillOpen(false);
   };
@@ -160,7 +205,7 @@ export const SiteExpensesFinancialsModule: React.FC = () => {
       `"${CATEGORY_META[e.category]?.label || e.category}"`,
       `"${e.payeeVendorName}"`,
       `"${e.costCenterChainage}"`,
-      e.amount,
+      Number(e.amount) || 0,
       e.paymentMode,
       e.status,
       `"${e.requestedBy}"`,
@@ -221,13 +266,13 @@ export const SiteExpensesFinancialsModule: React.FC = () => {
           </div>
         </div>
 
-        {/* 4-Stat Financial Metrics Grid */}
+        {/* 4-Stat Financial Metrics Grid with Safe 0 Fallbacks */}
         <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mt-6 pt-5 border-t border-[#182643]">
           {/* 1. Total Site Expenses */}
           <div className="p-3.5 bg-[#070c18] rounded-2xl border border-[#182643]">
             <div className="text-[11px] font-semibold text-slate-400">Total Direct Expenses</div>
             <div className="text-2xl font-black text-emerald-400 font-mono mt-1">
-              ₹{kpis.totalSiteExpensesINR.toLocaleString('en-IN')}
+              ₹{safeTotalSiteExpenses.toLocaleString('en-IN')}
             </div>
           </div>
 
@@ -238,16 +283,16 @@ export const SiteExpensesFinancialsModule: React.FC = () => {
               {isAdmin && (
                 <button
                   onClick={() => setIsRefillOpen(true)}
-                  className="text-[10px] text-amber-400 hover:underline font-bold"
+                  className="text-[10px] text-amber-400 hover:underline font-bold cursor-pointer"
                 >
                   + Refill
                 </button>
               )}
             </div>
             <div className="text-2xl font-black text-white font-mono mt-1">
-              ₹{primaryWallet.remainingBalance.toLocaleString('en-IN')}{' '}
+              ₹{safePettyCashRemaining.toLocaleString('en-IN')}{' '}
               <span className="text-xs font-sans text-slate-500">
-                / {primaryWallet.totalAllocatedBudget.toLocaleString('en-IN')}
+                / {safePettyCashAllocated.toLocaleString('en-IN')}
               </span>
             </div>
           </div>
@@ -256,7 +301,7 @@ export const SiteExpensesFinancialsModule: React.FC = () => {
           <div className="p-3.5 bg-[#070c18] rounded-2xl border border-[#182643]">
             <div className="text-[11px] font-semibold text-slate-400">Avg Cost / Km (Active Paving)</div>
             <div className="text-2xl font-black text-cyan-300 font-mono mt-1">
-              ₹{kpis.averageCostPerKmINR.toLocaleString('en-IN')} <span className="text-xs font-sans text-slate-500">/ km</span>
+              ₹{safeAvgCostPerKm.toLocaleString('en-IN')} <span className="text-xs font-sans text-slate-500">/ km</span>
             </div>
           </div>
 
@@ -264,7 +309,7 @@ export const SiteExpensesFinancialsModule: React.FC = () => {
           <div className="p-3.5 bg-[#070c18] rounded-2xl border border-[#182643]">
             <div className="text-[11px] font-semibold text-slate-400">Combined Project Cash Outflow</div>
             <div className="text-2xl font-black text-amber-400 font-mono mt-1">
-              ₹{(kpis.totalSiteExpensesINR + kpis.totalFuelCostINR).toLocaleString('en-IN')}
+              ₹{(safeTotalSiteExpenses + safeTotalFuelCost).toLocaleString('en-IN')}
             </div>
           </div>
         </div>
@@ -345,6 +390,7 @@ export const SiteExpensesFinancialsModule: React.FC = () => {
                 filteredExpenses.map((voucher) => {
                   const isApproved = voucher.status === 'APPROVED' || voucher.status === 'PAID';
                   const isRejected = voucher.status === 'REJECTED';
+                  const amountNum = Number(voucher?.amount) || 0;
 
                   return (
                     <tr key={voucher.id} className="hover:bg-[#0f1c38] transition-colors">
@@ -387,13 +433,13 @@ export const SiteExpensesFinancialsModule: React.FC = () => {
 
                       {/* Amount */}
                       <td className="py-3 px-3 text-right font-mono font-black text-white text-sm">
-                        ₹{voucher.amount.toLocaleString('en-IN')}
+                        ₹{amountNum.toLocaleString('en-IN')}
                       </td>
 
                       {/* Payment Mode */}
                       <td className="py-3 px-3 text-center">
                         <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-slate-800 text-cyan-300 border border-slate-700">
-                          {voucher.paymentMode.replace(/_/g, ' ')}
+                          {(voucher.paymentMode || 'PETTY_CASH').replace(/_/g, ' ')}
                         </span>
                       </td>
 
@@ -441,7 +487,7 @@ export const SiteExpensesFinancialsModule: React.FC = () => {
                         <td className="py-3 px-3 text-center">
                           <button
                             onClick={() => handleDelete(voucher.id)}
-                            className="p-1 rounded text-slate-500 hover:text-rose-400 hover:bg-rose-950/40 transition-colors"
+                            className="p-1 rounded text-slate-500 hover:text-rose-400 hover:bg-rose-950/40 transition-colors cursor-pointer"
                             title="Delete Voucher (Admin Only)"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
@@ -468,7 +514,7 @@ export const SiteExpensesFinancialsModule: React.FC = () => {
               </h3>
               <button
                 onClick={() => setIsRefillOpen(false)}
-                className="text-slate-400 hover:text-white"
+                className="text-slate-400 hover:text-white cursor-pointer"
               >
                 ✕
               </button>
@@ -482,7 +528,7 @@ export const SiteExpensesFinancialsModule: React.FC = () => {
                 <div className="p-3 bg-[#070c18] rounded-xl border border-[#182643] text-slate-200">
                   <div className="font-bold">{primaryWallet.walletSupervisorName}</div>
                   <div className="text-[11px] text-slate-400">
-                    Current Balance: ₹{primaryWallet.remainingBalance.toLocaleString('en-IN')}
+                    Current Balance: ₹{safePettyCashRemaining.toLocaleString('en-IN')}
                   </div>
                 </div>
               </div>
@@ -505,13 +551,13 @@ export const SiteExpensesFinancialsModule: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setIsRefillOpen(false)}
-                  className="px-4 py-2 rounded-xl text-slate-400 hover:text-white"
+                  className="px-4 py-2 rounded-xl text-slate-400 hover:text-white cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 rounded-xl bg-emerald-500 text-slate-950 font-bold"
+                  className="px-5 py-2 rounded-xl bg-emerald-500 text-slate-950 font-bold cursor-pointer"
                 >
                   Confirm Refill
                 </button>
@@ -532,7 +578,7 @@ export const SiteExpensesFinancialsModule: React.FC = () => {
               </h3>
               <button
                 onClick={() => setIsAddModalOpen(false)}
-                className="text-slate-400 hover:text-white"
+                className="text-slate-400 hover:text-white cursor-pointer"
               >
                 ✕
               </button>
@@ -593,6 +639,7 @@ export const SiteExpensesFinancialsModule: React.FC = () => {
                   <input
                     type="number"
                     step="1"
+                    min="1"
                     required
                     placeholder="e.g. 4500"
                     value={formAmount}
@@ -671,13 +718,13 @@ export const SiteExpensesFinancialsModule: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setIsAddModalOpen(false)}
-                  className="px-4 py-2 rounded-xl text-slate-400 hover:text-white"
+                  className="px-4 py-2 rounded-xl text-slate-400 hover:text-white cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 text-slate-950 font-bold shadow-lg shadow-emerald-500/20"
+                  className="px-5 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 text-slate-950 font-bold shadow-lg shadow-emerald-500/20 cursor-pointer"
                 >
                   Submit Expense Voucher
                 </button>
