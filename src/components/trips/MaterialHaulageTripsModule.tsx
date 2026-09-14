@@ -320,20 +320,23 @@ export const MaterialHaulageTripsModule: React.FC = () => {
 
   return (
     <div className="space-y-4 sm:space-y-6 font-sans text-slate-100">
+      
+      {/* Elegant Clean A4 Print Stylesheet */}
       <style>{`
         @media print {
           @page {
             size: A4 portrait;
-            margin: 8mm;
+            margin: 12mm 14mm 14mm 14mm;
           }
           * {
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
             box-shadow: none !important;
+            text-shadow: none !important;
           }
           body {
             background: #ffffff !important;
-            color: #000000 !important;
+            color: #0f172a !important;
             margin: 0 !important;
             padding: 0 !important;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
@@ -349,54 +352,134 @@ export const MaterialHaulageTripsModule: React.FC = () => {
             left: 0 !important;
             top: 0 !important;
             width: 100% !important;
-            max-width: 100% !important;
             background: #ffffff !important;
-            color: #000000 !important;
-            border: 1.5px solid #000000 !important;
-            border-radius: 0px !important;
+            color: #0f172a !important;
+            border: none !important;
+            border-radius: 0 !important;
             padding: 0 !important;
             margin: 0 !important;
-            overflow: visible !important;
+            box-shadow: none !important;
           }
           .no-print {
             display: none !important;
           }
-          .print-header-box {
+          
+          /* Elegant Header */
+          .print-header-container {
             display: block !important;
-            padding: 12px 14px !important;
-            border-bottom: 1.5px solid #000000 !important;
-            background: #ffffff !important;
+            margin-bottom: 18px !important;
+            padding-bottom: 12px !important;
+            border-bottom: 2px solid #0f172a !important;
           }
+          .print-vendor-title {
+            font-size: 18pt !important;
+            font-weight: 900 !important;
+            letter-spacing: -0.02em !important;
+            color: #0f172a !important;
+            text-transform: uppercase !important;
+            margin: 0 0 2px 0 !important;
+          }
+          .print-doc-subtitle {
+            font-size: 8.5pt !important;
+            font-weight: 700 !important;
+            letter-spacing: 0.08em !important;
+            color: #475569 !important;
+            text-transform: uppercase !important;
+            margin: 0 !important;
+          }
+          .print-meta-grid {
+            display: flex !important;
+            justify-content: space-between !important;
+            align-items: flex-end !important;
+            margin-top: 10px !important;
+            font-size: 8.5pt !important;
+            color: #334155 !important;
+          }
+
+          /* Clean Border Table */
           .print-table {
             width: 100% !important;
             border-collapse: collapse !important;
             table-layout: fixed !important;
             font-size: 8.5pt !important;
-          }
-          .print-table th, 
-          .print-table td {
-            border: 1px solid #000000 !important;
-            padding: 6px 7px !important;
-            color: #000000 !important;
-            background: transparent !important;
-            line-height: 1.25 !important;
-            border-radius: 0 !important;
+            border-top: 1px solid #cbd5e1 !important;
+            border-bottom: 1px solid #cbd5e1 !important;
           }
           .print-table th {
+            background-color: #f8fafc !important;
+            color: #334155 !important;
             font-weight: 800 !important;
+            font-size: 7.5pt !important;
             text-transform: uppercase !important;
-            background: #f1f3f5 !important;
-            letter-spacing: 0.2px !important;
+            letter-spacing: 0.05em !important;
+            padding: 7px 8px !important;
+            border-bottom: 1.5px solid #0f172a !important;
+            border-top: 1px solid #cbd5e1 !important;
+            border-left: none !important;
+            border-right: none !important;
           }
-          .print-table tfoot td {
-            background: #ffffff !important;
+          .print-table td {
+            padding: 6.5px 8px !important;
+            color: #1e293b !important;
+            border-bottom: 1px solid #e2e8f0 !important;
+            border-left: none !important;
+            border-right: none !important;
+            line-height: 1.3 !important;
+          }
+          .print-table tbody tr:last-child td {
+            border-bottom: 1.5px solid #0f172a !important;
+          }
+
+          /* Financial Summary Footer */
+          .print-table tfoot tr td {
+            padding: 6px 8px !important;
+            border-left: none !important;
+            border-right: none !important;
+          }
+          .print-summary-row td {
+            background-color: #ffffff !important;
             font-weight: 700 !important;
+            border-bottom: 1px solid #e2e8f0 !important;
           }
-          .print-balance-row td {
-            border-top: 1.5px solid #000000 !important;
-            background: #f8fafc !important;
+          .print-advance-row td {
+            background-color: #fff1f2 !important;
+            color: #9f1239 !important;
+            font-weight: 700 !important;
+            border-bottom: 1.5px solid #0f172a !important;
+          }
+          .print-final-balance td {
+            background-color: #f0fdf4 !important;
+            color: #14532d !important;
             font-size: 9.5pt !important;
             font-weight: 900 !important;
+            padding: 9px 8px !important;
+            border-bottom: 2px solid #0f172a !important;
+          }
+          .print-final-payable td {
+            background-color: #fffbeb !important;
+            color: #78350f !important;
+            font-size: 9.5pt !important;
+            font-weight: 900 !important;
+            padding: 9px 8px !important;
+            border-bottom: 2px solid #0f172a !important;
+          }
+
+          /* Elegant Signature Block */
+          .print-sign-block {
+            display: flex !important;
+            justify-content: space-between !important;
+            margin-top: 36px !important;
+            padding-top: 8px !important;
+          }
+          .print-sign-line {
+            width: 140px !important;
+            border-top: 1px dashed #64748b !important;
+            text-align: center !important;
+            font-size: 7.5pt !important;
+            font-weight: 700 !important;
+            text-transform: uppercase !important;
+            color: #475569 !important;
+            padding-top: 4px !important;
           }
         }
       `}</style>
@@ -474,7 +557,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
         </div>
       </div>
 
-      {/* Search */}
+      {/* Search Bar */}
       <div className="p-3 rounded-2xl bg-[#0c1427] border border-[#182643] flex items-center gap-3 text-xs no-print">
         <div className="relative flex-1">
           <Search className="absolute left-3.5 top-2.5 w-4 h-4 text-slate-500" />
@@ -492,15 +575,22 @@ export const MaterialHaulageTripsModule: React.FC = () => {
       <div id="print-area" className="bg-[#0B1220] border border-[#1E293B] rounded-2xl overflow-hidden shadow-2xl">
         
         {/* Printable Header */}
-        <div className="hidden print-header-box">
-          <h1 className="text-[15pt] font-black uppercase tracking-tight text-black leading-tight">
-            {activeVendorName}
-          </h1>
-          <p className="text-[9pt] font-extrabold uppercase tracking-wide text-black mt-0.5">
-            MATERIAL PURCHASED
-          </p>
-          <div className="text-[8.5pt] font-semibold text-black mt-1">
-            <span><strong>Site:</strong> {activeSiteName}</span>
+        <div className="hidden print-header-container">
+          <div className="flex justify-between items-start">
+            <div>
+              <h1 className="print-vendor-title">{activeVendorName}</h1>
+              <p className="print-doc-subtitle">Material Purchase & Haulage Statement</p>
+            </div>
+            <div className="text-right">
+              <span className="text-[8pt] font-mono font-bold px-2 py-0.5 bg-slate-100 border border-slate-300 rounded text-slate-700">
+                PaveTrack ERP
+              </span>
+            </div>
+          </div>
+          
+          <div className="print-meta-grid">
+            <div><strong>Project Site:</strong> {activeSiteName}</div>
+            <div><strong>Statement Date:</strong> {new Date().toLocaleDateString('en-IN')}</div>
           </div>
         </div>
 
@@ -556,13 +646,13 @@ export const MaterialHaulageTripsModule: React.FC = () => {
               )}
             </tbody>
 
-            {/* Square Clean Table Footer */}
+            {/* Clean Structured Financial Statement Footer */}
             {filtered.length > 0 && (
               <tfoot className="border-t-2 border-[#1E293B] bg-[#070c18] font-mono">
                 {/* 1. Gross Material Purchase */}
-                <tr className="border-b border-[#1E293B]/60">
+                <tr className="print-summary-row border-b border-[#1E293B]/60">
                   <td colSpan={5} className="py-2 px-3 font-bold uppercase text-slate-300 text-right">
-                    TOTAL MATERIAL PURCHASED:
+                    Total Material Purchased:
                   </td>
                   <td className="py-2 px-2 text-center font-bold text-cyan-400 whitespace-nowrap">{overallTotals.trips} Trips</td>
                   <td className="py-2 px-2 text-right font-bold text-white whitespace-nowrap">{overallTotals.brass} Brass</td>
@@ -572,9 +662,9 @@ export const MaterialHaulageTripsModule: React.FC = () => {
                 </tr>
 
                 {/* 2. Less Advance Payment Received */}
-                <tr className="border-b border-[#1E293B]/60 text-rose-400">
+                <tr className="print-advance-row border-b border-[#1E293B]/60 text-rose-400">
                   <td colSpan={8} className="py-2 px-3 font-bold uppercase text-right">
-                    (-) LESS: ADVANCE PAYMENT RECEIVED {advanceDatesSummary ? `(${advanceDatesSummary})` : ''}:
+                    (-) Less: Advance Payment Received {advanceDatesSummary ? `(${advanceDatesSummary})` : ''}:
                   </td>
                   <td className="py-2 px-3 text-right font-bold whitespace-nowrap">
                     - ₹{totalVendorAdvancePaid.toLocaleString('en-IN')}
@@ -582,11 +672,11 @@ export const MaterialHaulageTripsModule: React.FC = () => {
                   <td className="py-2 px-3 no-print"></td>
                 </tr>
 
-                {/* 3. Final Balance Row */}
+                {/* 3. Final Balance Highlight Row */}
                 {remainingAdvanceBalance > 0 ? (
-                  <tr className="print-balance-row bg-[#082216] text-emerald-400 font-black">
+                  <tr className="print-final-balance bg-[#082216] text-emerald-400 font-black">
                     <td colSpan={8} className="py-2.5 px-3 text-right uppercase tracking-wider text-xs">
-                      REMAINING ADVANCE BALANCE (EXCESS):
+                      Remaining Advance Balance (Excess):
                     </td>
                     <td className="py-2.5 px-3 text-right text-xs sm:text-sm font-black whitespace-nowrap">
                       ₹{remainingAdvanceBalance.toLocaleString('en-IN')}
@@ -594,9 +684,9 @@ export const MaterialHaulageTripsModule: React.FC = () => {
                     <td className="py-2.5 px-3 no-print"></td>
                   </tr>
                 ) : (
-                  <tr className="print-balance-row bg-[#1e1906] text-amber-400 font-black">
+                  <tr className="print-final-payable bg-[#1e1906] text-amber-400 font-black">
                     <td colSpan={8} className="py-2.5 px-3 text-right uppercase tracking-wider text-xs">
-                      (=) NET PAYABLE AMOUNT:
+                      (=) Net Payable Amount:
                     </td>
                     <td className="py-2.5 px-3 text-right text-xs sm:text-sm font-black whitespace-nowrap">
                       ₹{netPayableAmount.toLocaleString('en-IN')}
@@ -607,6 +697,13 @@ export const MaterialHaulageTripsModule: React.FC = () => {
               </tfoot>
             )}
           </table>
+        </div>
+
+        {/* Elegant Sign-off Footer on Print Page */}
+        <div className="hidden print-sign-block">
+          <div className="print-sign-line">Supplier Signature</div>
+          <div className="print-sign-line">Site Incharge / Engineer</div>
+          <div className="print-sign-line">Authorized Signatory</div>
         </div>
       </div>
 
@@ -686,7 +783,6 @@ export const MaterialHaulageTripsModule: React.FC = () => {
                   </button>
                 </div>
 
-                {/* Dropdown Options with Trash / Delete Button */}
                 {isVendorDropdownOpen && (
                   <div className="absolute left-0 right-0 mt-1 bg-[#0F172A] border border-[#1E293B] rounded-xl shadow-2xl z-50 max-h-48 overflow-y-auto divide-y divide-[#1E293B]">
                     {savedVendors
