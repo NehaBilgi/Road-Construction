@@ -3,12 +3,13 @@ import { useERP } from '../../context/ERPContext';
 import { HardHat, Lock, User, AlertCircle, ArrowRight, Eye, EyeOff } from 'lucide-react';
 import { ThemeToggle } from '../ThemeToggle';
 
+// Storage key synced with User Management module
 const STORAGE_USERS_KEY = 'PAVETRACK_AUTHORIZED_PERSONNEL_V2';
 
 export const LoginPage: React.FC = () => {
   const erpContext = useERP() as any;
-  const [username, setUsername] = useState('admin');
-  const [password, setPassword] = useState('123');
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -21,68 +22,65 @@ export const LoginPage: React.FC = () => {
     const cleanUser = username.trim().toLowerCase();
     const cleanPass = password.trim();
 
-    // 1. Master Admin Bypass: allow "admin" with "123" or "Password@123"
-    if (cleanUser === 'admin' && (cleanPass === '123' || cleanPass === 'Password@123' || cleanPass === 'admin')) {
-      const adminUser = {
-        id: 'usr-1',
-        fullName: 'Habibulla Bilgi',
-        name: 'Habibulla Bilgi',
-        username: 'admin',
-        role: 'SUPER_ADMIN',
-        department: 'Operations',
-        status: 'Active'
-      };
-
-      if (typeof erpContext.setCurrentUser === 'function') {
-        erpContext.setCurrentUser(adminUser);
-      }
-      if (typeof erpContext.login === 'function') {
-        erpContext.login('admin', cleanPass);
-      }
+    if (!cleanUser || !cleanPass) {
+      setErrorMessage('Please enter both username and password.');
       setIsLoading(false);
       return;
     }
 
-    // 2. Dynamic check from User Management local storage
-    let customUsers: any[] = [];
+    // 1. Fetch live system users registered in User Management
+    let systemUsers: any[] = [];
     try {
-      const saved = localStorage.getItem(STORAGE_USERS_KEY);
-      if (saved) customUsers = JSON.parse(saved);
+      if (typeof window !== 'undefined') {
+        const saved = localStorage.getItem(STORAGE_USERS_KEY);
+        if (saved) {
+          systemUsers = JSON.parse(saved);
+        }
+      }
     } catch {
-      customUsers = [];
+      systemUsers = [];
     }
 
-    const matched = customUsers.find(
-      (u: any) =>
-        (u.username && u.username.toLowerCase() === cleanUser) ||
-        (u.email && u.email.toLowerCase() === cleanUser)
+    // 2. Find user by exact username
+    const matchedUser = systemUsers.find(
+      (u: any) => u.username && u.username.toLowerCase() === cleanUser
     );
 
-    if (matched) {
-      if (matched.password === cleanPass || cleanPass === '123') {
-        if (typeof erpContext.setCurrentUser === 'function') {
-          erpContext.setCurrentUser(matched);
+    if (!matchedUser) {
+      // Check native ERP context login if applicable
+      if (typeof erpContext.login === 'function') {
+        const res = erpContext.login(username, password);
+        if (!res || !res.success) {
+          setErrorMessage(res?.message || 'Invalid username or password.');
+          setIsLoading(false);
+          return;
         }
-        if (typeof erpContext.login === 'function') {
-          erpContext.login(matched.username, matched.password);
-        }
+      } else {
+        setErrorMessage('User account not found.');
         setIsLoading(false);
         return;
-      } else {
+      }
+    } else {
+      // Check account status
+      if (matchedUser.status === 'Inactive') {
+        setErrorMessage('This user account is inactive. Please contact an administrator.');
+        setIsLoading(false);
+        return;
+      }
+
+      // Check exact password match
+      if (matchedUser.password !== cleanPass) {
         setErrorMessage('Incorrect password. Please try again.');
         setIsLoading(false);
         return;
       }
-    }
 
-    // 3. Fallback to ERP context login method
-    if (typeof erpContext.login === 'function') {
-      const res = erpContext.login(username, password);
-      if (res && !res.success) {
-        setErrorMessage(res.message || 'Incorrect username or password.');
+      // Set user session in context
+      if (typeof erpContext.setCurrentUser === 'function') {
+        erpContext.setCurrentUser(matchedUser);
+      } else if (typeof erpContext.login === 'function') {
+        erpContext.login(matchedUser.username, matchedUser.password);
       }
-    } else {
-      setErrorMessage('Incorrect username or password.');
     }
 
     setIsLoading(false);
@@ -125,7 +123,7 @@ export const LoginPage: React.FC = () => {
               <input
                 type="text"
                 required
-                placeholder="admin"
+                placeholder="Enter your username"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 className="w-full pl-10 pr-4 py-2.5 bg-[#162032] border border-[#1E293B] rounded-xl text-white outline-none focus:border-blue-500 font-medium placeholder-slate-500 font-mono"
@@ -142,7 +140,7 @@ export const LoginPage: React.FC = () => {
               <input
                 type={showPassword ? 'text' : 'password'}
                 required
-                placeholder="123"
+                placeholder="Enter your password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="w-full pl-10 pr-10 py-2.5 bg-[#162032] border border-[#1E293B] rounded-xl text-white outline-none focus:border-blue-500 font-mono placeholder-slate-500"
@@ -151,6 +149,7 @@ export const LoginPage: React.FC = () => {
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
                 className="absolute right-3 text-slate-500 hover:text-slate-300 cursor-pointer"
+                title={showPassword ? 'Hide password' : 'Show password'}
               >
                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
@@ -169,7 +168,7 @@ export const LoginPage: React.FC = () => {
 
         {/* Role Permissions Hint */}
         <div className="pt-4 border-t border-[#1E293B] text-[11px] text-slate-500 text-center leading-relaxed">
-          Default Master Login: <span className="text-slate-300 font-mono">admin</span> / <span className="text-slate-300 font-mono">123</span>
+          Role-Based Access Control (SUPER_ADMIN • STORE_MANAGER • SITE_SUPERVISOR • SITE_ENGINEER • AUDITOR)
         </div>
       </div>
     </div>
