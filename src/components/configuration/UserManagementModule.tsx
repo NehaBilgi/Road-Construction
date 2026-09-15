@@ -1,141 +1,333 @@
-import React, { useState } from 'react';
-import { Users, Shield, Plus, CheckCircle2, UserCheck, Key } from 'lucide-react';
-import { useERP } from '../../context/ERPContext';
+import React, { useState, useEffect } from 'react';
+import {
+  Users,
+  Plus,
+  Edit2,
+  Trash2,
+  CheckCircle2,
+  X,
+  UserCheck
+} from 'lucide-react';
 
-export const UserManagementModule: React.FC = () => {
-  const { currentUser } = useERP();
+export type UserRole =
+  | 'SUPER_ADMIN'
+  | 'STORE_MANAGER'
+  | 'SITE_SUPERVISOR'
+  | 'SITE_ENGINEER'
+  | 'AUDITOR';
 
-  const [systemUsers, setSystemUsers] = useState([
-    { id: '1', name: 'Habibulla Bilgi', email: 'habibullabilgiabu@gmail.com', role: 'SUPER_ADMIN', department: 'Executive Management', status: 'Active' },
-    { id: '2', name: 'Admin User', email: 'admin@bilgicrushers.com', role: 'SUPER_ADMIN', department: 'Terminal Admin', status: 'Active' },
-    { id: '3', name: 'Neha', email: 'neha.ops@bilgicrushers.com', role: 'STORE_MANAGER', department: 'Stores & Accounts', status: 'Active' },
-    { id: '4', name: 'Ibrahim', email: 'ibrahim@bilgicrushers.com', role: 'SITE_SUPERVISOR', department: 'Plant Shift Ops', status: 'Active' },
-    { id: '5', name: 'Er. Amit Sharma', email: 'amit.billing@bilgicrushers.com', role: 'SITE_ENGINEER', department: 'Road Civil Execution', status: 'Active' }
-  ]);
+export interface SystemUser {
+  id: string;
+  fullName: string;
+  email: string;
+  role: UserRole;
+  department: string;
+  status: 'Active' | 'Inactive';
+}
 
-  const [userName, setUserName] = useState('');
-  const [userEmail, setUserEmail] = useState('');
-  const [userRole, setUserRole] = useState('SITE_SUPERVISOR');
-  const [userDept, setUserDept] = useState('Operations');
+const STORAGE_USERS_KEY = 'PAVETRACK_AUTHORIZED_PERSONNEL_V1';
 
-  const handleAddUser = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!userName.trim()) return;
+const INITIAL_USERS: SystemUser[] = [
+  {
+    id: 'usr-1',
+    fullName: 'Habibulla Bilgi',
+    email: 'habibullabilgiabu@gmail.com',
+    role: 'SUPER_ADMIN',
+    department: 'Executive Management',
+    status: 'Active'
+  },
+  {
+    id: 'usr-2',
+    fullName: 'Admin User',
+    email: 'admin@bilgicrushers.com',
+    role: 'SUPER_ADMIN',
+    department: 'Terminal Admin',
+    status: 'Active'
+  },
+  {
+    id: 'usr-3',
+    fullName: 'Neha',
+    email: 'neha.ops@bilgicrushers.com',
+    role: 'STORE_MANAGER',
+    department: 'Stores & Accounts',
+    status: 'Active'
+  },
+  {
+    id: 'usr-4',
+    fullName: 'Ibrahim',
+    email: 'ibrahim@bilgicrushers.com',
+    role: 'SITE_SUPERVISOR',
+    department: 'Plant Shift Ops',
+    status: 'Active'
+  },
+  {
+    id: 'usr-5',
+    fullName: 'Er. Amit Sharma',
+    email: 'amit.billing@bilgicrushers.com',
+    role: 'SITE_ENGINEER',
+    department: 'Road Civil Execution',
+    status: 'Active'
+  }
+];
 
-    setSystemUsers([
-      ...systemUsers,
-      {
-        id: Date.now().toString(),
-        name: userName.trim(),
-        email: userEmail.trim() || `${userName.toLowerCase().replace(/\s+/g, '')}@bilgicrushers.com`,
-        role: userRole as any,
-        department: userDept,
-        status: 'Active'
+export const UserManagement: React.FC = () => {
+  const [users, setUsers] = useState<SystemUser[]>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_USERS_KEY);
+      return saved ? JSON.parse(saved) : INITIAL_USERS;
+    } catch {
+      return INITIAL_USERS;
+    }
+  });
+
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [fullName, setFullName] = useState('');
+  const [email, setEmail] = useState('');
+  const [role, setRole] = useState<UserRole>('SITE_SUPERVISOR');
+  const [department, setDepartment] = useState('Operations');
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_USERS_KEY, JSON.stringify(users));
+  }, [users]);
+
+  const handleEdit = (user: SystemUser) => {
+    setEditingId(user.id);
+    setFullName(user.fullName);
+    setEmail(user.email);
+    setRole(user.role);
+    setDepartment(user.department);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleCancelEdit = () => {
+    setEditingId(null);
+    setFullName('');
+    setEmail('');
+    setRole('SITE_SUPERVISOR');
+    setDepartment('Operations');
+  };
+
+  const handleDelete = (id: string, name: string) => {
+    if (window.confirm(`Are you sure you want to delete user "${name}"?`)) {
+      setUsers((prev) => prev.filter((u) => u.id !== id));
+      if (editingId === id) {
+        handleCancelEdit();
       }
-    ]);
+    }
+  };
 
-    setUserName('');
-    setUserEmail('');
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!fullName.trim() || !email.trim()) return;
+
+    if (editingId) {
+      setUsers((prev) =>
+        prev.map((u) =>
+          u.id === editingId
+            ? {
+                ...u,
+                fullName: fullName.trim(),
+                email: email.trim(),
+                role,
+                department: department.trim() || 'Operations'
+              }
+            : u
+        )
+      );
+      handleCancelEdit();
+    } else {
+      const newUser: SystemUser = {
+        id: `usr-${Date.now().toString().slice(-4)}`,
+        fullName: fullName.trim(),
+        email: email.trim(),
+        role,
+        department: department.trim() || 'Operations',
+        status: 'Active'
+      };
+      setUsers((prev) => [newUser, ...prev]);
+      setFullName('');
+      setEmail('');
+      setDepartment('Operations');
+    }
+  };
+
+  const getRoleBadgeStyle = (r: UserRole) => {
+    switch (r) {
+      case 'SUPER_ADMIN':
+        return 'bg-blue-900/40 text-blue-400 border border-blue-500/30';
+      case 'STORE_MANAGER':
+        return 'bg-indigo-900/40 text-indigo-400 border border-indigo-500/30';
+      case 'SITE_SUPERVISOR':
+        return 'bg-sky-900/40 text-sky-400 border border-sky-500/30';
+      case 'SITE_ENGINEER':
+        return 'bg-emerald-900/40 text-emerald-400 border border-emerald-500/30';
+      case 'AUDITOR':
+        return 'bg-amber-900/40 text-amber-400 border border-amber-500/30';
+      default:
+        return 'bg-slate-800 text-slate-300 border border-slate-700';
+    }
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-white tracking-tight flex items-center gap-2.5">
-            <Users className="w-6 h-6 text-blue-400" />
+    <div className="p-6 space-y-6 font-sans text-slate-100 min-h-screen bg-[#070d18]">
+      {/* Page Header */}
+      <div>
+        <div className="flex items-center gap-2.5">
+          <Users className="w-6 h-6 text-sky-400" />
+          <h1 className="text-2xl font-black text-white tracking-tight">
             User Management & Role Permissions
           </h1>
-          <p className="text-xs sm:text-sm text-slate-400 mt-1">
-            RBAC authentication matrix for plant operators, storekeepers, billing engineers, and directors.
-          </p>
         </div>
+        <p className="text-xs text-slate-400 mt-1">
+          RBAC authentication matrix for plant operators, storekeepers, billing engineers, and directors.
+        </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-1 bg-[#0c1427] border border-[#182643] rounded-2xl p-5 shadow-xl">
-          <h3 className="text-sm font-bold text-white mb-4">Create System User</h3>
-          <form onSubmit={handleAddUser} className="space-y-3">
+      {/* 2-Column Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        {/* Left Column: Form */}
+        <div className="lg:col-span-4 bg-[#0B1322] border border-[#1E293B] rounded-2xl p-5 shadow-xl">
+          <div className="flex items-center justify-between mb-5">
+            <h2 className="text-base font-bold text-white">
+              {editingId ? 'Edit System User' : 'Create System User'}
+            </h2>
+            {editingId && (
+              <button
+                type="button"
+                onClick={handleCancelEdit}
+                className="text-xs text-slate-400 hover:text-white flex items-center gap-1"
+              >
+                <X className="w-3.5 h-3.5" />
+                <span>Cancel</span>
+              </button>
+            )}
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-4 text-xs">
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">Full Name</label>
+              <label className="block text-slate-300 font-bold mb-1.5">Full Name</label>
               <input
                 type="text"
-                value={userName}
-                onChange={(e) => setUserName(e.target.value)}
-                placeholder="e.g. Ramesh Patil"
                 required
-                className="w-full bg-[#080e1e] border border-[#1c2944] focus:border-blue-500 text-slate-100 rounded-lg px-3 py-2 text-xs outline-none"
+                placeholder="e.g. Ramesh Patil"
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                className="w-full px-3.5 py-2.5 bg-[#070D18] border border-[#1E293B] rounded-xl text-white outline-none focus:border-blue-500 placeholder-slate-500"
               />
             </div>
+
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">Email / Username</label>
+              <label className="block text-slate-300 font-bold mb-1.5">Email / Username</label>
               <input
                 type="email"
-                value={userEmail}
-                onChange={(e) => setUserEmail(e.target.value)}
+                required
                 placeholder="e.g. ramesh@bilgicrushers.com"
-                className="w-full bg-[#080e1e] border border-[#1c2944] focus:border-blue-500 text-slate-100 rounded-lg px-3 py-2 text-xs outline-none"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full px-3.5 py-2.5 bg-[#070D18] border border-[#1E293B] rounded-xl text-white outline-none focus:border-blue-500 placeholder-slate-500"
               />
             </div>
+
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">Access Role</label>
+              <label className="block text-slate-300 font-bold mb-1.5">Access Role</label>
               <select
-                value={userRole}
-                onChange={(e) => setUserRole(e.target.value)}
-                className="w-full bg-[#080e1e] border border-[#1c2944] focus:border-blue-500 text-slate-100 rounded-lg px-3 py-2 text-xs outline-none"
+                value={role}
+                onChange={(e) => setRole(e.target.value as UserRole)}
+                className="w-full px-3.5 py-2.5 bg-[#070D18] border border-[#1E293B] rounded-xl text-white outline-none focus:border-blue-500 cursor-pointer"
               >
-                <option value="SUPER_ADMIN">SUPER_ADMIN (Full Control)</option>
-                <option value="OWNER">OWNER (Executive Reports)</option>
-                <option value="SITE_ENGINEER">SITE_ENGINEER (BOQ & MB Book)</option>
                 <option value="SITE_SUPERVISOR">SITE_SUPERVISOR (Attendance & Trips)</option>
-                <option value="STORE_MANAGER">STORE_MANAGER (Inventory & PO)</option>
-                <option value="ACCOUNTANT">ACCOUNTANT (Salary & Ledgers)</option>
+                <option value="SUPER_ADMIN">SUPER_ADMIN (Full Control)</option>
+                <option value="STORE_MANAGER">STORE_MANAGER (Inventory & Stock)</option>
+                <option value="SITE_ENGINEER">SITE_ENGINEER (Billing & Execution)</option>
+                <option value="AUDITOR">AUDITOR (Read Only)</option>
               </select>
             </div>
+
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">Department</label>
+              <label className="block text-slate-300 font-bold mb-1.5">Department</label>
               <input
                 type="text"
-                value={userDept}
-                onChange={(e) => setUserDept(e.target.value)}
-                placeholder="e.g. Crusher Shift A"
-                className="w-full bg-[#080e1e] border border-[#1c2944] focus:border-blue-500 text-slate-100 rounded-lg px-3 py-2 text-xs outline-none"
+                placeholder="Operations"
+                value={department}
+                onChange={(e) => setDepartment(e.target.value)}
+                className="w-full px-3.5 py-2.5 bg-[#070D18] border border-[#1E293B] rounded-xl text-white outline-none focus:border-blue-500 placeholder-slate-500"
               />
             </div>
+
             <button
               type="submit"
-              className="w-full mt-2 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-blue-600/30"
+              className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-lg shadow-blue-600/30 transition-all flex items-center justify-center gap-2 cursor-pointer mt-2"
             >
-              <Plus className="w-4 h-4" /> Add User Account
+              {editingId ? (
+                <>
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span>Update User Account</span>
+                </>
+              ) : (
+                <>
+                  <Plus className="w-4 h-4" />
+                  <span>+ Add User Account</span>
+                </>
+              )}
             </button>
           </form>
         </div>
 
-        <div className="lg:col-span-2 bg-[#0c1427] border border-[#182643] rounded-2xl p-5 shadow-xl">
-          <h3 className="text-sm font-bold text-white mb-4">Authorized Personnel ({systemUsers.length})</h3>
+        {/* Right Column: Authorized Personnel List */}
+        <div className="lg:col-span-8 bg-[#0B1322] border border-[#1E293B] rounded-2xl p-5 shadow-xl space-y-4">
+          <div className="border-b border-[#1E293B] pb-3">
+            <h2 className="text-base font-bold text-white">
+              Authorized Personnel ({users.length})
+            </h2>
+          </div>
+
           <div className="space-y-3">
-            {systemUsers.map((u) => (
-              <div key={u.id} className="p-4 rounded-xl bg-[#080e1e] border border-[#182643] flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center font-bold text-xs text-white">
-                    {u.name.charAt(0)}
+            {users.map((user) => (
+              <div
+                key={user.id}
+                className="p-4 rounded-2xl bg-[#070D18] border border-[#1E293B] hover:border-slate-700 flex items-center justify-between gap-4 transition-all"
+              >
+                {/* User Info */}
+                <div className="flex items-center gap-3.5">
+                  <div className="w-10 h-10 rounded-full bg-[#162032] border border-[#1E293B] flex items-center justify-center font-black text-white text-sm shrink-0">
+                    {user.fullName.charAt(0).toUpperCase()}
                   </div>
                   <div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-bold text-white">{u.name}</span>
-                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-500/10 text-blue-400 border border-blue-500/20">
-                        {u.role}
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-bold text-white text-sm">{user.fullName}</span>
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-extrabold uppercase ${getRoleBadgeStyle(user.role)}`}>
+                        {user.role}
                       </span>
                     </div>
-                    <div className="text-xs text-slate-400 mt-0.5">{u.email}</div>
-                    <div className="text-[11px] text-slate-500">Dept: {u.department}</div>
+                    <p className="text-xs text-slate-400 font-mono mt-0.5">{user.email}</p>
+                    <p className="text-[11px] text-slate-500 mt-0.5">Dept: {user.department}</p>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2">
-                  <span className="px-2.5 py-1 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[11px] font-semibold flex items-center gap-1">
-                    <UserCheck className="w-3.5 h-3.5" /> Active
-                  </span>
+                {/* Status & Edit/Delete Action Buttons */}
+                <div className="flex items-center gap-2 shrink-0">
+                  <div className="px-2.5 py-1 rounded-lg bg-emerald-950/40 border border-emerald-500/30 text-emerald-400 text-xs font-semibold flex items-center gap-1.5">
+                    <UserCheck className="w-3.5 h-3.5" />
+                    <span>Active</span>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => handleEdit(user)}
+                    className="p-2 rounded-xl bg-[#131d33] hover:bg-blue-600/20 text-slate-400 hover:text-blue-400 border border-[#1E293B] hover:border-blue-500/40 transition-colors cursor-pointer"
+                    title="Edit User"
+                  >
+                    <Edit2 className="w-4 h-4" />
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleDelete(user.id, user.fullName)}
+                    className="p-2 rounded-xl bg-[#131d33] hover:bg-rose-600/20 text-slate-400 hover:text-rose-400 border border-[#1E293B] hover:border-rose-500/40 transition-colors cursor-pointer"
+                    title="Delete User"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
                 </div>
               </div>
             ))}
