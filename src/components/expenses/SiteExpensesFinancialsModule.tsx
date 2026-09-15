@@ -53,11 +53,28 @@ export const SiteExpensesFinancialsModule: React.FC = () => {
 
   const { currentUser, userRole, siteSheets = [], selectedSiteId } = useERP() as any;
 
-  // Strict Admin Check
-  const currentRoleStr = String(currentUser?.role || userRole || '').toUpperCase();
-  const isAdmin = currentRoleStr === 'SUPER_ADMIN' || currentRoleStr === 'ADMIN';
+  // Strict multi-layer Admin role evaluation
+  const isAdmin = useMemo(() => {
+    const directRole = String(userRole || currentUser?.role || '').trim().toUpperCase();
+    if (directRole === 'SUPER_ADMIN' || directRole === 'ADMIN' || directRole.includes('ADMIN')) {
+      return true;
+    }
 
-  // 1. One-time clean-up of stale mock data if present
+    if (typeof window !== 'undefined') {
+      try {
+        const storedUser = localStorage.getItem('CONSTRUCTION_PRO_ERP_STORAGE_V7_USER') || localStorage.getItem('PAVETRACK_CURRENT_USER');
+        if (storedUser) {
+          const parsed = JSON.parse(storedUser);
+          const parsedRole = String(parsed?.role || '').trim().toUpperCase();
+          return parsedRole === 'SUPER_ADMIN' || parsedRole === 'ADMIN' || parsedRole.includes('ADMIN');
+        }
+      } catch {}
+    }
+
+    return false;
+  }, [userRole, currentUser]);
+
+  // Clean-up of stale mock data if present
   useEffect(() => {
     try {
       const raw = localStorage.getItem(EXPENSE_STORAGE_KEY);
@@ -111,8 +128,8 @@ export const SiteExpensesFinancialsModule: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Add / Edit Voucher Modal State
-  const [isVoucherModalOpen, setIsVoucherModalOpen] = useState(false);
+  // Voucher Form State
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingVoucherId, setEditingVoucherId] = useState<string | null>(null);
   const [formDate, setFormDate] = useState(new Date().toISOString().substring(0, 10));
   const [formCategory, setFormCategory] = useState<SiteExpenseCategory>('DAILY_SITE_OPERATIONS');
@@ -152,7 +169,7 @@ export const SiteExpensesFinancialsModule: React.FC = () => {
     remainingBalance: 0
   };
 
-  // Safe Metric Calculations
+  // Metric Calculations
   const safeTotalSiteExpenses = useMemo(() => {
     if (!expenses || expenses.length === 0) return 0;
     return expenses.reduce((sum: number, e: any) => {
@@ -176,12 +193,12 @@ export const SiteExpensesFinancialsModule: React.FC = () => {
     setFormChainage('Ch. 12+400 Base Camp');
     setFormDesc('');
     setFormRefNo('');
-    setIsVoucherModalOpen(true);
+    setIsModalOpen(true);
   };
 
   const handleEdit = (voucher: SiteExpenseVoucher) => {
     if (!isAdmin) {
-      alert('Action Restricted: Only Administrators are authorized to edit expense vouchers.');
+      alert('Access Restricted: Only Administrators are authorized to edit expense vouchers.');
       return;
     }
     setEditingVoucherId(voucher.id);
@@ -193,12 +210,12 @@ export const SiteExpensesFinancialsModule: React.FC = () => {
     setFormChainage(voucher.costCenterChainage || activeSite.siteName);
     setFormDesc(voucher.description || '');
     setFormRefNo(voucher.invoiceReceiptNumber || '');
-    setIsVoucherModalOpen(true);
+    setIsModalOpen(true);
   };
 
   const handleDelete = (voucherId: string) => {
     if (!isAdmin) {
-      alert('Action Restricted: Only Administrators are authorized to delete expense vouchers.');
+      alert('Access Restricted: Only Administrators are authorized to delete expense vouchers.');
       return;
     }
     if (window.confirm('Delete this site expense voucher permanently?')) {
@@ -206,21 +223,17 @@ export const SiteExpensesFinancialsModule: React.FC = () => {
     }
   };
 
-  // Create or Update Voucher
   const handleSaveVoucher = (e: React.FormEvent) => {
     e.preventDefault();
     if (editingVoucherId && !isAdmin) {
-      alert('Action Restricted: Only Administrators can modify existing vouchers.');
+      alert('Access Restricted: Only Administrators can modify existing vouchers.');
       return;
     }
     const parsedAmount = Number(formAmount);
     if (!formPayee.trim() || isNaN(parsedAmount) || parsedAmount <= 0) return;
 
-    if (editingVoucherId) {
-      // If updating an existing voucher, delete old and recreate or update directly
-      if (typeof deleteExpenseVoucher === 'function') {
-        deleteExpenseVoucher(editingVoucherId);
-      }
+    if (editingVoucherId && typeof deleteExpenseVoucher === 'function') {
+      deleteExpenseVoucher(editingVoucherId);
     }
 
     addExpenseVoucher({
@@ -236,18 +249,14 @@ export const SiteExpensesFinancialsModule: React.FC = () => {
       status: 'SUBMITTED'
     });
 
-    setIsVoucherModalOpen(false);
+    setIsModalOpen(false);
     setEditingVoucherId(null);
-    setFormPayee('');
-    setFormAmount('');
-    setFormDesc('');
-    setFormRefNo('');
   };
 
   const handleRefillSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!isAdmin) {
-      alert('Action Restricted: Only Administrators can refill petty cash.');
+      alert('Access Restricted: Only Administrators can refill petty cash balances.');
       return;
     }
     if (primaryWallet.id) {
@@ -256,7 +265,6 @@ export const SiteExpensesFinancialsModule: React.FC = () => {
     setIsRefillOpen(false);
   };
 
-  // Export to CSV
   const handleExportCSV = () => {
     const headers = [
       'Voucher #',
@@ -297,7 +305,7 @@ export const SiteExpensesFinancialsModule: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6 font-sans">
+    <div className="space-y-6 font-sans text-slate-100">
       {/* Top Header Card */}
       <div className="p-6 rounded-3xl bg-[#0c1427] border border-[#1b2845] shadow-xl">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
@@ -340,7 +348,6 @@ export const SiteExpensesFinancialsModule: React.FC = () => {
 
         {/* 4-Stat Financial Metrics Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mt-6 pt-5 border-t border-[#182643]">
-          {/* 1. Total Site Expenses */}
           <div className="p-3.5 bg-[#070c18] rounded-2xl border border-[#182643]">
             <div className="text-[11px] font-semibold text-slate-400">Total Direct Expenses</div>
             <div className="text-2xl font-black text-emerald-400 font-mono mt-1">
@@ -348,7 +355,6 @@ export const SiteExpensesFinancialsModule: React.FC = () => {
             </div>
           </div>
 
-          {/* 2. Petty Cash Float */}
           <div className="p-3.5 bg-[#070c18] rounded-2xl border border-[#182643] flex flex-col justify-between">
             <div className="flex items-center justify-between">
               <span className="text-[11px] font-semibold text-slate-400">Petty Cash Balance</span>
@@ -369,7 +375,6 @@ export const SiteExpensesFinancialsModule: React.FC = () => {
             </div>
           </div>
 
-          {/* 3. Cost Per Kilometer */}
           <div className="p-3.5 bg-[#070c18] rounded-2xl border border-[#182643]">
             <div className="text-[11px] font-semibold text-slate-400">Avg Cost / Km (Active Paving)</div>
             <div className="text-2xl font-black text-cyan-300 font-mono mt-1">
@@ -377,7 +382,6 @@ export const SiteExpensesFinancialsModule: React.FC = () => {
             </div>
           </div>
 
-          {/* 4. Combined Burn */}
           <div className="p-3.5 bg-[#070c18] rounded-2xl border border-[#182643]">
             <div className="text-[11px] font-semibold text-slate-400">Combined Project Cash Outflow</div>
             <div className="text-2xl font-black text-amber-400 font-mono mt-1">
@@ -390,7 +394,6 @@ export const SiteExpensesFinancialsModule: React.FC = () => {
       {/* Filter & Search Bar */}
       <div className="p-4 rounded-2xl bg-[#0c1427] border border-[#1b2845] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-2">
-          {/* Category Filter */}
           <div className="flex items-center gap-1 bg-[#070c18] border border-[#1e2d4a] px-3 py-1.5 rounded-xl text-xs">
             <Filter className="w-3.5 h-3.5 text-slate-400" />
             <select
@@ -407,7 +410,6 @@ export const SiteExpensesFinancialsModule: React.FC = () => {
             </select>
           </div>
 
-          {/* Status Filter */}
           <div className="flex items-center gap-1 bg-[#070c18] border border-[#1e2d4a] px-3 py-1.5 rounded-xl text-xs">
             <select
               value={statusFilter}
@@ -466,7 +468,6 @@ export const SiteExpensesFinancialsModule: React.FC = () => {
 
                   return (
                     <tr key={voucher.id} className="hover:bg-[#0f1c38] transition-colors">
-                      {/* Voucher # & Date */}
                       <td className="py-3 px-4 font-mono">
                         <div className="font-bold text-emerald-400">{voucher.voucherNumber}</div>
                         <div className="text-[10px] text-slate-400">{voucher.date}</div>
@@ -477,7 +478,6 @@ export const SiteExpensesFinancialsModule: React.FC = () => {
                         )}
                       </td>
 
-                      {/* Category */}
                       <td className="py-3 px-4">
                         <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-800 text-slate-300 border border-slate-700">
                           {CATEGORY_META[voucher.category as SiteExpenseCategory]?.label || voucher.category}
@@ -487,7 +487,6 @@ export const SiteExpensesFinancialsModule: React.FC = () => {
                         </div>
                       </td>
 
-                      {/* Payee */}
                       <td className="py-3 px-4">
                         <div className="font-bold text-white">{voucher.payeeVendorName}</div>
                         <div className="text-[10px] text-slate-500">
@@ -495,7 +494,6 @@ export const SiteExpensesFinancialsModule: React.FC = () => {
                         </div>
                       </td>
 
-                      {/* Cost Center */}
                       <td className="py-3 px-4 font-mono text-slate-300">
                         <div className="flex items-center gap-1">
                           <MapPin className="w-3 h-3 text-amber-400 shrink-0" />
@@ -503,19 +501,16 @@ export const SiteExpensesFinancialsModule: React.FC = () => {
                         </div>
                       </td>
 
-                      {/* Amount */}
                       <td className="py-3 px-3 text-right font-mono font-black text-white text-sm">
                         ₹{amountNum.toLocaleString('en-IN')}
                       </td>
 
-                      {/* Payment Mode */}
                       <td className="py-3 px-3 text-center">
                         <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-slate-800 text-cyan-300 border border-slate-700">
                           {(voucher.paymentMode || 'PETTY_CASH').replace(/_/g, ' ')}
                         </span>
                       </td>
 
-                      {/* Approval Status */}
                       <td className="py-3 px-3 text-center">
                         {isAdmin ? (
                           <select
@@ -574,7 +569,7 @@ export const SiteExpensesFinancialsModule: React.FC = () => {
                             </button>
                           </div>
                         ) : (
-                          <span className="text-slate-600 font-mono text-xs">—</span>
+                          <span className="text-slate-600 font-mono text-xs select-none">—</span>
                         )}
                       </td>
                     </tr>
@@ -651,7 +646,7 @@ export const SiteExpensesFinancialsModule: React.FC = () => {
       )}
 
       {/* RAISE / EDIT EXPENSE VOUCHER MODAL */}
-      {isVoucherModalOpen && (
+      {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
           <div className="bg-[#0c1427] border border-[#1b2845] rounded-3xl w-full max-w-lg p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between">
@@ -660,7 +655,7 @@ export const SiteExpensesFinancialsModule: React.FC = () => {
                 <span>{editingVoucherId ? 'Edit Site Expense Voucher' : 'Raise Site Expense Voucher'}</span>
               </h3>
               <button
-                onClick={() => { setIsVoucherModalOpen(false); setEditingVoucherId(null); }}
+                onClick={() => { setIsModalOpen(false); setEditingVoucherId(null); }}
                 className="text-slate-400 hover:text-white cursor-pointer"
               >
                 ✕
@@ -796,7 +791,7 @@ export const SiteExpensesFinancialsModule: React.FC = () => {
               <div className="flex justify-end gap-2 pt-3 border-t border-[#182643]">
                 <button
                   type="button"
-                  onClick={() => { setIsVoucherModalOpen(false); setEditingVoucherId(null); }}
+                  onClick={() => { setIsModalOpen(false); setEditingVoucherId(null); }}
                   className="px-4 py-2 rounded-xl text-slate-400 hover:text-white cursor-pointer"
                 >
                   Cancel
@@ -815,3 +810,5 @@ export const SiteExpensesFinancialsModule: React.FC = () => {
     </div>
   );
 };
+
+export default SiteExpensesFinancialsModule;
