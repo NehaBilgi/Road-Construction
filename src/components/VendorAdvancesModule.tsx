@@ -17,7 +17,12 @@ export const STORAGE_VENDOR_ADVANCES_KEY = 'CONSTRUCTION_PRO_VENDOR_ADVANCES_V1'
 const STORAGE_VENDORS_KEY = 'CONSTRUCTION_PRO_VENDOR_NAMES_V1';
 
 export const VendorAdvancesModule: React.FC = () => {
-  const { siteSheets = [], selectedSiteId } = useERP();
+  const { siteSheets = [], selectedSiteId, currentUser, userRole } = useERP() as any;
+
+  // Determine if active session has Admin privileges
+  const currentRole = String(userRole || currentUser?.role || '').toUpperCase();
+  const isAdmin = currentRole === 'SUPER_ADMIN' || currentRole === 'ADMIN';
+
   const currentActiveSite = siteSheets.find((s: any) => s.siteId === selectedSiteId);
   const activeSiteName = currentActiveSite?.siteName || siteSheets[0]?.siteName || 'MULWAD';
 
@@ -87,6 +92,10 @@ export const VendorAdvancesModule: React.FC = () => {
   };
 
   const handleEdit = (rec: VendorAdvanceRecord) => {
+    if (!isAdmin) {
+      alert('Access Denied: Only administrators have permission to edit vendor advances.');
+      return;
+    }
     setEditingId(rec.id);
     setDate(rec.date);
     setSiteName(rec.siteName);
@@ -99,6 +108,10 @@ export const VendorAdvancesModule: React.FC = () => {
   };
 
   const handleDelete = (id: string) => {
+    if (!isAdmin) {
+      alert('Access Denied: Only administrators have permission to delete vendor advances.');
+      return;
+    }
     if (window.confirm('Delete this vendor advance payment record?')) {
       setAdvances((prev) => prev.filter((a) => a.id !== id));
     }
@@ -106,6 +119,10 @@ export const VendorAdvancesModule: React.FC = () => {
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
+    if (editingId && !isAdmin) {
+      alert('Access Denied: Only administrators can update existing records.');
+      return;
+    }
     if (amount === '' || !vendorName.trim()) return;
 
     const trimmedVendor = vendorName.trim();
@@ -222,14 +239,26 @@ export const VendorAdvancesModule: React.FC = () => {
                   </td>
                   <td className="py-3 px-4 text-right font-mono font-black text-amber-400">₹{a.amount.toLocaleString('en-IN')}</td>
                   <td className="py-3 px-4 text-center">
-                    <div className="flex items-center justify-center gap-1.5">
-                      <button onClick={() => handleEdit(a)} className="p-1 rounded text-slate-400 hover:text-blue-400">
-                        <Edit2 className="w-3.5 h-3.5" />
-                      </button>
-                      <button onClick={() => handleDelete(a.id)} className="p-1 rounded text-slate-400 hover:text-rose-400">
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
+                    {isAdmin ? (
+                      <div className="flex items-center justify-center gap-1.5">
+                        <button
+                          onClick={() => handleEdit(a)}
+                          className="p-1 rounded text-slate-400 hover:text-blue-400 cursor-pointer"
+                          title="Edit Record"
+                        >
+                          <Edit2 className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(a.id)}
+                          className="p-1 rounded text-slate-400 hover:text-rose-400 cursor-pointer"
+                          title="Delete Record"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    ) : (
+                      <span className="text-slate-600 font-mono text-xs">—</span>
+                    )}
                   </td>
                 </tr>
               ))
@@ -247,7 +276,7 @@ export const VendorAdvancesModule: React.FC = () => {
                 <CreditCard className="w-4 h-4 text-amber-400" />
                 <span>{editingId ? 'Edit Vendor Advance' : 'Record Advance to Vendor'}</span>
               </h3>
-              <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-white">
+              <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-white cursor-pointer">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -301,7 +330,7 @@ export const VendorAdvancesModule: React.FC = () => {
                   <select
                     value={paymentMode}
                     onChange={(e: any) => setPaymentMode(e.target.value)}
-                    className="w-full px-3 py-2 bg-[#162032] border border-[#1E293B] rounded-xl text-white outline-none"
+                    className="w-full px-3 py-2 bg-[#162032] border border-[#1E293B] rounded-xl text-white outline-none cursor-pointer"
                   >
                     <option value="UPI">UPI / GPay</option>
                     <option value="BANK_TRANSFER">Bank Transfer (NEFT/RTGS)</option>
@@ -316,7 +345,7 @@ export const VendorAdvancesModule: React.FC = () => {
                     placeholder="e.g. UPI-12345"
                     value={referenceNo}
                     onChange={(e) => setReferenceNo(e.target.value)}
-                    className="w-full px-3 py-2 bg-[#162032] border border-[#1E293B] rounded-xl text-white outline-none"
+                    className="w-full px-3 py-2 bg-[#162032] border border-[#1E293B] rounded-xl text-white outline-none font-mono"
                   />
                 </div>
               </div>
@@ -333,10 +362,10 @@ export const VendorAdvancesModule: React.FC = () => {
               </div>
 
               <div className="flex justify-end gap-2 pt-3 border-t border-[#1E293B]">
-                <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 text-slate-400">
+                <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 text-slate-400 hover:text-white cursor-pointer">
                   Cancel
                 </button>
-                <button type="submit" className="px-5 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 font-bold text-white">
+                <button type="submit" className="px-5 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 font-bold text-white cursor-pointer">
                   {editingId ? 'Update Advance' : 'Save Advance'}
                 </button>
               </div>
