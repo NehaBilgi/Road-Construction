@@ -10,7 +10,8 @@ import {
   ArrowRight,
   HardHat,
   ChevronRight,
-  MapPin
+  MapPin,
+  Lock
 } from 'lucide-react';
 
 interface Props {
@@ -18,8 +19,27 @@ interface Props {
 }
 
 export const SiteCentricMidnightDashboard: React.FC<Props> = ({ onNavigateTab }) => {
-  const { siteSheets = [], selectedSiteId } = useERP();
+  const { siteSheets = [], selectedSiteId, currentUser, userRole } = useERP() as any;
   const roadERP = useRoadERP?.() || {};
+
+  // Strict Admin Evaluation
+  const isAdmin = useMemo(() => {
+    let roleCandidate = String(userRole || currentUser?.role || '').trim().toUpperCase();
+    if (roleCandidate === 'SUPER_ADMIN' || roleCandidate === 'ADMIN' || roleCandidate.includes('ADMIN')) {
+      return true;
+    }
+    if (typeof window !== 'undefined') {
+      try {
+        const storedUser = localStorage.getItem('CONSTRUCTION_PRO_ERP_STORAGE_V7_USER') || localStorage.getItem('PAVETRACK_CURRENT_USER');
+        if (storedUser) {
+          const parsed = JSON.parse(storedUser);
+          const parsedRole = String(parsed?.role || '').trim().toUpperCase();
+          return parsedRole === 'SUPER_ADMIN' || parsedRole === 'ADMIN' || parsedRole.includes('ADMIN');
+        }
+      } catch {}
+    }
+    return false;
+  }, [userRole, currentUser]);
 
   // 1. Identify active site
   const activeSite = useMemo(() => {
@@ -117,7 +137,6 @@ export const SiteCentricMidnightDashboard: React.FC<Props> = ({ onNavigateTab })
 
   return (
     <div className="space-y-4 sm:space-y-6 font-sans text-slate-100 animate-in fade-in duration-300">
-      
       {/* Top Banner */}
       <div className="p-4 sm:p-6 lg:p-8 rounded-[1.5rem] sm:rounded-[2rem] bg-[#0B1220] border border-[#1E293B] shadow-2xl relative overflow-hidden">
         <div className="absolute top-0 right-0 w-96 h-96 bg-blue-600/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none" />
@@ -141,13 +160,16 @@ export const SiteCentricMidnightDashboard: React.FC<Props> = ({ onNavigateTab })
           </div>
 
           <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-2 sm:gap-3 shrink-0 w-full xl:w-auto">
-            <button 
-              onClick={() => onNavigateTab('road-sites')}
-              className="w-full sm:w-auto justify-center px-3 py-2.5 sm:px-4 sm:py-2.5 rounded-xl bg-[#121927] hover:bg-[#1b263b] border border-[#1E293B] text-slate-300 text-[11px] sm:text-xs font-bold flex items-center gap-1.5 sm:gap-2 transition-all cursor-pointer"
-            >
-              <MapPin className="w-3.5 h-3.5 text-blue-400 shrink-0" />
-              <span className="truncate">+ Add Section</span>
-            </button>
+            {isAdmin && (
+              <button 
+                onClick={() => onNavigateTab('road-sites')}
+                className="w-full sm:w-auto justify-center px-3 py-2.5 sm:px-4 sm:py-2.5 rounded-xl bg-[#121927] hover:bg-[#1b263b] border border-[#1E293B] text-slate-300 text-[11px] sm:text-xs font-bold flex items-center gap-1.5 sm:gap-2 transition-all cursor-pointer"
+              >
+                <MapPin className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+                <span className="truncate">+ Add Section</span>
+              </button>
+            )}
+            
             <button 
               onClick={() => onNavigateTab('yield_calculator')}
               className="w-full sm:w-auto justify-center px-3 py-2.5 sm:px-4 sm:py-2.5 rounded-xl bg-[#121927] hover:bg-[#1b263b] border border-[#1E293B] text-slate-300 text-[11px] sm:text-xs font-bold flex items-center gap-1.5 sm:gap-2 transition-all cursor-pointer"
@@ -155,6 +177,7 @@ export const SiteCentricMidnightDashboard: React.FC<Props> = ({ onNavigateTab })
               <Calculator className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
               <span className="truncate">Yield Calc</span>
             </button>
+            
             <button 
               onClick={() => onNavigateTab('diesel')}
               className="w-full sm:w-auto justify-center px-3 py-2.5 sm:px-4 sm:py-2.5 rounded-xl bg-[#121927] hover:bg-[#1b263b] border border-[#1E293B] text-slate-300 text-[11px] sm:text-xs font-bold flex items-center gap-1.5 sm:gap-2 transition-all cursor-pointer"
@@ -162,6 +185,7 @@ export const SiteCentricMidnightDashboard: React.FC<Props> = ({ onNavigateTab })
               <Fuel className="w-3.5 h-3.5 text-amber-400 shrink-0" />
               <span className="truncate">+ Log Diesel</span>
             </button>
+            
             <button 
               onClick={() => onNavigateTab('haulage-trips')}
               className="w-full sm:w-auto justify-center px-3 py-2.5 sm:px-4 sm:py-2.5 rounded-xl bg-[#121927] hover:bg-[#1b263b] border border-[#1E293B] text-slate-300 text-[11px] sm:text-xs font-bold flex items-center gap-1.5 sm:gap-2 transition-all cursor-pointer"
@@ -169,6 +193,7 @@ export const SiteCentricMidnightDashboard: React.FC<Props> = ({ onNavigateTab })
               <Truck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
               <span className="truncate">+ Log Trip</span>
             </button>
+
             <button 
               onClick={() => onNavigateTab('site-expenses')}
               className="col-span-2 sm:col-span-1 w-full sm:w-auto justify-center px-4 py-2.5 sm:px-5 sm:py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-black flex items-center gap-2 transition-all shadow-lg shadow-blue-600/30 cursor-pointer"
@@ -182,7 +207,6 @@ export const SiteCentricMidnightDashboard: React.FC<Props> = ({ onNavigateTab })
 
       {/* KPI Cards: Clean 3-Card Grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4">
-        
         {/* Card 1: Total Material Laid */}
         <div 
           onClick={() => onNavigateTab('haulage-trips')}
@@ -281,7 +305,6 @@ export const SiteCentricMidnightDashboard: React.FC<Props> = ({ onNavigateTab })
             </div>
           </div>
         </div>
-
       </div>
 
       {/* Bottom Panels */}
@@ -362,14 +385,17 @@ export const SiteCentricMidnightDashboard: React.FC<Props> = ({ onNavigateTab })
                   Material Rates & Master Spec
                 </div>
                 <div className="text-[10px] text-slate-500">
-                  Manage schedule of rates and category specs
+                  {isAdmin ? 'Manage schedule of rates and category specs' : 'View schedule of rates and specifications'}
                 </div>
               </div>
-              <ArrowRight className="w-4 h-4 text-slate-600 group-hover:text-blue-400 transition-transform group-hover:translate-x-1 shrink-0" />
+              {isAdmin ? (
+                <ArrowRight className="w-4 h-4 text-slate-600 group-hover:text-blue-400 transition-transform group-hover:translate-x-1 shrink-0" />
+              ) : (
+                <Lock className="w-3.5 h-3.5 text-slate-600 shrink-0" />
+              )}
             </button>
           </div>
         </div>
-
       </div>
     </div>
   );
