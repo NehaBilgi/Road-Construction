@@ -11,7 +11,8 @@ import {
   HardHat,
   ChevronRight,
   MapPin,
-  Lock
+  Lock,
+  DollarSign
 } from 'lucide-react';
 
 interface Props {
@@ -55,6 +56,7 @@ export const SiteCentricMidnightDashboard: React.FC<Props> = ({ onNavigateTab })
   // 2. Local State Stores
   const [trips, setTrips] = useState<any[]>([]);
   const [diesel, setDiesel] = useState<any[]>([]);
+  const [expenses, setExpenses] = useState<any[]>([]);
 
   // 3. Load & Listen to Live Data Sync
   const loadDashboardData = useCallback(() => {
@@ -76,9 +78,19 @@ export const SiteCentricMidnightDashboard: React.FC<Props> = ({ onNavigateTab })
       } else {
         setDiesel([]);
       }
+
+      const savedExpenses = localStorage.getItem('CONSTRUCTION_PRO_SITE_EXPENSES_V1');
+      if (savedExpenses) {
+        setExpenses(JSON.parse(savedExpenses) || []);
+      } else if (roadERP.expenses) {
+        setExpenses(roadERP.expenses);
+      } else {
+        setExpenses([]);
+      }
     } catch {
       setTrips([]);
       setDiesel([]);
+      setExpenses([]);
     }
   }, [roadERP]);
 
@@ -118,7 +130,18 @@ export const SiteCentricMidnightDashboard: React.FC<Props> = ({ onNavigateTab })
     [diesel, activeSite]
   );
 
-  // 5. Calculations
+  const siteExpenses = useMemo(
+    () =>
+      (expenses || []).filter(
+        (e) =>
+          e?.siteName === activeSite?.siteName ||
+          e?.costCenterChainage?.includes(activeSite?.siteName) ||
+          !e?.siteName
+      ),
+    [expenses, activeSite]
+  );
+
+  // 5. Metric Calculations
   const totalBrassToday = siteTrips.reduce((sum, t) => {
     const dayTrips = Number(t?.dayTrips ?? t?.trips ?? 0);
     const brassPerTrip = Number(t?.brassPerTrip ?? t?.capacityBrass ?? 0);
@@ -133,6 +156,11 @@ export const SiteCentricMidnightDashboard: React.FC<Props> = ({ onNavigateTab })
   const totalDieselDispensed = siteDiesel.reduce((sum, d) => {
     const litres = Number(d?.litres ?? d?.qtyLitres ?? d?.litresDispensed ?? 0);
     return sum + (isNaN(litres) ? 0 : litres);
+  }, 0);
+
+  const totalSiteExpensesAmount = siteExpenses.reduce((sum, e) => {
+    const amount = Number(e?.amount ?? 0);
+    return sum + (isNaN(amount) ? 0 : amount);
   }, 0);
 
   return (
@@ -205,8 +233,8 @@ export const SiteCentricMidnightDashboard: React.FC<Props> = ({ onNavigateTab })
         </div>
       </div>
 
-      {/* KPI Cards: Clean 3-Card Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4">
+      {/* KPI Cards: 4-Card Responsive Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {/* Card 1: Total Material Laid */}
         <div 
           onClick={() => onNavigateTab('haulage-trips')}
@@ -214,8 +242,8 @@ export const SiteCentricMidnightDashboard: React.FC<Props> = ({ onNavigateTab })
         >
           <div className="space-y-3 sm:space-y-4">
             <div className="flex justify-between items-start">
-              <div className="text-[10px] sm:text-[11px] font-bold text-slate-400 tracking-wider">
-                TOTAL MATERIAL LAID<br/>(TODAY)
+              <div className="text-[10px] sm:text-[11px] font-bold text-slate-400 tracking-wider uppercase">
+                Total Material Laid<br/>(Today)
               </div>
               <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-blue-900/30 flex items-center justify-center border border-blue-800/50 shrink-0">
                 <Layers className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-400" />
@@ -228,11 +256,11 @@ export const SiteCentricMidnightDashboard: React.FC<Props> = ({ onNavigateTab })
               <span className="text-xs sm:text-sm font-medium text-slate-500">Brass</span>
             </div>
           </div>
-          <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-[#1E293B] space-y-2 sm:space-y-3">
+          <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-[#1E293B] space-y-2">
             <div className="flex items-center gap-1.5 text-[10px] sm:text-[11px] font-medium text-blue-400 truncate">
               <div className="w-1.5 h-1.5 rounded-full bg-blue-500 shrink-0" />
               <span className="truncate">
-                {siteTrips.length} material batches logged
+                {siteTrips.length} material batches
               </span>
             </div>
             <div className="flex items-center gap-1 text-[10px] sm:text-[11px] font-bold text-slate-400 group-hover:text-blue-400 transition-colors">
@@ -249,8 +277,8 @@ export const SiteCentricMidnightDashboard: React.FC<Props> = ({ onNavigateTab })
         >
           <div className="space-y-3 sm:space-y-4">
             <div className="flex justify-between items-start">
-              <div className="text-[10px] sm:text-[11px] font-bold text-slate-400 tracking-wider">
-                ACTIVE TRIPS TODAY
+              <div className="text-[10px] sm:text-[11px] font-bold text-slate-400 tracking-wider uppercase">
+                Active Trips<br/>Today
               </div>
               <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-cyan-900/30 flex items-center justify-center border border-cyan-800/50 shrink-0">
                 <Truck className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-cyan-400" />
@@ -263,7 +291,7 @@ export const SiteCentricMidnightDashboard: React.FC<Props> = ({ onNavigateTab })
               <span className="text-xs sm:text-sm font-medium text-slate-500">Trips</span>
             </div>
           </div>
-          <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-[#1E293B] space-y-2 sm:space-y-3">
+          <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-[#1E293B] space-y-2">
             <div className="flex items-center gap-1.5 text-[10px] sm:text-[11px] font-medium text-cyan-400 truncate">
               {siteTrips.length} vehicles active
             </div>
@@ -281,8 +309,8 @@ export const SiteCentricMidnightDashboard: React.FC<Props> = ({ onNavigateTab })
         >
           <div className="space-y-3 sm:space-y-4">
             <div className="flex justify-between items-start">
-              <div className="text-[10px] sm:text-[11px] font-bold text-slate-400 tracking-wider">
-                DIESEL DISPENSED
+              <div className="text-[10px] sm:text-[11px] font-bold text-slate-400 tracking-wider uppercase">
+                Diesel<br/>Dispensed
               </div>
               <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-amber-900/30 flex items-center justify-center border border-amber-800/50 shrink-0">
                 <Fuel className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-400" />
@@ -295,12 +323,43 @@ export const SiteCentricMidnightDashboard: React.FC<Props> = ({ onNavigateTab })
               <span className="text-xs sm:text-sm font-medium text-slate-500">Litres</span>
             </div>
           </div>
-          <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-[#1E293B] space-y-2 sm:space-y-3">
+          <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-[#1E293B] space-y-2">
             <div className="flex items-center gap-1.5 text-[10px] sm:text-[11px] font-medium text-slate-400 truncate">
-              {siteDiesel.length} Field fuel voucher logs
+              {siteDiesel.length} fuel voucher logs
             </div>
             <div className="flex items-center gap-1 text-[10px] sm:text-[11px] font-bold text-slate-400 group-hover:text-amber-400 transition-colors">
               <span>Manage diesel log</span>
+              <ArrowRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" />
+            </div>
+          </div>
+        </div>
+
+        {/* Card 4: Total Site Direct Expenses */}
+        <div 
+          onClick={() => onNavigateTab('site-expenses')}
+          className="p-4 sm:p-5 rounded-[1.2rem] sm:rounded-[1.5rem] bg-[#0B1220] border border-[#1E293B] shadow-xl hover:border-rose-500/50 transition-all cursor-pointer group flex flex-col justify-between"
+        >
+          <div className="space-y-3 sm:space-y-4">
+            <div className="flex justify-between items-start">
+              <div className="text-[10px] sm:text-[11px] font-bold text-slate-400 tracking-wider uppercase">
+                Total Site<br/>Expenses
+              </div>
+              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-rose-900/30 flex items-center justify-center border border-rose-800/50 shrink-0">
+                <DollarSign className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-rose-400" />
+              </div>
+            </div>
+            <div className="flex items-baseline gap-1">
+              <span className="text-2xl sm:text-3xl lg:text-4xl font-black text-rose-400 font-mono tracking-tight">
+                ₹{totalSiteExpensesAmount.toLocaleString('en-IN')}
+              </span>
+            </div>
+          </div>
+          <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-[#1E293B] space-y-2">
+            <div className="flex items-center gap-1.5 text-[10px] sm:text-[11px] font-medium text-rose-400 truncate">
+              {siteExpenses.length} expense vouchers
+            </div>
+            <div className="flex items-center gap-1 text-[10px] sm:text-[11px] font-bold text-slate-400 group-hover:text-rose-400 transition-colors">
+              <span>View petty cash ledger</span>
               <ArrowRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" />
             </div>
           </div>
