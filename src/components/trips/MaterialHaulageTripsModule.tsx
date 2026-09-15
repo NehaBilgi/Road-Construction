@@ -56,7 +56,11 @@ const formatDateDMY = (dateStr: string) => {
 };
 
 export const MaterialHaulageTripsModule: React.FC = () => {
-  const { siteSheets = [], selectedSiteId } = useERP();
+  const { siteSheets = [], selectedSiteId, currentUser, userRole } = useERP() as any;
+
+  // Role verification: only Admin can edit or delete
+  const currentRole = String(userRole || currentUser?.role || '').toUpperCase();
+  const isAdmin = currentRole === 'SUPER_ADMIN' || currentRole === 'ADMIN';
 
   const currentActiveSite = siteSheets.find((s: any) => s.siteId === selectedSiteId);
   const activeSiteName = currentActiveSite?.siteName || siteSheets[0]?.siteName || 'MULWAD';
@@ -237,6 +241,10 @@ export const MaterialHaulageTripsModule: React.FC = () => {
   const handleDeleteSavedVendor = (vendorToDelete: string, e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    if (!isAdmin) {
+      alert('Access Denied: Only administrators can delete saved suppliers.');
+      return;
+    }
     if (window.confirm(`Delete "${vendorToDelete}" from saved supplier names?`)) {
       const updated = savedVendors.filter((v) => v !== vendorToDelete);
       setSavedVendors(updated);
@@ -273,6 +281,10 @@ export const MaterialHaulageTripsModule: React.FC = () => {
   };
 
   const handleEdit = (trip: HaulageTripRecord) => {
+    if (!isAdmin) {
+      alert('Access Denied: Only administrators can edit haulage trip records.');
+      return;
+    }
     setEditingId(trip.id);
     setTripDate(trip.tripDate);
     setSiteName(trip.siteName);
@@ -287,6 +299,10 @@ export const MaterialHaulageTripsModule: React.FC = () => {
   };
 
   const handleDelete = (id: string) => {
+    if (!isAdmin) {
+      alert('Access Denied: Only administrators can delete haulage trip records.');
+      return;
+    }
     if (window.confirm('Delete this trip record?')) {
       setTrips((prev) => prev.filter((t) => t.id !== id));
     }
@@ -294,6 +310,10 @@ export const MaterialHaulageTripsModule: React.FC = () => {
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
+    if (editingId && !isAdmin) {
+      alert('Access Denied: Only administrators can update existing records.');
+      return;
+    }
     if (dayTrips === '' || brassPerTrip === '' || ratePerBrass === '') return;
 
     const trimmedVendor = purchasedFrom.trim() || 'Direct Quarry / Plant';
@@ -375,7 +395,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
         }
       `}} />
 
-      {/* Printable Only Header: Company Title, Supplier & Site */}
+      {/* Printable Header */}
       <div className="hidden print:block mb-4">
         <div className="text-center font-black text-2xl tracking-wider uppercase text-black pb-2 border-b-2 border-black mb-3">
           M B BILGI CONSTRUCTIONS
@@ -386,7 +406,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
         </div>
       </div>
 
-      {/* Screen Header (Hidden on Print) */}
+      {/* Screen Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 no-print">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-2xl bg-blue-600/20 border border-blue-500/30 flex items-center justify-center text-blue-400 shrink-0">
@@ -420,7 +440,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
         </div>
       </div>
 
-      {/* Summary Stat Cards (Hidden on Print via no-print) */}
+      {/* Summary Stat Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 no-print">
         <div className="p-4 rounded-2xl bg-[#0B1220] border border-[#1E293B] shadow-lg flex flex-col justify-between">
           <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Total Material Purchase</div>
@@ -461,7 +481,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
         </div>
       </div>
 
-      {/* Search Bar (Hidden on Print) */}
+      {/* Search Bar */}
       <div className="p-3 rounded-2xl bg-[#0c1427] border border-[#182643] flex items-center gap-3 text-xs no-print">
         <div className="relative flex-1">
           <Search className="absolute left-3.5 top-2.5 w-4 h-4 text-slate-500" />
@@ -515,14 +535,26 @@ export const MaterialHaulageTripsModule: React.FC = () => {
                     <td className="py-2.5 px-2 text-right font-mono text-emerald-400 print:text-black">₹{t.ratePerBrass.toLocaleString('en-IN')}</td>
                     <td className="py-2.5 px-3 text-right font-mono font-black text-amber-400 print:text-black">₹{t.totalAmount.toLocaleString('en-IN')}</td>
                     <td className="py-2.5 px-3 text-center no-print">
-                      <div className="flex items-center justify-center gap-1">
-                        <button onClick={() => handleEdit(t)} className="p-1 rounded text-slate-400 hover:text-blue-400">
-                          <Edit2 className="w-3.5 h-3.5" />
-                        </button>
-                        <button onClick={() => handleDelete(t.id)} className="p-1 rounded text-slate-400 hover:text-rose-400">
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
+                      {isAdmin ? (
+                        <div className="flex items-center justify-center gap-1">
+                          <button
+                            onClick={() => handleEdit(t)}
+                            className="p-1 rounded text-slate-400 hover:text-blue-400 cursor-pointer"
+                            title="Edit Record"
+                          >
+                            <Edit2 className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(t.id)}
+                            className="p-1 rounded text-slate-400 hover:text-rose-400 cursor-pointer"
+                            title="Delete Record"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      ) : (
+                        <span className="text-slate-600 font-mono text-xs">—</span>
+                      )}
                     </td>
                   </tr>
                 ))
@@ -580,7 +612,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
         </div>
       </div>
 
-      {/* Modal Form (Hidden on Print) */}
+      {/* Modal Form */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm no-print">
           <div className="bg-[#121927] border border-[#1E293B] rounded-2xl w-full max-w-lg p-5 space-y-4 max-h-[92vh] overflow-y-auto">
@@ -589,7 +621,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
                 <Truck className="w-4 h-4 text-blue-400" />
                 <span>{editingId ? 'Edit Haulage Trip' : 'Log Total Day Haulage Trips'}</span>
               </h3>
-              <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-white">
+              <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-white cursor-pointer">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -649,7 +681,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setIsVendorDropdownOpen((prev) => !prev)}
-                    className="absolute right-2.5 text-slate-400 hover:text-white p-1"
+                    className="absolute right-2.5 text-slate-400 hover:text-white p-1 cursor-pointer"
                   >
                     <ChevronDown className={`w-4 h-4 transition-transform ${isVendorDropdownOpen ? 'rotate-180' : ''}`} />
                   </button>
@@ -669,14 +701,16 @@ export const MaterialHaulageTripsModule: React.FC = () => {
                           className="flex items-center justify-between px-3.5 py-2.5 hover:bg-[#1E293B]/70 cursor-pointer group transition-colors"
                         >
                           <span className="text-white font-medium text-xs">{v}</span>
-                          <button
-                            type="button"
-                            onClick={(e) => handleDeleteSavedVendor(v, e)}
-                            title={`Delete "${v}" from saved suppliers`}
-                            className="p-1 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-950/50 transition-colors"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
+                          {isAdmin && (
+                            <button
+                              type="button"
+                              onClick={(e) => handleDeleteSavedVendor(v, e)}
+                              title={`Delete "${v}" from saved suppliers`}
+                              className="p-1 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-950/50 transition-colors"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
                         </div>
                       ))}
 
@@ -694,7 +728,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
                 <select
                   value={materialName}
                   onChange={(e) => handleMaterialChange(e.target.value)}
-                  className="w-full px-3 py-2 bg-[#162032] border border-[#1E293B] rounded-xl text-amber-300 font-bold outline-none"
+                  className="w-full px-3 py-2 bg-[#162032] border border-[#1E293B] rounded-xl text-amber-300 font-bold outline-none cursor-pointer"
                 >
                   {categories.map((c) => {
                     const label = `${c.name} (₹${c.standardRate}/${c.unit})`;
@@ -749,10 +783,10 @@ export const MaterialHaulageTripsModule: React.FC = () => {
               </div>
 
               <div className="flex justify-end gap-2 pt-3 border-t border-[#1E293B]">
-                <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 text-slate-400">
+                <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 text-slate-400 hover:text-white cursor-pointer">
                   Cancel
                 </button>
-                <button type="submit" className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold">
+                <button type="submit" className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold cursor-pointer">
                   {editingId ? 'Update Record' : 'Save Record'}
                 </button>
               </div>
