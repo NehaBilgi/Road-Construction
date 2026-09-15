@@ -39,7 +39,11 @@ const INITIAL_RECORDS: DieselFuelRecord[] = [
 ];
 
 export const DieselFuelManagementModule: React.FC = () => {
-  const { siteSheets = [], selectedSiteId } = useERP();
+  const { siteSheets = [], selectedSiteId, currentUser, userRole } = useERP() as any;
+
+  // Admin access validation
+  const currentRole = String(userRole || currentUser?.role || '').toUpperCase();
+  const isAdmin = currentRole === 'SUPER_ADMIN' || currentRole === 'ADMIN';
 
   const currentActiveSite = siteSheets.find((s: any) => s.siteId === selectedSiteId);
   const activeSiteName = currentActiveSite?.siteName || siteSheets[0]?.siteName || 'SINDAGI - ALMEL ROAD';
@@ -111,6 +115,10 @@ export const DieselFuelManagementModule: React.FC = () => {
   };
 
   const handleEdit = (record: DieselFuelRecord) => {
+    if (!isAdmin) {
+      alert('Access Denied: Only administrators have permission to edit fuel records.');
+      return;
+    }
     setEditingId(record.id);
     setDate(record.date);
     setSiteName(record.siteName);
@@ -123,6 +131,10 @@ export const DieselFuelManagementModule: React.FC = () => {
   };
 
   const handleDelete = (id: string) => {
+    if (!isAdmin) {
+      alert('Access Denied: Only administrators have permission to delete fuel records.');
+      return;
+    }
     if (window.confirm('Are you sure you want to delete this fuel record?')) {
       setRecords((prev) => prev.filter((r) => r.id !== id));
     }
@@ -130,6 +142,10 @@ export const DieselFuelManagementModule: React.FC = () => {
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
+    if (editingId && !isAdmin) {
+      alert('Access Denied: Only administrators can update existing records.');
+      return;
+    }
     if (litres === '' || ratePerLitre === '') return;
 
     const record: DieselFuelRecord = {
@@ -280,22 +296,26 @@ export const DieselFuelManagementModule: React.FC = () => {
                       ₹{r.totalCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </td>
                     <td className="py-4 px-6 text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <button
-                          onClick={() => handleEdit(r)}
-                          title="Edit Record"
-                          className="p-1.5 rounded-lg text-slate-500 hover:text-blue-400 hover:bg-blue-950/40 transition-colors cursor-pointer"
-                        >
-                          <Edit2 className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(r.id)}
-                          title="Delete Record"
-                          className="p-1.5 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-950/40 transition-colors cursor-pointer"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
+                      {isAdmin ? (
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            onClick={() => handleEdit(r)}
+                            title="Edit Record"
+                            className="p-1.5 rounded-lg text-slate-500 hover:text-blue-400 hover:bg-blue-950/40 transition-colors cursor-pointer"
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(r.id)}
+                            title="Delete Record"
+                            className="p-1.5 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-950/40 transition-colors cursor-pointer"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ) : (
+                        <span className="text-slate-600 font-mono text-xs pr-2">—</span>
+                      )}
                     </td>
                   </tr>
                 ))
@@ -314,7 +334,7 @@ export const DieselFuelManagementModule: React.FC = () => {
                 <Fuel className="w-4 h-4 text-amber-400" />
                 <span>{editingId ? 'Edit Fuel Slip' : 'Log Fuel Dispense'}</span>
               </h3>
-              <button onClick={() => { setIsModalOpen(false); setEditingId(null); }} className="text-slate-400 hover:text-white p-1">
+              <button onClick={() => { setIsModalOpen(false); setEditingId(null); }} className="text-slate-400 hover:text-white p-1 cursor-pointer">
                 <X className="w-5 h-5" />
               </button>
             </div>
