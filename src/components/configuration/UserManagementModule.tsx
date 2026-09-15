@@ -73,8 +73,22 @@ const INITIAL_USERS: SystemUser[] = [
 export const UserManagement: React.FC = () => {
   const [users, setUsers] = useState<SystemUser[]>(() => {
     try {
-      const saved = localStorage.getItem(STORAGE_USERS_KEY);
-      return saved ? JSON.parse(saved) : INITIAL_USERS;
+      if (typeof window !== 'undefined') {
+        const saved = localStorage.getItem(STORAGE_USERS_KEY);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          // Defensive normalization for older localStorage formats
+          return parsed.map((u: any) => ({
+            id: u.id || `usr-${Math.random().toString(36).substr(2, 5)}`,
+            fullName: u.fullName || u.name || 'Unnamed User',
+            email: u.email || '',
+            role: u.role || 'SITE_SUPERVISOR',
+            department: u.department || 'Operations',
+            status: u.status || 'Active'
+          }));
+        }
+      }
+      return INITIAL_USERS;
     } catch {
       return INITIAL_USERS;
     }
@@ -87,16 +101,21 @@ export const UserManagement: React.FC = () => {
   const [department, setDepartment] = useState('Operations');
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_USERS_KEY, JSON.stringify(users));
+    try {
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(STORAGE_USERS_KEY, JSON.stringify(users));
+      }
+    } catch (err) {
+      console.error('Failed saving users to localStorage', err);
+    }
   }, [users]);
 
   const handleEdit = (user: SystemUser) => {
     setEditingId(user.id);
-    setFullName(user.fullName);
-    setEmail(user.email);
-    setRole(user.role);
-    setDepartment(user.department);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    setFullName(user.fullName || '');
+    setEmail(user.email || '');
+    setRole(user.role || 'SITE_SUPERVISOR');
+    setDepartment(user.department || 'Operations');
   };
 
   const handleCancelEdit = () => {
@@ -108,7 +127,7 @@ export const UserManagement: React.FC = () => {
   };
 
   const handleDelete = (id: string, name: string) => {
-    if (window.confirm(`Are you sure you want to delete user "${name}"?`)) {
+    if (typeof window !== 'undefined' && window.confirm(`Are you sure you want to delete user "${name}"?`)) {
       setUsers((prev) => prev.filter((u) => u.id !== id));
       if (editingId === id) {
         handleCancelEdit();
@@ -151,7 +170,7 @@ export const UserManagement: React.FC = () => {
     }
   };
 
-  const getRoleBadgeStyle = (r: UserRole) => {
+  const getRoleBadgeStyle = (r: string) => {
     switch (r) {
       case 'SUPER_ADMIN':
         return 'bg-blue-900/40 text-blue-400 border border-blue-500/30';
@@ -169,12 +188,12 @@ export const UserManagement: React.FC = () => {
   };
 
   return (
-    <div className="p-6 space-y-6 font-sans text-slate-100 min-h-screen bg-[#070d18]">
+    <div className="p-4 sm:p-6 space-y-6 font-sans text-slate-100 min-h-screen bg-[#070d18]">
       {/* Page Header */}
       <div>
         <div className="flex items-center gap-2.5">
           <Users className="w-6 h-6 text-sky-400" />
-          <h1 className="text-2xl font-black text-white tracking-tight">
+          <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight">
             User Management & Role Permissions
           </h1>
         </div>
@@ -185,17 +204,17 @@ export const UserManagement: React.FC = () => {
 
       {/* 2-Column Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* Left Column: Form */}
+        {/* Left Form: Create / Edit User */}
         <div className="lg:col-span-4 bg-[#0B1322] border border-[#1E293B] rounded-2xl p-5 shadow-xl">
-          <div className="flex items-center justify-between mb-5">
-            <h2 className="text-base font-bold text-white">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-sm sm:text-base font-bold text-white">
               {editingId ? 'Edit System User' : 'Create System User'}
             </h2>
             {editingId && (
               <button
                 type="button"
                 onClick={handleCancelEdit}
-                className="text-xs text-slate-400 hover:text-white flex items-center gap-1"
+                className="text-xs text-slate-400 hover:text-white flex items-center gap-1 cursor-pointer"
               >
                 <X className="w-3.5 h-3.5" />
                 <span>Cancel</span>
@@ -276,64 +295,72 @@ export const UserManagement: React.FC = () => {
         {/* Right Column: Authorized Personnel List */}
         <div className="lg:col-span-8 bg-[#0B1322] border border-[#1E293B] rounded-2xl p-5 shadow-xl space-y-4">
           <div className="border-b border-[#1E293B] pb-3">
-            <h2 className="text-base font-bold text-white">
+            <h2 className="text-sm sm:text-base font-bold text-white">
               Authorized Personnel ({users.length})
             </h2>
           </div>
 
           <div className="space-y-3">
-            {users.map((user) => (
-              <div
-                key={user.id}
-                className="p-4 rounded-2xl bg-[#070D18] border border-[#1E293B] hover:border-slate-700 flex items-center justify-between gap-4 transition-all"
-              >
-                {/* User Info */}
-                <div className="flex items-center gap-3.5">
-                  <div className="w-10 h-10 rounded-full bg-[#162032] border border-[#1E293B] flex items-center justify-center font-black text-white text-sm shrink-0">
-                    {user.fullName.charAt(0).toUpperCase()}
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-bold text-white text-sm">{user.fullName}</span>
-                      <span className={`px-2 py-0.5 rounded text-[10px] font-extrabold uppercase ${getRoleBadgeStyle(user.role)}`}>
-                        {user.role}
-                      </span>
+            {users.map((user) => {
+              const displayName = user.fullName || 'User';
+              const initial = displayName.trim().charAt(0).toUpperCase() || 'U';
+
+              return (
+                <div
+                  key={user.id}
+                  className="p-4 rounded-2xl bg-[#070D18] border border-[#1E293B] hover:border-slate-700 flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-all"
+                >
+                  {/* User Info */}
+                  <div className="flex items-center gap-3.5">
+                    <div className="w-10 h-10 rounded-full bg-[#162032] border border-[#1E293B] flex items-center justify-center font-black text-white text-sm shrink-0">
+                      {initial}
                     </div>
-                    <p className="text-xs text-slate-400 font-mono mt-0.5">{user.email}</p>
-                    <p className="text-[11px] text-slate-500 mt-0.5">Dept: {user.department}</p>
+                    <div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-bold text-white text-sm">{displayName}</span>
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-extrabold uppercase ${getRoleBadgeStyle(user.role)}`}>
+                          {user.role}
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-400 font-mono mt-0.5">{user.email}</p>
+                      <p className="text-[11px] text-slate-500 mt-0.5">Dept: {user.department || 'Operations'}</p>
+                    </div>
+                  </div>
+
+                  {/* Actions & Status */}
+                  <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
+                    <div className="px-2.5 py-1 rounded-lg bg-emerald-950/40 border border-emerald-500/30 text-emerald-400 text-xs font-semibold flex items-center gap-1.5">
+                      <UserCheck className="w-3.5 h-3.5" />
+                      <span>Active</span>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => handleEdit(user)}
+                      className="p-2 rounded-xl bg-[#131d33] hover:bg-blue-600/20 text-slate-400 hover:text-blue-400 border border-[#1E293B] hover:border-blue-500/40 transition-colors cursor-pointer"
+                      title="Edit User"
+                    >
+                      <Edit2 className="w-4 h-4" />
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleDelete(user.id, displayName)}
+                      className="p-2 rounded-xl bg-[#131d33] hover:bg-rose-600/20 text-slate-400 hover:text-rose-400 border border-[#1E293B] hover:border-rose-500/40 transition-colors cursor-pointer"
+                      title="Delete User"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                   </div>
                 </div>
-
-                {/* Status & Edit/Delete Action Buttons */}
-                <div className="flex items-center gap-2 shrink-0">
-                  <div className="px-2.5 py-1 rounded-lg bg-emerald-950/40 border border-emerald-500/30 text-emerald-400 text-xs font-semibold flex items-center gap-1.5">
-                    <UserCheck className="w-3.5 h-3.5" />
-                    <span>Active</span>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => handleEdit(user)}
-                    className="p-2 rounded-xl bg-[#131d33] hover:bg-blue-600/20 text-slate-400 hover:text-blue-400 border border-[#1E293B] hover:border-blue-500/40 transition-colors cursor-pointer"
-                    title="Edit User"
-                  >
-                    <Edit2 className="w-4 h-4" />
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => handleDelete(user.id, user.fullName)}
-                    className="p-2 rounded-xl bg-[#131d33] hover:bg-rose-600/20 text-slate-400 hover:text-rose-400 border border-[#1E293B] hover:border-rose-500/40 transition-colors cursor-pointer"
-                    title="Delete User"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </div>
     </div>
   );
 };
+
+export const UserManagementModule = UserManagement;
+export default UserManagement;
