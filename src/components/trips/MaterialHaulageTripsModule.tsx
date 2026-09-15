@@ -334,7 +334,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
         @media print {
           @page {
             size: portrait;
-            margin: 12mm 15mm;
+            margin: 0;
           }
           html, body, #root, main, div, table {
             overflow: visible !important;
@@ -355,6 +355,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
           body {
             background-color: #ffffff !important;
             color: #000000 !important;
+            padding: 12mm 15mm !important;
           }
           .print-clean-table {
             width: 100% !important;
