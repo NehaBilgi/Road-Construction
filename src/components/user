@@ -7,15 +7,16 @@ import {
   Trash2,
   X,
   Shield,
-  Key,
-  Mail,
-  User,
-  Calendar,
-  Lock,
-  CheckCircle2
+  UserCheck,
+  UserPlus
 } from 'lucide-react';
 
-export type SystemRole = 'Admin' | 'Inventory Manager' | 'Store Keeper' | 'Auditor' | 'Read Only';
+export type SystemRole =
+  | 'SUPER_ADMIN'
+  | 'STORE_MANAGER'
+  | 'SITE_SUPERVISOR'
+  | 'SITE_ENGINEER'
+  | 'AUDITOR';
 
 export interface ManagedUser {
   id: string;
@@ -23,6 +24,7 @@ export interface ManagedUser {
   username: string;
   email: string;
   role: SystemRole;
+  department: string;
   accountExpiry: string;
   createdDate: string;
   isCurrentUser?: boolean;
@@ -31,58 +33,54 @@ export interface ManagedUser {
 const INITIAL_SYSTEM_USERS: ManagedUser[] = [
   {
     id: 'u-1',
-    name: 'Hassansab',
-    username: 'hassansab',
-    email: 'hassansab@gmail.com',
-    role: 'Store Keeper',
+    name: 'Habibulla Bilgi',
+    username: 'habibulla',
+    email: 'habibullabilgiabu@gmail.com',
+    role: 'SUPER_ADMIN',
+    department: 'Executive Management',
     accountExpiry: 'Permanent Access',
-    createdDate: '28/07/2026'
+    createdDate: '22/06/2026',
+    isCurrentUser: true
   },
   {
     id: 'u-2',
-    name: 'Imamsab',
-    username: 'imamsab',
-    email: 'imamsab@gmail.com',
-    role: 'Store Keeper',
+    name: 'Admin User',
+    username: 'admin',
+    email: 'admin@bilgicrushers.com',
+    role: 'SUPER_ADMIN',
+    department: 'Terminal Admin',
     accountExpiry: 'Permanent Access',
-    createdDate: '28/07/2026'
+    createdDate: '22/06/2026'
   },
   {
     id: 'u-3',
     name: 'Neha Bilgi',
     username: 'neha',
-    email: 'nehabilgi@gmail.com',
-    role: 'Admin',
+    email: 'neha.ops@bilgicrushers.com',
+    role: 'STORE_MANAGER',
+    department: 'Stores & Accounts',
     accountExpiry: 'Permanent Access',
     createdDate: '23/06/2026'
   },
   {
     id: 'u-4',
-    name: 'Inventory Manager',
-    username: 'manager',
-    email: 'manager@plant.com',
-    role: 'Inventory Manager',
+    name: 'Ibrahim',
+    username: 'ibrahim',
+    email: 'ibrahim@bilgicrushers.com',
+    role: 'SITE_SUPERVISOR',
+    department: 'Plant Shift Ops',
     accountExpiry: 'Permanent Access',
-    createdDate: '22/06/2026'
+    createdDate: '28/07/2026'
   },
   {
     id: 'u-5',
-    name: 'Store Keeper',
-    username: 'keeper',
-    email: 'keeper@plant.com',
-    role: 'Store Keeper',
+    name: 'Er. Amit Sharma',
+    username: 'amit',
+    email: 'amit.billing@bilgicrushers.com',
+    role: 'SITE_ENGINEER',
+    department: 'Road Civil Execution',
     accountExpiry: 'Permanent Access',
-    createdDate: '22/06/2026'
-  },
-  {
-    id: 'u-6',
-    name: 'Admin User',
-    username: 'adminbilgi',
-    email: 'habibullabilgiabu@gmail.com',
-    role: 'Admin',
-    accountExpiry: 'Permanent Access',
-    createdDate: '22/06/2026',
-    isCurrentUser: true
+    createdDate: '15/08/2026'
   }
 ];
 
@@ -92,8 +90,12 @@ export const UserManagementModule: React.FC = () => {
   const { currentUser } = useERP();
 
   const [users, setUsers] = useState<ManagedUser[]>(() => {
-    const saved = localStorage.getItem(LOCAL_STORAGE_USERS_KEY);
-    return saved ? JSON.parse(saved) : INITIAL_SYSTEM_USERS;
+    try {
+      const saved = localStorage.getItem(LOCAL_STORAGE_USERS_KEY);
+      return saved ? JSON.parse(saved) : INITIAL_SYSTEM_USERS;
+    } catch {
+      return INITIAL_SYSTEM_USERS;
+    }
   });
 
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -105,12 +107,17 @@ export const UserManagementModule: React.FC = () => {
     username: '',
     email: '',
     password: '',
-    role: 'Store Keeper' as SystemRole,
+    role: 'SITE_SUPERVISOR' as SystemRole,
+    department: 'Operations',
     accountExpiry: 'Permanent Access'
   });
 
   useEffect(() => {
-    localStorage.setItem(LOCAL_STORAGE_USERS_KEY, JSON.stringify(users));
+    try {
+      localStorage.setItem(LOCAL_STORAGE_USERS_KEY, JSON.stringify(users));
+    } catch (err) {
+      console.error('Failed to save users to storage', err);
+    }
   }, [users]);
 
   const handleOpenAddModal = () => {
@@ -120,7 +127,8 @@ export const UserManagementModule: React.FC = () => {
       username: '',
       email: '',
       password: '',
-      role: 'Store Keeper',
+      role: 'SITE_SUPERVISOR',
+      department: 'Operations',
       accountExpiry: 'Permanent Access'
     });
     setIsModalOpen(true);
@@ -134,20 +142,21 @@ export const UserManagementModule: React.FC = () => {
       email: user.email,
       password: '',
       role: user.role,
+      department: user.department || 'Operations',
       accountExpiry: user.accountExpiry
     });
     setIsModalOpen(true);
   };
 
   const handleDeleteUser = (id: string, name: string) => {
-    if (window.confirm(`Are you sure you want to remove user "${name}"?`)) {
+    if (window.confirm(`Are you sure you want to remove authorized user "${name}"?`)) {
       setUsers((prev) => prev.filter((u) => u.id !== id));
     }
   };
 
   const handleSaveUser = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.name.trim() || !formData.username.trim() || !formData.email.trim()) return;
+    if (!formData.name.trim() || !formData.email.trim()) return;
 
     if (editingUser) {
       setUsers((prev) =>
@@ -155,10 +164,13 @@ export const UserManagementModule: React.FC = () => {
           u.id === editingUser.id
             ? {
                 ...u,
-                name: formData.name,
-                username: formData.username.toLowerCase().trim(),
+                name: formData.name.trim(),
+                username: formData.username
+                  ? formData.username.toLowerCase().trim()
+                  : formData.email.split('@')[0].toLowerCase(),
                 email: formData.email.trim(),
                 role: formData.role,
+                department: formData.department.trim(),
                 accountExpiry: formData.accountExpiry
               }
             : u
@@ -170,12 +182,17 @@ export const UserManagementModule: React.FC = () => {
         today.getMonth() + 1
       ).padStart(2, '0')}/${today.getFullYear()}`;
 
+      const generatedUsername = formData.username
+        ? formData.username.toLowerCase().trim()
+        : formData.email.split('@')[0].toLowerCase();
+
       const newUser: ManagedUser = {
-        id: `u-${Date.now()}`,
-        name: formData.name,
-        username: formData.username.toLowerCase().trim(),
+        id: `u-${Date.now().toString().slice(-4)}`,
+        name: formData.name.trim(),
+        username: generatedUsername,
         email: formData.email.trim(),
         role: formData.role,
+        department: formData.department.trim() || 'Operations',
         accountExpiry: formData.accountExpiry,
         createdDate: formattedDate
       };
@@ -187,183 +204,131 @@ export const UserManagementModule: React.FC = () => {
 
   const getRoleBadgeStyle = (role: SystemRole) => {
     switch (role) {
-      case 'Admin':
-        return 'text-rose-400 border-rose-500/40 bg-rose-950/20';
-      case 'Inventory Manager':
-        return 'text-blue-400 border-blue-500/40 bg-blue-950/20';
-      case 'Store Keeper':
-        return 'text-emerald-400 border-emerald-500/40 bg-emerald-950/20';
-      case 'Auditor':
-        return 'text-amber-400 border-amber-500/40 bg-amber-950/20';
-      case 'Read Only':
-        return 'text-slate-400 border-slate-600 bg-slate-900/40';
+      case 'SUPER_ADMIN':
+        return 'text-blue-400 bg-blue-950/40 border-blue-500/30';
+      case 'STORE_MANAGER':
+        return 'text-indigo-400 bg-indigo-950/40 border-indigo-500/30';
+      case 'SITE_SUPERVISOR':
+        return 'text-amber-400 bg-amber-950/40 border-amber-500/30';
+      case 'SITE_ENGINEER':
+        return 'text-emerald-400 bg-emerald-950/40 border-emerald-500/30';
+      case 'AUDITOR':
+        return 'text-rose-400 bg-rose-950/40 border-rose-500/30';
       default:
-        return 'text-slate-400 border-slate-700 bg-slate-900';
+        return 'text-slate-400 bg-slate-900 border-slate-700';
     }
   };
 
   return (
     <div className="space-y-6 font-sans text-slate-100 selection:bg-blue-600 selection:text-white">
-      {/* 1. Page Header */}
+      {/* 1. Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-2xl bg-blue-600/20 border border-blue-500/30 flex items-center justify-center text-blue-400">
             <Users className="w-5 h-5" />
           </div>
           <div>
-            <h1 className="text-2xl font-black text-white tracking-tight">User Management</h1>
+            <h1 className="text-2xl font-black text-white tracking-tight">System User Management</h1>
             <p className="text-xs text-slate-400 mt-0.5">
-              Manage system users, passwords, and role-based access control.
+              Manage authorized personnel accounts, site roles, and access credentials.
             </p>
           </div>
         </div>
 
         <button
           onClick={handleOpenAddModal}
-          className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-black flex items-center gap-1.5 transition-all shadow-lg shadow-blue-600/30 cursor-pointer w-fit"
+          className="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-black flex items-center gap-1.5 transition-all shadow-lg shadow-blue-600/30 cursor-pointer w-fit"
         >
-          <Plus className="w-4 h-4" />
-          <span>Add User</span>
+          <UserPlus className="w-4 h-4" />
+          <span>+ Add User Account</span>
         </button>
       </div>
 
-      {/* 2. Top 5 Role Definition Cards Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
-        {/* Card 1: Admin */}
-        <div className="p-4 rounded-2xl bg-[#0e1626] border border-rose-600/50 space-y-1.5">
-          <div className="text-sm font-bold text-rose-400">Admin</div>
-          <p className="text-[11px] text-slate-400 leading-relaxed">
-            Full access — manage users, products, transactions
-          </p>
+      {/* 2. Authorized Personnel List Section */}
+      <div className="bg-[#0b1220] border border-[#1e293b] rounded-2xl p-5 shadow-2xl space-y-4">
+        <div className="flex items-center justify-between border-b border-[#1e293b] pb-3">
+          <div>
+            <h2 className="text-base font-black text-white tracking-tight">Authorized Personnel</h2>
+            <p className="text-xs text-slate-400 mt-0.5">
+              Total active users in system: <span className="font-bold text-white">{users.length}</span>
+            </p>
+          </div>
         </div>
 
-        {/* Card 2: Inventory Manager */}
-        <div className="p-4 rounded-2xl bg-[#0e1626] border border-blue-600/50 space-y-1.5">
-          <div className="text-sm font-bold text-blue-400">Inventory Manager</div>
-          <p className="text-[11px] text-slate-400 leading-relaxed">
-            Manage products, transactions, reports
-          </p>
-        </div>
-
-        {/* Card 3: Store Keeper */}
-        <div className="p-4 rounded-2xl bg-[#0e1626] border border-emerald-600/50 space-y-1.5">
-          <div className="text-sm font-bold text-emerald-400">Store Keeper</div>
-          <p className="text-[11px] text-slate-400 leading-relaxed">
-            Record stock in/out transactions, scan barcodes
-          </p>
-        </div>
-
-        {/* Card 4: Auditor */}
-        <div className="p-4 rounded-2xl bg-[#0e1626] border border-amber-600/50 space-y-1.5">
-          <div className="text-sm font-bold text-amber-400">Auditor</div>
-          <p className="text-[11px] text-slate-400 leading-relaxed">
-            Read-only access to all data and reports
-          </p>
-        </div>
-
-        {/* Card 5: Read Only */}
-        <div className="p-4 rounded-2xl bg-[#0e1626] border border-slate-700 space-y-1.5">
-          <div className="text-sm font-bold text-slate-300">Read Only</div>
-          <p className="text-[11px] text-slate-400 leading-relaxed">
-            View dashboard and products only
-          </p>
-        </div>
-      </div>
-
-      {/* 3. System Users Registry Table */}
-      <div className="bg-[#0b1220] border border-[#1e293b] rounded-2xl overflow-hidden shadow-2xl">
-        <div className="px-6 py-4 border-b border-[#1e293b] bg-[#0d1527]/50">
-          <h2 className="text-base font-bold text-white">System Users</h2>
-          <p className="text-xs text-slate-400 mt-0.5">{users.length} users registered</p>
-        </div>
-
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs border-collapse">
-            <thead>
-              <tr className="border-b border-[#1e293b] text-[10px] font-extrabold uppercase tracking-wider text-slate-400 bg-[#080d19]/60">
-                <th className="py-3.5 px-6">Name</th>
-                <th className="py-3.5 px-6">Username</th>
-                <th className="py-3.5 px-6">Email</th>
-                <th className="py-3.5 px-6">Role</th>
-                <th className="py-3.5 px-6">Account Expiry</th>
-                <th className="py-3.5 px-6">Created</th>
-                <th className="py-3.5 px-6 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[#1e293b]/60 text-slate-200">
-              {users.map((user) => (
-                <tr
-                  key={user.id}
-                  className="hover:bg-[#121c33]/50 transition-colors group"
-                >
-                  {/* Name */}
-                  <td className="py-4 px-6 font-bold text-white whitespace-nowrap">
-                    {user.name}{' '}
-                    {user.isCurrentUser && (
-                      <span className="text-blue-400 font-normal text-[11px] ml-1">(you)</span>
-                    )}
-                  </td>
-
-                  {/* Username */}
-                  <td className="py-4 px-6 font-mono text-slate-300">{user.username}</td>
-
-                  {/* Email */}
-                  <td className="py-4 px-6 text-slate-400">{user.email}</td>
-
-                  {/* Role Badge */}
-                  <td className="py-4 px-6">
+        <div className="space-y-3">
+          {users.map((user) => (
+            <div
+              key={user.id}
+              className="p-4 rounded-2xl bg-[#090f1d] border border-[#1e293b] hover:border-slate-700 flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-all"
+            >
+              {/* Left: Avatar & User Metadata */}
+              <div className="flex items-center gap-3.5">
+                <div className="w-11 h-11 rounded-full bg-[#162032] border border-[#1e293b] flex items-center justify-center font-black text-white text-sm shrink-0">
+                  {user.name.charAt(0).toUpperCase()}
+                </div>
+                <div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="font-bold text-white text-sm">{user.name}</span>
                     <span
-                      className={`inline-block px-3 py-0.5 rounded-full text-[11px] font-semibold border ${getRoleBadgeStyle(
+                      className={`px-2 py-0.5 rounded text-[10px] font-extrabold uppercase border ${getRoleBadgeStyle(
                         user.role
                       )}`}
                     >
                       {user.role}
                     </span>
-                  </td>
+                    {user.isCurrentUser && (
+                      <span className="text-[10px] text-blue-400 bg-blue-950/60 px-1.5 py-0.5 rounded font-mono">
+                        (Current Session)
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-slate-400 font-mono mt-0.5">{user.email}</p>
+                  <p className="text-[11px] text-slate-500 mt-0.5">Dept: {user.department || 'Operations'}</p>
+                </div>
+              </div>
 
-                  {/* Account Expiry */}
-                  <td className="py-4 px-6 text-slate-400">{user.accountExpiry}</td>
+              {/* Right: Active Badge & Action Buttons */}
+              <div className="flex items-center justify-end gap-2 shrink-0">
+                <div className="px-2.5 py-1 rounded-lg bg-emerald-950/40 border border-emerald-500/30 text-emerald-400 text-xs font-semibold flex items-center gap-1.5">
+                  <UserCheck className="w-3.5 h-3.5" />
+                  <span>Active</span>
+                </div>
 
-                  {/* Created Date */}
-                  <td className="py-4 px-6 font-mono text-slate-400">{user.createdDate}</td>
+                {/* Edit Button */}
+                <button
+                  type="button"
+                  onClick={() => handleOpenEditModal(user)}
+                  className="p-2 rounded-xl bg-[#131d33] hover:bg-blue-600/20 text-slate-400 hover:text-blue-400 border border-[#1e293b] hover:border-blue-500/40 transition-colors cursor-pointer"
+                  title="Edit User"
+                >
+                  <Edit2 className="w-4 h-4" />
+                </button>
 
-                  {/* Actions */}
-                  <td className="py-4 px-6 text-right whitespace-nowrap">
-                    <div className="flex items-center justify-end gap-3">
-                      <button
-                        onClick={() => handleOpenEditModal(user)}
-                        title="Edit User"
-                        className="text-blue-400 hover:text-blue-300 p-1 hover:bg-blue-950/40 rounded-lg transition-colors cursor-pointer"
-                      >
-                        <Edit2 className="w-3.5 h-3.5" />
-                      </button>
-
-                      {!user.isCurrentUser && (
-                        <button
-                          onClick={() => handleDeleteUser(user.id, user.name)}
-                          title="Delete User"
-                          className="text-rose-400 hover:text-rose-300 p-1 hover:bg-rose-950/40 rounded-lg transition-colors cursor-pointer"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                {/* Delete Button */}
+                {!user.isCurrentUser && (
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteUser(user.id, user.name)}
+                    className="p-2 rounded-xl bg-[#131d33] hover:bg-rose-600/20 text-slate-400 hover:text-rose-400 border border-[#1e293b] hover:border-rose-500/40 transition-colors cursor-pointer"
+                    title="Delete User"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+            </div>
+          ))}
         </div>
       </div>
 
-      {/* 4. Add / Edit User Modal */}
+      {/* 3. Add / Edit User Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in duration-150">
           <div className="bg-[#121927] border border-[#1E293B] rounded-3xl w-full max-w-md p-6 shadow-2xl space-y-5 animate-in zoom-in-95 duration-150">
             <div className="flex items-center justify-between border-b border-[#1E293B] pb-3">
               <div className="flex items-center gap-2 text-white font-bold text-base">
                 <Shield className="w-4 h-4 text-blue-400" />
-                <span>{editingUser ? 'Edit System User' : 'Add New System User'}</span>
+                <span>{editingUser ? 'Edit System User' : 'Create System User'}</span>
               </div>
               <button
                 onClick={() => setIsModalOpen(false)}
@@ -379,59 +344,58 @@ export const UserManagementModule: React.FC = () => {
                 <input
                   type="text"
                   required
-                  placeholder="e.g. Anand Patil"
+                  placeholder="e.g. Ramesh Patil"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   className="w-full px-3.5 py-2.5 bg-[#162032] border border-[#1E293B] rounded-xl text-white outline-none focus:border-blue-500"
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-slate-400 font-bold mb-1">Username *</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. anand"
-                    value={formData.username}
-                    onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                    className="w-full px-3.5 py-2.5 bg-[#162032] border border-[#1E293B] rounded-xl text-white font-mono outline-none focus:border-blue-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-slate-400 font-bold mb-1">Role *</label>
-                  <select
-                    value={formData.role}
-                    onChange={(e) =>
-                      setFormData({ ...formData, role: e.target.value as SystemRole })
-                    }
-                    className="w-full px-3 py-2.5 bg-[#162032] border border-[#1E293B] rounded-xl text-white outline-none focus:border-blue-500"
-                  >
-                    <option value="Admin">Admin</option>
-                    <option value="Inventory Manager">Inventory Manager</option>
-                    <option value="Store Keeper">Store Keeper</option>
-                    <option value="Auditor">Auditor</option>
-                    <option value="Read Only">Read Only</option>
-                  </select>
-                </div>
-              </div>
-
               <div>
-                <label className="block text-slate-400 font-bold mb-1">Email Address *</label>
+                <label className="block text-slate-400 font-bold mb-1">Email / Username *</label>
                 <input
                   type="email"
                   required
-                  placeholder="e.g. anand@bilgicrushers.com"
+                  placeholder="e.g. ramesh@bilgicrushers.com"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   className="w-full px-3.5 py-2.5 bg-[#162032] border border-[#1E293B] rounded-xl text-white outline-none focus:border-blue-500"
                 />
               </div>
 
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-slate-400 font-bold mb-1">Access Role *</label>
+                  <select
+                    value={formData.role}
+                    onChange={(e) =>
+                      setFormData({ ...formData, role: e.target.value as SystemRole })
+                    }
+                    className="w-full px-3 py-2.5 bg-[#162032] border border-[#1E293B] rounded-xl text-white outline-none focus:border-blue-500 font-bold text-xs"
+                  >
+                    <option value="SUPER_ADMIN">SUPER_ADMIN</option>
+                    <option value="STORE_MANAGER">STORE_MANAGER</option>
+                    <option value="SITE_SUPERVISOR">SITE_SUPERVISOR</option>
+                    <option value="SITE_ENGINEER">SITE_ENGINEER</option>
+                    <option value="AUDITOR">AUDITOR</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-slate-400 font-bold mb-1">Department</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Operations"
+                    value={formData.department}
+                    onChange={(e) => setFormData({ ...formData, department: e.target.value })}
+                    className="w-full px-3.5 py-2.5 bg-[#162032] border border-[#1E293B] rounded-xl text-white outline-none focus:border-blue-500"
+                  />
+                </div>
+              </div>
+
               <div>
                 <label className="block text-slate-400 font-bold mb-1">
-                  Password {editingUser && <span className="font-normal text-slate-500">(leave blank to keep unchanged)</span>}
+                  Password {editingUser && <span className="font-normal text-slate-500">(leave blank to preserve existing)</span>}
                 </label>
                 <input
                   type="password"
@@ -439,16 +403,6 @@ export const UserManagementModule: React.FC = () => {
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                   className="w-full px-3.5 py-2.5 bg-[#162032] border border-[#1E293B] rounded-xl text-white font-mono outline-none focus:border-blue-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-slate-400 font-bold mb-1">Account Expiry</label>
-                <input
-                  type="text"
-                  value={formData.accountExpiry}
-                  onChange={(e) => setFormData({ ...formData, accountExpiry: e.target.value })}
-                  className="w-full px-3.5 py-2.5 bg-[#162032] border border-[#1E293B] rounded-xl text-white outline-none focus:border-blue-500"
                 />
               </div>
 
@@ -462,9 +416,9 @@ export const UserManagementModule: React.FC = () => {
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-black transition-all shadow-lg shadow-blue-600/30"
+                  className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-black transition-all shadow-lg shadow-blue-600/30"
                 >
-                  {editingUser ? 'Save Changes' : 'Create User'}
+                  {editingUser ? 'Update User Account' : '+ Add User Account'}
                 </button>
               </div>
             </form>
