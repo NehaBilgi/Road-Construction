@@ -11,8 +11,6 @@ import {
   HardHat,
   Tag,
   Users,
-  Building2,
-  Milestone,
   HardHat as LogoIcon
 } from 'lucide-react';
 
@@ -22,7 +20,7 @@ interface SidebarProps {
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onSelectTab }) => {
-  const { currentUser, userRole, workType, setWorkType } = useERP() as any;
+  const { currentUser, userRole } = useERP() as any;
 
   // Strict Admin Evaluation
   const isAdmin = useMemo(() => {
@@ -233,42 +231,18 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onSelectTab }) => {
         </div>
       </div>
 
-      {/* Bottom Footer Section */}
-      <div className="space-y-3 mt-4">
-        {/* Domain Switch Button (ADMIN ONLY) */}
-        {isAdmin && (
-          <button
-            type="button"
-            onClick={() => setWorkType(workType === 'ROAD' ? 'BUILDING' : 'ROAD')}
-            className="w-full py-2.5 px-3 rounded-xl bg-[#121927] hover:bg-[#1a2438] border border-[#1E293B] hover:border-slate-600 text-slate-300 text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer shadow-sm"
-          >
-            {workType === 'ROAD' ? (
-              <>
-                <Building2 className="w-4 h-4 text-purple-400" />
-                <span>Switch to Buildings</span>
-              </>
-            ) : (
-              <>
-                <Milestone className="w-4 h-4 text-amber-400" />
-                <span>Switch to Road ERP</span>
-              </>
-            )}
-          </button>
-        )}
-
-        {/* User Card */}
-        <div className="p-3 bg-[#121927] border border-[#1E293B] rounded-2xl flex items-center justify-between">
-          <div className="flex items-center gap-2.5 truncate">
-            <div className="w-8 h-8 rounded-full bg-[#1A2338] border border-[#23355A] flex items-center justify-center text-xs font-bold text-white shrink-0">
-              {currentUser?.name?.charAt(0).toUpperCase() || 'U'}
+      {/* Bottom Footer: User Profile Card */}
+      <div className="p-3 bg-[#121927] border border-[#1E293B] rounded-2xl flex items-center justify-between mt-auto">
+        <div className="flex items-center gap-2.5 truncate">
+          <div className="w-8 h-8 rounded-full bg-[#1A2338] border border-[#23355A] flex items-center justify-center text-xs font-bold text-white shrink-0">
+            {currentUser?.name?.charAt(0).toUpperCase() || 'U'}
+          </div>
+          <div className="truncate">
+            <div className="text-xs font-bold text-white truncate">
+              {currentUser?.name || 'User'}
             </div>
-            <div className="truncate">
-              <div className="text-xs font-bold text-white truncate">
-                {currentUser?.name || 'User'}
-              </div>
-              <div className="text-[10px] text-slate-400 truncate">
-                {currentUser?.role || 'SUPER_ADMIN'}
-              </div>
+            <div className="text-[10px] text-slate-400 truncate">
+              {currentUser?.role || 'SUPER_ADMIN'}
             </div>
           </div>
         </div>
