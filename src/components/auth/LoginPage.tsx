@@ -3,14 +3,10 @@ import { useERP } from '../../context/ERPContext';
 import { HardHat, Lock, User, AlertCircle, ArrowRight, Eye, EyeOff } from 'lucide-react';
 import { ThemeToggle } from '../ThemeToggle';
 
-const STORAGE_KEYS = [
-  'PAVETRACK_AUTHORIZED_PERSONNEL_V2',
-  'PAVETRACK_AUTHORIZED_PERSONNEL_V1',
-  'PAVETRACK_SYSTEM_USERS_V1'
-];
+const STORAGE_USERS_KEY = 'PAVETRACK_AUTHORIZED_PERSONNEL_V2';
 
 export const LoginPage: React.FC = () => {
-  const erp = useERP() as any;
+  const { login } = useERP();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -22,84 +18,22 @@ export const LoginPage: React.FC = () => {
     setErrorMessage('');
     setIsLoading(true);
 
-    const inputUser = username.trim().toLowerCase();
-    const inputPass = password.trim();
+    const cleanUser = username.trim();
+    const cleanPass = password.trim();
 
-    if (!inputUser || !inputPass) {
+    if (!cleanUser || !cleanPass) {
       setErrorMessage('Please enter both username and password.');
       setIsLoading(false);
       return;
     }
 
-    // 1. Gather all registered users across storage versions
-    let allUsers: any[] = [];
-    STORAGE_KEYS.forEach((key) => {
-      try {
-        const saved = localStorage.getItem(key);
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          if (Array.isArray(parsed)) {
-            allUsers = [...allUsers, ...parsed];
-          }
-        }
-      } catch (err) {
-        console.error(err);
-      }
-    });
+    // Call the ERP Context login function directly
+    const result = login(cleanUser, cleanPass);
 
-    // 2. Find matching user by username or email
-    const matchedUser = allUsers.find(
-      (u: any) =>
-        (u.username && u.username.toLowerCase() === inputUser) ||
-        (u.email && u.email.toLowerCase() === inputUser) ||
-        (u.fullName && u.fullName.toLowerCase() === inputUser)
-    );
-
-    // 3. Fallback to ERP context login method first if user not found in local storage
-    if (!matchedUser) {
-      if (typeof erp?.login === 'function') {
-        const res = erp.login(username.trim(), inputPass);
-        if (res && res.success) {
-          setIsLoading(false);
-          return;
-        }
-      }
-      setErrorMessage('User account not found. Please check username.');
+    if (!result || !result.success) {
+      setErrorMessage(result?.message || 'Invalid username or password.');
       setIsLoading(false);
-      return;
     }
-
-    // 4. Validate password
-    const userPass = matchedUser.password || '';
-    if (userPass && userPass !== inputPass) {
-      setErrorMessage('Incorrect password. Please try again.');
-      setIsLoading(false);
-      return;
-    }
-
-    // 5. Set session across context & localStorage
-    const authenticatedUser = {
-      ...matchedUser,
-      status: 'Active'
-    };
-
-    try {
-      localStorage.setItem('PAVETRACK_CURRENT_USER', JSON.stringify(authenticatedUser));
-      localStorage.setItem('ERP_AUTH_TOKEN', 'token_' + Date.now());
-    } catch {}
-
-    if (typeof erp?.setCurrentUser === 'function') {
-      erp.setCurrentUser(authenticatedUser);
-    } else if (typeof erp?.setUser === 'function') {
-      erp.setUser(authenticatedUser);
-    } else if (typeof erp?.login === 'function') {
-      erp.login(matchedUser.username || username, inputPass);
-    }
-
-    // Force refresh if the context doesn't re-render automatically
-    setTimeout(() => {
-      setIsLoading(false);
-    }, 300);
   };
 
   return (
