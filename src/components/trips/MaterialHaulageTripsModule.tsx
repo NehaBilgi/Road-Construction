@@ -322,12 +322,12 @@ export const MaterialHaulageTripsModule: React.FC = () => {
 
   return (
     <div className="space-y-4 sm:space-y-6 font-sans text-slate-100 print:text-black print:space-y-3">
-      {/* Print Styles */}
+      {/* Print Styles: Sets page margin to hide browser headers/footers */}
       <style dangerouslySetInnerHTML={{ __html: `
         @media print {
           @page {
             size: portrait;
-            margin: 10mm 12mm;
+            margin: 12mm 15mm;
           }
           html, body, #root, main, div, table {
             overflow: visible !important;
@@ -367,13 +367,14 @@ export const MaterialHaulageTripsModule: React.FC = () => {
         }
       `}} />
 
-      {/* Printable Only Header: Bold Supplier Name & Bold Site Name */}
-      <div className="hidden print:flex items-center justify-between border-b-2 border-black pb-3 mb-2">
-        <div className="text-2xl font-black uppercase text-black tracking-wide">
-          {currentSupplierName}
+      {/* Printable Only Header: Company Title, Supplier & Site */}
+      <div className="hidden print:block mb-4">
+        <div className="text-center font-black text-2xl tracking-wider uppercase text-black pb-2 border-b-2 border-black mb-3">
+          M B BILGI CONSTRUCTIONS
         </div>
-        <div className="text-2xl font-black uppercase text-black tracking-wide">
-          SITE: {activeSiteName}
+        <div className="flex items-center justify-between text-xl font-black uppercase text-black tracking-wide">
+          <div>{currentSupplierName}</div>
+          <div>SITE: {activeSiteName}</div>
         </div>
       </div>
 
