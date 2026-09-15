@@ -1,12 +1,27 @@
 import React, { useState } from 'react';
 import { useERP } from '../../context/ERPContext';
-import { HardHat, Lock, User, AlertCircle, ArrowRight } from 'lucide-react';
+import { HardHat, Lock, User, AlertCircle, ArrowRight, Eye, EyeOff } from 'lucide-react';
 import { ThemeToggle } from '../ThemeToggle';
 
+const STORAGE_USERS_KEY = 'PAVETRACK_AUTHORIZED_PERSONNEL_V2';
+
+const DEFAULT_USERS = [
+  {
+    id: 'usr-1',
+    fullName: 'Habibulla Bilgi',
+    username: 'admin',
+    password: 'Password@123',
+    role: 'SUPER_ADMIN',
+    department: 'Operations',
+    status: 'Active'
+  }
+];
+
 export const LoginPage: React.FC = () => {
-  const { login } = useERP();
+  const { login, setCurrentUser } = useERP() as any;
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
@@ -15,11 +30,67 @@ export const LoginPage: React.FC = () => {
     setErrorMessage('');
     setIsLoading(true);
 
-    const result = login(username, password);
-    if (!result.success) {
-      setErrorMessage(result.message || 'Invalid username or password.');
-      setIsLoading(false);
+    const cleanInput = username.trim().toLowerCase();
+    const cleanPassword = password.trim();
+
+    // 1. Fetch real-time users list created & managed in UserManagement
+    let systemUsers = DEFAULT_USERS;
+    try {
+      if (typeof window !== 'undefined') {
+        const saved = localStorage.getItem(STORAGE_USERS_KEY);
+        if (saved) {
+          systemUsers = JSON.parse(saved);
+        }
+      }
+    } catch {
+      systemUsers = DEFAULT_USERS;
     }
+
+    // 2. Locate matching user account by username (or email)
+    const matchedUser = systemUsers.find(
+      (u: any) =>
+        (u.username && u.username.toLowerCase() === cleanInput) ||
+        (u.email && u.email.toLowerCase() === cleanInput)
+    );
+
+    if (!matchedUser) {
+      // Fallback check against ERP Context's native login() method if present
+      if (typeof login === 'function') {
+        const result = login(username, password);
+        if (result && !result.success) {
+          setErrorMessage(result.message || 'Account not found. Please verify your username.');
+          setIsLoading(false);
+          return;
+        }
+      } else {
+        setErrorMessage('Account not found. Please verify your username.');
+        setIsLoading(false);
+        return;
+      }
+    } else {
+      // Check active state
+      if (matchedUser.status === 'Inactive') {
+        setErrorMessage('This user account has been deactivated. Please contact an admin.');
+        setIsLoading(false);
+        return;
+      }
+
+      // Check password match
+      if (matchedUser.password !== cleanPassword) {
+        setErrorMessage('Incorrect password. Please try again.');
+        setIsLoading(false);
+        return;
+      }
+
+      // Authenticate and set session in context
+      if (typeof setCurrentUser === 'function') {
+        setCurrentUser(matchedUser);
+      } else if (typeof login === 'function') {
+        login(username, password);
+      }
+    }
+
+    setIsLoading(false);
   };
 
   return (
@@ -42,7 +113,7 @@ export const LoginPage: React.FC = () => {
 
         {/* Error Alert */}
         {errorMessage && (
-          <div className="p-3.5 bg-rose-950/40 border border-rose-800/60 rounded-2xl text-rose-300 text-xs flex items-center gap-2">
+          <div className="p-3.5 bg-rose-950/40 border border-rose-800/60 rounded-2xl text-rose-300 text-xs flex items-center gap-2 animate-in fade-in">
             <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
             <span>{errorMessage}</span>
           </div>
@@ -52,17 +123,17 @@ export const LoginPage: React.FC = () => {
         <form onSubmit={handleSubmit} className="space-y-4 text-xs">
           <div>
             <label className="block text-slate-300 font-bold mb-1.5">
-              Username or Email
+              Username
             </label>
             <div className="relative">
               <User className="w-4 h-4 text-slate-500 absolute left-3.5 top-3" />
               <input
                 type="text"
                 required
-                placeholder="Enter your username (e.g. admin, manager)"
+                placeholder="Enter your username (e.g. admin)"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 bg-[#162032] border border-[#1E293B] rounded-xl text-white outline-none focus:border-blue-500 font-medium"
+                className="w-full pl-10 pr-4 py-2.5 bg-[#162032] border border-[#1E293B] rounded-xl text-white outline-none focus:border-blue-500 font-medium placeholder-slate-500"
               />
             </div>
           </div>
@@ -71,23 +142,30 @@ export const LoginPage: React.FC = () => {
             <label className="block text-slate-300 font-bold mb-1.5">
               Password
             </label>
-            <div className="relative">
+            <div className="relative flex items-center">
               <Lock className="w-4 h-4 text-slate-500 absolute left-3.5 top-3" />
               <input
-                type="password"
+                type={showPassword ? 'text' : 'password'}
                 required
                 placeholder="Enter your password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 bg-[#162032] border border-[#1E293B] rounded-xl text-white outline-none focus:border-blue-500 font-mono"
+                className="w-full pl-10 pr-10 py-2.5 bg-[#162032] border border-[#1E293B] rounded-xl text-white outline-none focus:border-blue-500 font-mono placeholder-slate-500"
               />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 text-slate-500 hover:text-slate-300 cursor-pointer"
+              >
+                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
             </div>
           </div>
 
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white font-black rounded-xl transition-all shadow-lg shadow-blue-600/30 flex items-center justify-center gap-2 cursor-pointer text-xs uppercase tracking-wider"
+            className="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white font-black rounded-xl transition-all shadow-lg shadow-blue-600/30 flex items-center justify-center gap-2 cursor-pointer text-xs uppercase tracking-wider disabled:opacity-50"
           >
             <span>{isLoading ? 'Authenticating...' : 'Sign In'}</span>
             <ArrowRight className="w-4 h-4" />
@@ -95,8 +173,8 @@ export const LoginPage: React.FC = () => {
         </form>
 
         {/* Role Permissions Hint */}
-        <div className="pt-4 border-t border-[#1E293B] text-[11px] text-slate-500 text-center">
-          Role-Based Access Control (Admin • Manager • Store Keeper • Auditor • Read Only)
+        <div className="pt-4 border-t border-[#1E293B] text-[11px] text-slate-500 text-center leading-relaxed">
+          Role-Based Access Control (SUPER_ADMIN • STORE_MANAGER • SITE_SUPERVISOR • SITE_ENGINEER • AUDITOR)
         </div>
       </div>
     </div>
