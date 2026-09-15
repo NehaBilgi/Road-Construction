@@ -58,64 +58,25 @@ import {
 export interface ManagedUser extends User {
   username: string;
   password?: string;
+  fullName?: string;
+  department?: string;
   phone?: string;
-  status: 'ACTIVE' | 'INACTIVE';
+  status: 'Active' | 'Inactive' | 'ACTIVE' | 'INACTIVE';
 }
+
+const STORAGE_USERS_KEY = 'PAVETRACK_AUTHORIZED_PERSONNEL_V2';
 
 const DEFAULT_MANAGED_USERS: ManagedUser[] = [
   {
-    id: 'usr-admin-1',
+    id: 'usr-1',
+    fullName: 'Habibulla Bilgi',
+    name: 'Habibulla Bilgi',
     username: 'admin',
-    password: '123',
-    name: 'Habibulla Bilgi (Director)',
+    password: 'Password@123',
     email: 'habibullabilgiabu@gmail.com',
-    role: 'Admin' as any,
-    status: 'ACTIVE'
-  },
-  {
-    id: 'usr-mgr-1',
-    username: 'manager',
-    password: '123',
-    name: 'Neha (Inventory Manager)',
-    email: 'manager@plant.com',
-    role: 'Inventory Manager' as any,
-    status: 'ACTIVE'
-  },
-  {
-    id: 'usr-store-1',
-    username: 'keeper',
-    password: '123',
-    name: 'Ibrahim (Store Keeper)',
-    email: 'keeper@plant.com',
-    role: 'Store Keeper' as any,
-    status: 'ACTIVE'
-  },
-  {
-    id: 'usr-store-2',
-    username: 'ibrahim',
-    password: '123',
-    name: 'Ibrahim Site Incharge',
-    email: 'ibrahim@bilgi.com',
-    role: 'Store Keeper' as any,
-    status: 'ACTIVE'
-  },
-  {
-    id: 'usr-mgr-2',
-    username: 'neha',
-    password: '123',
-    name: 'Neha Bilgi (Accounts & Ops)',
-    email: 'neha@bilgi.com',
-    role: 'Inventory Manager' as any,
-    status: 'ACTIVE'
-  },
-  {
-    id: 'usr-aud-1',
-    username: 'auditor',
-    password: '123',
-    name: 'Auditor User',
-    email: 'auditor@plant.com',
-    role: 'Auditor' as any,
-    status: 'ACTIVE'
+    role: 'SUPER_ADMIN' as any,
+    department: 'Operations',
+    status: 'Active'
   }
 ];
 
@@ -262,7 +223,6 @@ const safeGetJSON = <T,>(key: string, fallback: T): T => {
 };
 
 export const ERPProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  // Auto-reset mobile/desktop local cache if version changes to ensure sync across devices
   useEffect(() => {
     try {
       const CURRENT_DATA_VERSION = 'v8_universal_sync_fix';
@@ -279,12 +239,21 @@ export const ERPProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
   }, []);
 
-  const [usersList, setUsersList] = useState<ManagedUser[]>(() =>
-    safeGetJSON(LOCAL_STORAGE_KEY + '_USER_ACCOUNTS', DEFAULT_MANAGED_USERS)
-  );
+  const [usersList, setUsersList] = useState<ManagedUser[]>(() => {
+    const saved = safeGetJSON(STORAGE_USERS_KEY, null);
+    if (saved && Array.isArray(saved) && saved.length > 0) {
+      return saved;
+    }
+    return safeGetJSON(LOCAL_STORAGE_KEY + '_USER_ACCOUNTS', DEFAULT_MANAGED_USERS);
+  });
 
   useEffect(() => {
-    localStorage.setItem(LOCAL_STORAGE_KEY + '_USER_ACCOUNTS', JSON.stringify(usersList));
+    try {
+      localStorage.setItem(STORAGE_USERS_KEY, JSON.stringify(usersList));
+      localStorage.setItem(LOCAL_STORAGE_KEY + '_USER_ACCOUNTS', JSON.stringify(usersList));
+    } catch (err) {
+      console.error(err);
+    }
   }, [usersList]);
 
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
@@ -301,23 +270,33 @@ export const ERPProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     safeGetJSON(LOCAL_STORAGE_KEY + '_USER', DEFAULT_MANAGED_USERS[0])
   );
 
-  const [userRole, setUserRole] = useState<UserRole | string>(() => currentUser?.role || 'Admin');
+  const [userRole, setUserRole] = useState<UserRole | string>(() => currentUser?.role || 'SUPER_ADMIN');
 
   const login = (username: string, password?: string): { success: boolean; message?: string } => {
     const cleanUser = username.trim().toLowerCase();
     const cleanPass = (password || '').trim();
 
-    const matchedUser = usersList.find(
+    // Re-fetch users directly from localStorage to ensure immediate sync with UserManagement
+    let currentStoredUsers: ManagedUser[] = usersList;
+    try {
+      const live = localStorage.getItem(STORAGE_USERS_KEY);
+      if (live) currentStoredUsers = JSON.parse(live);
+    } catch {}
+
+    const matchedUser = currentStoredUsers.find(
       (u) =>
-        u.username.toLowerCase() === cleanUser ||
-        u.email.toLowerCase() === cleanUser
+        (u.username && u.username.toLowerCase() === cleanUser) ||
+        (u.email && u.email.toLowerCase() === cleanUser) ||
+        (u.name && u.name.toLowerCase() === cleanUser) ||
+        (u.fullName && u.fullName.toLowerCase() === cleanUser)
     );
 
     if (!matchedUser) {
       return { success: false, message: 'User not registered. Please contact administrator.' };
     }
 
-    if (matchedUser.status === 'INACTIVE') {
+    const isInactive = matchedUser.status === 'Inactive' || matchedUser.status === 'INACTIVE';
+    if (isInactive) {
       return { success: false, message: 'Your account is deactivated. Contact administrator.' };
     }
 
@@ -327,9 +306,9 @@ export const ERPProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
     const usr: User = {
       id: matchedUser.id,
-      name: matchedUser.name,
-      email: matchedUser.email,
-      role: matchedUser.role as any
+      name: matchedUser.fullName || matchedUser.name || 'User',
+      email: matchedUser.email || `${matchedUser.username}@erp.internal`,
+      role: (matchedUser.role || 'SUPER_ADMIN') as any
     };
 
     setCurrentUser(usr);
@@ -349,7 +328,7 @@ export const ERPProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const addManagedUser = (userData: Omit<ManagedUser, 'id'>) => {
     const newUser: ManagedUser = {
       ...userData,
-      id: `usr-${Date.now()}`
+      id: `usr-${Date.now().toString().slice(-4)}`
     };
     setUsersList((prev) => [newUser, ...prev]);
   };
