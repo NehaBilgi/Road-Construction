@@ -31,7 +31,26 @@ const STORAGE_HAULAGE_KEY = 'CONSTRUCTION_PRO_HAULAGE_TRIPS_V2';
 const STORAGE_DIESEL_KEY = 'CONSTRUCTION_PRO_DIESEL_LOGS_V1';
 
 export const SiteCostExpensesModule: React.FC = () => {
-  const { siteSheets = [], selectedSiteId } = useERP();
+  const { siteSheets = [], selectedSiteId, currentUser, userRole } = useERP() as any;
+
+  // Strict Admin Evaluation
+  const isAdmin = useMemo(() => {
+    let roleCandidate = String(userRole || currentUser?.role || '').trim().toUpperCase();
+    if (roleCandidate === 'SUPER_ADMIN' || roleCandidate === 'ADMIN' || roleCandidate.includes('ADMIN')) {
+      return true;
+    }
+    if (typeof window !== 'undefined') {
+      try {
+        const storedUser = localStorage.getItem('CONSTRUCTION_PRO_ERP_STORAGE_V7_USER') || localStorage.getItem('PAVETRACK_CURRENT_USER');
+        if (storedUser) {
+          const parsed = JSON.parse(storedUser);
+          const parsedRole = String(parsed?.role || '').trim().toUpperCase();
+          return parsedRole === 'SUPER_ADMIN' || parsedRole === 'ADMIN' || parsedRole.includes('ADMIN');
+        }
+      } catch {}
+    }
+    return false;
+  }, [userRole, currentUser]);
 
   // Resolve active site based on global header selection
   const currentActiveSite = siteSheets.find((s: any) => s.siteId === selectedSiteId);
@@ -100,9 +119,7 @@ export const SiteCostExpensesModule: React.FC = () => {
   const [amount, setAmount] = useState<number | ''>('');
   const [status, setStatus] = useState<'Paid' | 'Pending'>('Paid');
 
-  // ==========================================
-  // CROSS-LINKED CALCULATIONS (Scoped to Active Header Site)
-  // ==========================================
+  // Cross-linked Calculations
   const activeSiteExpenses = useMemo(() => expenses.filter(e => e.siteName === activeSiteName), [expenses, activeSiteName]);
   const activeSiteTrips = useMemo(() => trips.filter(t => t.siteName === activeSiteName), [trips, activeSiteName]);
   const activeSiteDiesel = useMemo(() => diesel.filter(d => d.siteName === activeSiteName), [diesel, activeSiteName]);
@@ -140,6 +157,10 @@ export const SiteCostExpensesModule: React.FC = () => {
   };
 
   const handleEdit = (v: SiteExpenseVoucher) => {
+    if (!isAdmin) {
+      alert('Access Restricted: Only Administrators are authorized to edit expense vouchers.');
+      return;
+    }
     setEditingId(v.id);
     setDate(v.date);
     setTitle(v.title);
@@ -151,6 +172,10 @@ export const SiteCostExpensesModule: React.FC = () => {
   };
 
   const handleDelete = (id: string) => {
+    if (!isAdmin) {
+      alert('Access Restricted: Only Administrators are authorized to delete expense vouchers.');
+      return;
+    }
     if (window.confirm('Delete this expense voucher?')) {
       setExpenses((prev) => prev.filter((e) => e.id !== id));
     }
@@ -158,6 +183,10 @@ export const SiteCostExpensesModule: React.FC = () => {
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
+    if (editingId && !isAdmin) {
+      alert('Access Restricted: Only Administrators can modify existing records.');
+      return;
+    }
     if (!title || amount === '') return;
 
     const payload: SiteExpenseVoucher = {
@@ -194,7 +223,6 @@ export const SiteCostExpensesModule: React.FC = () => {
 
   return (
     <div className="space-y-6 font-sans text-slate-100">
-      
       {/* Top Banner & Site Display */}
       <div className="p-4 sm:p-6 lg:p-8 rounded-[1.5rem] lg:rounded-[2rem] bg-[#0c1427] border border-[#182643] shadow-2xl flex flex-col xl:flex-row xl:items-center justify-between gap-6 relative overflow-hidden">
         <div className="absolute top-0 right-0 w-96 h-96 bg-rose-600/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none" />
@@ -233,7 +261,6 @@ export const SiteCostExpensesModule: React.FC = () => {
 
       {/* Linked KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-        
         {/* Direct Expenses */}
         <div className="p-5 rounded-[1.5rem] bg-[#0c1427] border border-[#182643] shadow-xl flex flex-col justify-between">
           <div className="flex justify-between items-start mb-4">
@@ -242,10 +269,10 @@ export const SiteCostExpensesModule: React.FC = () => {
           </div>
           <div>
             <div className="text-3xl sm:text-4xl font-black text-white font-mono tracking-tight mb-2">
-              ₹{totalDirectExpenses.toLocaleString() || '0'}
+              ₹{totalDirectExpenses.toLocaleString('en-IN')}
             </div>
             <div className="text-[11px] font-bold text-emerald-500">
-              Paid: ₹{totalPaidDirect.toLocaleString() || '0'}
+              Paid: ₹{totalPaidDirect.toLocaleString('en-IN')}
             </div>
           </div>
         </div>
@@ -258,7 +285,7 @@ export const SiteCostExpensesModule: React.FC = () => {
           </div>
           <div>
             <div className="text-3xl sm:text-4xl font-black text-cyan-400 font-mono tracking-tight mb-2">
-              ₹{totalMaterialCost.toLocaleString() || '0'}
+              ₹{totalMaterialCost.toLocaleString('en-IN')}
             </div>
             <div className="text-[11px] text-slate-500">
               {activeSiteTrips.length > 0 ? `From ${activeSiteTrips.length} haulage trips` : 'No material trips logged'}
@@ -274,7 +301,7 @@ export const SiteCostExpensesModule: React.FC = () => {
           </div>
           <div>
             <div className="text-3xl sm:text-4xl font-black text-amber-400 font-mono tracking-tight mb-2">
-              ₹{totalDieselCost.toLocaleString() || '0'}
+              ₹{totalDieselCost.toLocaleString('en-IN')}
             </div>
             <div className="text-[10px] font-mono font-bold text-amber-500/70">
               {activeSiteDiesel.length > 0 ? `From DIESEL Dispense Log` : 'No diesel dispensed'}
@@ -290,14 +317,13 @@ export const SiteCostExpensesModule: React.FC = () => {
           </div>
           <div>
             <div className="text-3xl sm:text-4xl font-black text-white font-mono tracking-tight mb-2">
-              ₹{totalSiteOutflow.toLocaleString() || '0'}
+              ₹{totalSiteOutflow.toLocaleString('en-IN')}
             </div>
             <div className="text-[11px] font-bold text-emerald-400">
               All Materials, Fuel & Site Operations
             </div>
           </div>
         </div>
-
       </div>
 
       {/* Section Divider */}
@@ -384,7 +410,7 @@ export const SiteCostExpensesModule: React.FC = () => {
                       </span>
                     </td>
                     <td className="py-3 px-5 text-right font-mono font-black text-rose-400 text-sm whitespace-nowrap">
-                      ₹{v.amount.toLocaleString()}
+                      ₹{v.amount.toLocaleString('en-IN')}
                     </td>
                     <td className="py-3 px-5 text-center">
                       <span className={`px-2.5 py-1 rounded text-[10px] font-black uppercase tracking-wider border ${
@@ -396,20 +422,26 @@ export const SiteCostExpensesModule: React.FC = () => {
                       </span>
                     </td>
                     <td className="py-3 px-5 text-right whitespace-nowrap">
-                      <div className="flex items-center justify-end gap-2">
-                        <button
-                          onClick={() => handleEdit(v)}
-                          className="p-1.5 rounded-lg text-slate-500 hover:text-blue-400 hover:bg-blue-950/40 transition-colors cursor-pointer"
-                        >
-                          <Edit2 className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(v.id)}
-                          className="p-1.5 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-950/40 transition-colors cursor-pointer"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
+                      {isAdmin ? (
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            onClick={() => handleEdit(v)}
+                            title="Edit Voucher"
+                            className="p-1.5 rounded-lg text-slate-500 hover:text-blue-400 hover:bg-blue-950/40 transition-colors cursor-pointer"
+                          >
+                            <Edit2 className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(v.id)}
+                            title="Delete Voucher"
+                            className="p-1.5 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-950/40 transition-colors cursor-pointer"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      ) : (
+                        <span className="text-slate-600 font-mono text-xs select-none pr-3">—</span>
+                      )}
                     </td>
                   </tr>
                 ))
@@ -434,7 +466,6 @@ export const SiteCostExpensesModule: React.FC = () => {
             </div>
 
             <form onSubmit={handleSave} className="space-y-4 text-xs">
-              
               <div>
                 <label className="block text-slate-400 font-bold mb-1.5">Site Name</label>
                 <input
