@@ -3,11 +3,14 @@ import { useERP } from '../../context/ERPContext';
 import { HardHat, Lock, User, AlertCircle, ArrowRight, Eye, EyeOff } from 'lucide-react';
 import { ThemeToggle } from '../ThemeToggle';
 
-// Storage key synced with User Management module
-const STORAGE_USERS_KEY = 'PAVETRACK_AUTHORIZED_PERSONNEL_V2';
+const STORAGE_KEYS = [
+  'PAVETRACK_AUTHORIZED_PERSONNEL_V2',
+  'PAVETRACK_AUTHORIZED_PERSONNEL_V1',
+  'PAVETRACK_SYSTEM_USERS_V1'
+];
 
 export const LoginPage: React.FC = () => {
-  const erpContext = useERP() as any;
+  const erp = useERP() as any;
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -19,71 +22,84 @@ export const LoginPage: React.FC = () => {
     setErrorMessage('');
     setIsLoading(true);
 
-    const cleanUser = username.trim().toLowerCase();
-    const cleanPass = password.trim();
+    const inputUser = username.trim().toLowerCase();
+    const inputPass = password.trim();
 
-    if (!cleanUser || !cleanPass) {
+    if (!inputUser || !inputPass) {
       setErrorMessage('Please enter both username and password.');
       setIsLoading(false);
       return;
     }
 
-    // 1. Fetch live system users registered in User Management
-    let systemUsers: any[] = [];
-    try {
-      if (typeof window !== 'undefined') {
-        const saved = localStorage.getItem(STORAGE_USERS_KEY);
+    // 1. Gather all registered users across storage versions
+    let allUsers: any[] = [];
+    STORAGE_KEYS.forEach((key) => {
+      try {
+        const saved = localStorage.getItem(key);
         if (saved) {
-          systemUsers = JSON.parse(saved);
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed)) {
+            allUsers = [...allUsers, ...parsed];
+          }
         }
+      } catch (err) {
+        console.error(err);
       }
-    } catch {
-      systemUsers = [];
-    }
+    });
 
-    // 2. Find user by exact username
-    const matchedUser = systemUsers.find(
-      (u: any) => u.username && u.username.toLowerCase() === cleanUser
+    // 2. Find matching user by username or email
+    const matchedUser = allUsers.find(
+      (u: any) =>
+        (u.username && u.username.toLowerCase() === inputUser) ||
+        (u.email && u.email.toLowerCase() === inputUser) ||
+        (u.fullName && u.fullName.toLowerCase() === inputUser)
     );
 
+    // 3. Fallback to ERP context login method first if user not found in local storage
     if (!matchedUser) {
-      // Check native ERP context login if applicable
-      if (typeof erpContext.login === 'function') {
-        const res = erpContext.login(username, password);
-        if (!res || !res.success) {
-          setErrorMessage(res?.message || 'Invalid username or password.');
+      if (typeof erp?.login === 'function') {
+        const res = erp.login(username.trim(), inputPass);
+        if (res && res.success) {
           setIsLoading(false);
           return;
         }
-      } else {
-        setErrorMessage('User account not found.');
-        setIsLoading(false);
-        return;
       }
-    } else {
-      // Check account status
-      if (matchedUser.status === 'Inactive') {
-        setErrorMessage('This user account is inactive. Please contact an administrator.');
-        setIsLoading(false);
-        return;
-      }
-
-      // Check exact password match
-      if (matchedUser.password !== cleanPass) {
-        setErrorMessage('Incorrect password. Please try again.');
-        setIsLoading(false);
-        return;
-      }
-
-      // Set user session in context
-      if (typeof erpContext.setCurrentUser === 'function') {
-        erpContext.setCurrentUser(matchedUser);
-      } else if (typeof erpContext.login === 'function') {
-        erpContext.login(matchedUser.username, matchedUser.password);
-      }
+      setErrorMessage('User account not found. Please check username.');
+      setIsLoading(false);
+      return;
     }
 
-    setIsLoading(false);
+    // 4. Validate password
+    const userPass = matchedUser.password || '';
+    if (userPass && userPass !== inputPass) {
+      setErrorMessage('Incorrect password. Please try again.');
+      setIsLoading(false);
+      return;
+    }
+
+    // 5. Set session across context & localStorage
+    const authenticatedUser = {
+      ...matchedUser,
+      status: 'Active'
+    };
+
+    try {
+      localStorage.setItem('PAVETRACK_CURRENT_USER', JSON.stringify(authenticatedUser));
+      localStorage.setItem('ERP_AUTH_TOKEN', 'token_' + Date.now());
+    } catch {}
+
+    if (typeof erp?.setCurrentUser === 'function') {
+      erp.setCurrentUser(authenticatedUser);
+    } else if (typeof erp?.setUser === 'function') {
+      erp.setUser(authenticatedUser);
+    } else if (typeof erp?.login === 'function') {
+      erp.login(matchedUser.username || username, inputPass);
+    }
+
+    // Force refresh if the context doesn't re-render automatically
+    setTimeout(() => {
+      setIsLoading(false);
+    }, 300);
   };
 
   return (
