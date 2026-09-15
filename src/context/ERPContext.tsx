@@ -55,12 +55,15 @@ import {
   INITIAL_SITE_EXPENSES_SAMPLE
 } from '../data/initialData';
 
+export type AllowedModuleScope = 'ROAD_ONLY' | 'BUILDING_ONLY' | 'BOTH_ROAD_AND_BUILDING';
+
 export interface ManagedUser extends User {
   username: string;
   password?: string;
   fullName?: string;
   department?: string;
   phone?: string;
+  allowedScope?: AllowedModuleScope;
   status: 'Active' | 'Inactive' | 'ACTIVE' | 'INACTIVE';
 }
 
@@ -75,6 +78,7 @@ const DEFAULT_MANAGED_USERS: ManagedUser[] = [
     password: 'Password@123',
     email: 'habibullabilgiabu@gmail.com',
     role: 'SUPER_ADMIN' as any,
+    allowedScope: 'BOTH_ROAD_AND_BUILDING',
     department: 'Operations',
     status: 'Active'
   }
@@ -100,8 +104,8 @@ interface ERPContextType {
   isAuthenticated: boolean;
   login: (username: string, password?: string) => { success: boolean; message?: string };
   logout: () => void;
-  currentUser: User;
-  setCurrentUser: (user: User) => void;
+  currentUser: User & { allowedScope?: AllowedModuleScope };
+  setCurrentUser: (user: User & { allowedScope?: AllowedModuleScope }) => void;
   userRole: UserRole | string;
   setUserRole: (role: UserRole | string) => void;
 
@@ -266,17 +270,43 @@ export const ERPProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
   });
 
-  const [currentUser, setCurrentUser] = useState<User>(() =>
+  const [currentUser, setCurrentUser] = useState<User & { allowedScope?: AllowedModuleScope }>(() =>
     safeGetJSON(LOCAL_STORAGE_KEY + '_USER', DEFAULT_MANAGED_USERS[0])
   );
 
   const [userRole, setUserRole] = useState<UserRole | string>(() => currentUser?.role || 'SUPER_ADMIN');
 
+  // Initialize workType automatically based on active scope
+  const [workType, setWorkType] = useState<WorkType | null>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const savedUser = localStorage.getItem('PAVETRACK_CURRENT_USER') || localStorage.getItem(LOCAL_STORAGE_KEY + '_USER');
+        if (savedUser) {
+          const parsed = JSON.parse(savedUser);
+          if (parsed.allowedScope === 'BUILDING_ONLY') return 'BUILDING';
+          if (parsed.allowedScope === 'ROAD_ONLY') return 'ROAD';
+        }
+      } catch {}
+    }
+    return 'ROAD';
+  });
+
+  // Auto-switch domain when active user updates
+  useEffect(() => {
+    if (currentUser) {
+      const scope = (currentUser as any).allowedScope;
+      if (scope === 'BUILDING_ONLY' && workType !== 'BUILDING') {
+        setWorkType('BUILDING');
+      } else if (scope === 'ROAD_ONLY' && workType !== 'ROAD') {
+        setWorkType('ROAD');
+      }
+    }
+  }, [currentUser]);
+
   const login = (username: string, password?: string): { success: boolean; message?: string } => {
     const cleanUser = username.trim().toLowerCase();
     const cleanPass = (password || '').trim();
 
-    // Re-fetch users directly from localStorage to ensure immediate sync with UserManagement
     let currentStoredUsers: ManagedUser[] = usersList;
     try {
       const live = localStorage.getItem(STORAGE_USERS_KEY);
@@ -304,12 +334,20 @@ export const ERPProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       return { success: false, message: 'Incorrect password. Please try again.' };
     }
 
-    const usr: User = {
+    const usr: User & { allowedScope?: AllowedModuleScope } = {
       id: matchedUser.id,
       name: matchedUser.fullName || matchedUser.name || 'User',
       email: matchedUser.email || `${matchedUser.username}@erp.internal`,
-      role: (matchedUser.role || 'SUPER_ADMIN') as any
+      role: (matchedUser.role || 'SUPER_ADMIN') as any,
+      allowedScope: matchedUser.allowedScope || 'BOTH_ROAD_AND_BUILDING'
     };
+
+    // Auto-switch mode based on user permission scope upon login
+    if (usr.allowedScope === 'BUILDING_ONLY') {
+      setWorkType('BUILDING');
+    } else if (usr.allowedScope === 'ROAD_ONLY') {
+      setWorkType('ROAD');
+    }
 
     setCurrentUser(usr);
     setUserRole(matchedUser.role as any);
@@ -317,6 +355,7 @@ export const ERPProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
     sessionStorage.setItem(LOCAL_STORAGE_KEY + '_AUTH', JSON.stringify(true));
     localStorage.setItem(LOCAL_STORAGE_KEY + '_USER', JSON.stringify(usr));
+    localStorage.setItem('PAVETRACK_CURRENT_USER', JSON.stringify(usr));
     return { success: true };
   };
 
@@ -343,7 +382,6 @@ export const ERPProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setUsersList((prev) => prev.filter((u) => u.id !== id));
   };
 
-  const [workType, setWorkType] = useState<WorkType | null>('ROAD');
   const [mobileSiteMode, setMobileSiteMode] = useState<boolean>(false);
 
   const [deletedSiteIds, setDeletedSiteIds] = useState<string[]>(() =>
@@ -713,7 +751,7 @@ export const ERPProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       projectId: targetProjId,
       name: input.siteName,
       code: input.siteCode || 'ST-' + Math.floor(100 + Math.random() * 900),
-      location: input.location,
+      location,
       supervisor: input.supervisor
     };
 
