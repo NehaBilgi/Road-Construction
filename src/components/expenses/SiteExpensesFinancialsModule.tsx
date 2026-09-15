@@ -20,7 +20,9 @@ import {
   CreditCard,
   Banknote,
   Download,
-  Trash2
+  Trash2,
+  Edit2,
+  X
 } from 'lucide-react';
 
 const CATEGORY_META: Record<SiteExpenseCategory, { label: string; icon: string }> = {
@@ -47,11 +49,15 @@ export const SiteExpensesFinancialsModule: React.FC = () => {
     refillPettyCash,
     kpis = { totalSiteExpensesINR: 0, averageCostPerKmINR: 0, totalFuelCostINR: 0 },
     project
-  } = useRoadERP();
+  } = useRoadERP() as any;
 
-  const { currentUser, userRole, siteSheets = [], selectedSiteId } = useERP();
+  const { currentUser, userRole, siteSheets = [], selectedSiteId } = useERP() as any;
 
-  // 1. One-time clean-up of stale 45,000 mock data if present
+  // Strict Admin Check
+  const currentRoleStr = String(currentUser?.role || userRole || '').toUpperCase();
+  const isAdmin = currentRoleStr === 'SUPER_ADMIN' || currentRoleStr === 'ADMIN';
+
+  // 1. One-time clean-up of stale mock data if present
   useEffect(() => {
     try {
       const raw = localStorage.getItem(EXPENSE_STORAGE_KEY);
@@ -81,7 +87,7 @@ export const SiteExpensesFinancialsModule: React.FC = () => {
   // Sync dashboard localStorage whenever expenses change
   useEffect(() => {
     try {
-      const formattedForDashboard = (expenses || []).map((e) => ({
+      const formattedForDashboard = (expenses || []).map((e: any) => ({
         id: e.id,
         voucherNumber: e.voucherNumber,
         siteName: e.costCenterChainage?.includes(activeSite.siteName)
@@ -101,16 +107,13 @@ export const SiteExpensesFinancialsModule: React.FC = () => {
     }
   }, [expenses, activeSite.siteName]);
 
-  // Strict Admin Check
-  const currentRoleStr = String(currentUser?.role || userRole || '').toLowerCase();
-  const isAdmin = currentRoleStr.includes('admin');
-
   const [categoryFilter, setCategoryFilter] = useState('ALL');
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Add Voucher Modal
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  // Add / Edit Voucher Modal State
+  const [isVoucherModalOpen, setIsVoucherModalOpen] = useState(false);
+  const [editingVoucherId, setEditingVoucherId] = useState<string | null>(null);
   const [formDate, setFormDate] = useState(new Date().toISOString().substring(0, 10));
   const [formCategory, setFormCategory] = useState<SiteExpenseCategory>('DAILY_SITE_OPERATIONS');
   const [formPayee, setFormPayee] = useState('');
@@ -126,7 +129,7 @@ export const SiteExpensesFinancialsModule: React.FC = () => {
 
   // Filtered expenses
   const filteredExpenses = useMemo(() => {
-    return (expenses || []).filter((e) => {
+    return (expenses || []).filter((e: any) => {
       const matchCat = categoryFilter === 'ALL' || e.category === categoryFilter;
       const matchStatus = statusFilter === 'ALL' || e.status === statusFilter;
       const q = searchTerm.toLowerCase();
@@ -149,10 +152,10 @@ export const SiteExpensesFinancialsModule: React.FC = () => {
     remainingBalance: 0
   };
 
-  // Safe Metric Calculation Fallbacks (Directly derived from the current expenses array)
+  // Safe Metric Calculations
   const safeTotalSiteExpenses = useMemo(() => {
     if (!expenses || expenses.length === 0) return 0;
-    return expenses.reduce((sum, e) => {
+    return expenses.reduce((sum: number, e: any) => {
       const val = Number(e?.amount);
       return sum + (!isNaN(val) && val > 0 ? val : 0);
     }, 0);
@@ -163,11 +166,62 @@ export const SiteExpensesFinancialsModule: React.FC = () => {
   const safePettyCashRemaining = Number(primaryWallet?.remainingBalance ?? 0) || 0;
   const safePettyCashAllocated = Number(primaryWallet?.totalAllocatedBudget ?? 0) || 0;
 
-  // Submit Voucher
-  const handleCreateVoucher = (e: React.FormEvent) => {
+  const handleOpenAdd = () => {
+    setEditingVoucherId(null);
+    setFormDate(new Date().toISOString().substring(0, 10));
+    setFormCategory('DAILY_SITE_OPERATIONS');
+    setFormPayee('');
+    setFormAmount('');
+    setFormMode('PETTY_CASH');
+    setFormChainage('Ch. 12+400 Base Camp');
+    setFormDesc('');
+    setFormRefNo('');
+    setIsVoucherModalOpen(true);
+  };
+
+  const handleEdit = (voucher: SiteExpenseVoucher) => {
+    if (!isAdmin) {
+      alert('Action Restricted: Only Administrators are authorized to edit expense vouchers.');
+      return;
+    }
+    setEditingVoucherId(voucher.id);
+    setFormDate(voucher.date);
+    setFormCategory(voucher.category);
+    setFormPayee(voucher.payeeVendorName);
+    setFormAmount(voucher.amount);
+    setFormMode(voucher.paymentMode);
+    setFormChainage(voucher.costCenterChainage || activeSite.siteName);
+    setFormDesc(voucher.description || '');
+    setFormRefNo(voucher.invoiceReceiptNumber || '');
+    setIsVoucherModalOpen(true);
+  };
+
+  const handleDelete = (voucherId: string) => {
+    if (!isAdmin) {
+      alert('Action Restricted: Only Administrators are authorized to delete expense vouchers.');
+      return;
+    }
+    if (window.confirm('Delete this site expense voucher permanently?')) {
+      deleteExpenseVoucher(voucherId);
+    }
+  };
+
+  // Create or Update Voucher
+  const handleSaveVoucher = (e: React.FormEvent) => {
     e.preventDefault();
+    if (editingVoucherId && !isAdmin) {
+      alert('Action Restricted: Only Administrators can modify existing vouchers.');
+      return;
+    }
     const parsedAmount = Number(formAmount);
     if (!formPayee.trim() || isNaN(parsedAmount) || parsedAmount <= 0) return;
+
+    if (editingVoucherId) {
+      // If updating an existing voucher, delete old and recreate or update directly
+      if (typeof deleteExpenseVoucher === 'function') {
+        deleteExpenseVoucher(editingVoucherId);
+      }
+    }
 
     addExpenseVoucher({
       date: formDate,
@@ -182,7 +236,8 @@ export const SiteExpensesFinancialsModule: React.FC = () => {
       status: 'SUBMITTED'
     });
 
-    setIsAddModalOpen(false);
+    setIsVoucherModalOpen(false);
+    setEditingVoucherId(null);
     setFormPayee('');
     setFormAmount('');
     setFormDesc('');
@@ -191,20 +246,14 @@ export const SiteExpensesFinancialsModule: React.FC = () => {
 
   const handleRefillSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isAdmin) {
+      alert('Action Restricted: Only Administrators can refill petty cash.');
+      return;
+    }
     if (primaryWallet.id) {
       refillPettyCash(primaryWallet.id, Number(refillAmount) || 0);
     }
     setIsRefillOpen(false);
-  };
-
-  const handleDelete = (voucherId: string) => {
-    if (!isAdmin) {
-      alert('Action Restricted: Only Administrators are authorized to delete expense vouchers.');
-      return;
-    }
-    if (window.confirm('Delete this site expense voucher permanently?')) {
-      deleteExpenseVoucher(voucherId);
-    }
   };
 
   // Export to CSV
@@ -222,10 +271,10 @@ export const SiteExpensesFinancialsModule: React.FC = () => {
       'Description'
     ];
 
-    const rows = filteredExpenses.map((e) => [
+    const rows = filteredExpenses.map((e: any) => [
       e.voucherNumber,
       e.date,
-      `"${CATEGORY_META[e.category]?.label || e.category}"`,
+      `"${CATEGORY_META[e.category as SiteExpenseCategory]?.label || e.category}"`,
       `"${e.payeeVendorName}"`,
       `"${e.costCenterChainage}"`,
       Number(e.amount) || 0,
@@ -237,11 +286,11 @@ export const SiteExpensesFinancialsModule: React.FC = () => {
 
     const csvContent =
       'data:text/csv;charset=utf-8,' +
-      [headers.join(','), ...rows.map((e) => e.join(','))].join('\n');
+      [headers.join(','), ...rows.map((r: any) => r.join(','))].join('\n');
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement('a');
     link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `Site_Expense_Vouchers_Ledger.csv`);
+    link.setAttribute('download', `Site_Expense_Vouchers_Ledger_${Date.now()}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -273,7 +322,7 @@ export const SiteExpensesFinancialsModule: React.FC = () => {
 
           <div className="flex flex-wrap items-center gap-2">
             <button
-              onClick={() => setIsAddModalOpen(true)}
+              onClick={handleOpenAdd}
               className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-slate-950 font-extrabold text-xs flex items-center gap-1.5 shadow-lg shadow-emerald-500/20 cursor-pointer transition-all"
             >
               <Plus className="w-4 h-4" />
@@ -289,7 +338,7 @@ export const SiteExpensesFinancialsModule: React.FC = () => {
           </div>
         </div>
 
-        {/* 4-Stat Financial Metrics Grid with Safe 0 Fallbacks */}
+        {/* 4-Stat Financial Metrics Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mt-6 pt-5 border-t border-[#182643]">
           {/* 1. Total Site Expenses */}
           <div className="p-3.5 bg-[#070c18] rounded-2xl border border-[#182643]">
@@ -328,7 +377,7 @@ export const SiteExpensesFinancialsModule: React.FC = () => {
             </div>
           </div>
 
-          {/* 4. Total Combined Burn */}
+          {/* 4. Combined Burn */}
           <div className="p-3.5 bg-[#070c18] rounded-2xl border border-[#182643]">
             <div className="text-[11px] font-semibold text-slate-400">Combined Project Cash Outflow</div>
             <div className="text-2xl font-black text-amber-400 font-mono mt-1">
@@ -399,18 +448,18 @@ export const SiteExpensesFinancialsModule: React.FC = () => {
                 <th className="py-3 px-3 text-right">AMOUNT (₹)</th>
                 <th className="py-3 px-3 text-center">PAY MODE</th>
                 <th className="py-3 px-3 text-center">APPROVAL STATUS</th>
-                {isAdmin && <th className="py-3 px-3 text-center">ACTION</th>}
+                <th className="py-3 px-3 text-center">ACTION</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#15223c] text-slate-200">
               {filteredExpenses.length === 0 ? (
                 <tr>
-                  <td colSpan={isAdmin ? 8 : 7} className="py-8 text-center text-slate-500">
-                    No site expense vouchers found.
+                  <td colSpan={8} className="py-8 text-center text-slate-500">
+                    No site expense vouchers found for {activeSite.siteName}.
                   </td>
                 </tr>
               ) : (
-                filteredExpenses.map((voucher) => {
+                filteredExpenses.map((voucher: any) => {
                   const isApproved = voucher.status === 'APPROVED' || voucher.status === 'PAID';
                   const isRejected = voucher.status === 'REJECTED';
                   const amountNum = Number(voucher?.amount) || 0;
@@ -431,7 +480,7 @@ export const SiteExpensesFinancialsModule: React.FC = () => {
                       {/* Category */}
                       <td className="py-3 px-4">
                         <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-800 text-slate-300 border border-slate-700">
-                          {CATEGORY_META[voucher.category]?.label || voucher.category}
+                          {CATEGORY_META[voucher.category as SiteExpenseCategory]?.label || voucher.category}
                         </span>
                         <div className="text-[11px] text-slate-400 mt-1 truncate max-w-[200px]">
                           {voucher.description}
@@ -466,7 +515,7 @@ export const SiteExpensesFinancialsModule: React.FC = () => {
                         </span>
                       </td>
 
-                      {/* Approval Status Selector */}
+                      {/* Approval Status */}
                       <td className="py-3 px-3 text-center">
                         {isAdmin ? (
                           <select
@@ -492,7 +541,7 @@ export const SiteExpensesFinancialsModule: React.FC = () => {
                           </select>
                         ) : (
                           <span
-                            className={`text-[10px] font-bold px-2 py-0.5 rounded-lg uppercase ${
+                            className={`text-[10px] font-bold px-2 py-0.5 rounded-lg uppercase inline-block ${
                               isApproved
                                 ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
                                 : isRejected
@@ -505,18 +554,29 @@ export const SiteExpensesFinancialsModule: React.FC = () => {
                         )}
                       </td>
 
-                      {/* Delete (Admin Only) */}
-                      {isAdmin && (
-                        <td className="py-3 px-3 text-center">
-                          <button
-                            onClick={() => handleDelete(voucher.id)}
-                            className="p-1 rounded text-slate-500 hover:text-rose-400 hover:bg-rose-950/40 transition-colors cursor-pointer"
-                            title="Delete Voucher (Admin Only)"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </td>
-                      )}
+                      {/* Action: Edit & Delete (Admin Only) */}
+                      <td className="py-3 px-3 text-center">
+                        {isAdmin ? (
+                          <div className="flex items-center justify-center gap-1.5">
+                            <button
+                              onClick={() => handleEdit(voucher)}
+                              className="p-1 rounded text-slate-400 hover:text-blue-400 cursor-pointer"
+                              title="Edit Voucher (Admin Only)"
+                            >
+                              <Edit2 className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              onClick={() => handleDelete(voucher.id)}
+                              className="p-1 rounded text-slate-400 hover:text-rose-400 cursor-pointer"
+                              title="Delete Voucher (Admin Only)"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        ) : (
+                          <span className="text-slate-600 font-mono text-xs">—</span>
+                        )}
+                      </td>
                     </tr>
                   );
                 })
@@ -590,24 +650,24 @@ export const SiteExpensesFinancialsModule: React.FC = () => {
         </div>
       )}
 
-      {/* RAISE EXPENSE VOUCHER MODAL */}
-      {isAddModalOpen && (
+      {/* RAISE / EDIT EXPENSE VOUCHER MODAL */}
+      {isVoucherModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
           <div className="bg-[#0c1427] border border-[#1b2845] rounded-3xl w-full max-w-lg p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between">
               <h3 className="text-base font-bold text-white flex items-center gap-2">
                 <Receipt className="w-5 h-5 text-emerald-400" />
-                <span>Raise Site Expense Voucher</span>
+                <span>{editingVoucherId ? 'Edit Site Expense Voucher' : 'Raise Site Expense Voucher'}</span>
               </h3>
               <button
-                onClick={() => setIsAddModalOpen(false)}
+                onClick={() => { setIsVoucherModalOpen(false); setEditingVoucherId(null); }}
                 className="text-slate-400 hover:text-white cursor-pointer"
               >
                 ✕
               </button>
             </div>
 
-            <form onSubmit={handleCreateVoucher} className="space-y-3.5 text-xs">
+            <form onSubmit={handleSaveVoucher} className="space-y-3.5 text-xs">
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-slate-300 font-semibold mb-1">
@@ -616,7 +676,7 @@ export const SiteExpensesFinancialsModule: React.FC = () => {
                   <select
                     value={formCategory}
                     onChange={(e) => setFormCategory(e.target.value as SiteExpenseCategory)}
-                    className="w-full px-3 py-2 bg-[#070c18] border border-[#1b2845] rounded-xl text-white outline-none"
+                    className="w-full px-3 py-2 bg-[#070c18] border border-[#1b2845] rounded-xl text-white outline-none cursor-pointer"
                   >
                     {Object.entries(CATEGORY_META).map(([key, item]) => (
                       <option key={key} value={key}>
@@ -680,7 +740,7 @@ export const SiteExpensesFinancialsModule: React.FC = () => {
                   <select
                     value={formMode}
                     onChange={(e) => setFormMode(e.target.value as ExpensePaymentMode)}
-                    className="w-full px-3 py-2 bg-[#070c18] border border-[#1b2845] rounded-xl text-white outline-none"
+                    className="w-full px-3 py-2 bg-[#070c18] border border-[#1b2845] rounded-xl text-white outline-none cursor-pointer"
                   >
                     <option value="PETTY_CASH">Supervisor Petty Cash Float</option>
                     <option value="BANK_TRANSFER_NEFT">Bank Transfer / NEFT / RTGS</option>
@@ -736,7 +796,7 @@ export const SiteExpensesFinancialsModule: React.FC = () => {
               <div className="flex justify-end gap-2 pt-3 border-t border-[#182643]">
                 <button
                   type="button"
-                  onClick={() => setIsAddModalOpen(false)}
+                  onClick={() => { setIsVoucherModalOpen(false); setEditingVoucherId(null); }}
                   className="px-4 py-2 rounded-xl text-slate-400 hover:text-white cursor-pointer"
                 >
                   Cancel
@@ -745,7 +805,7 @@ export const SiteExpensesFinancialsModule: React.FC = () => {
                   type="submit"
                   className="px-5 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 text-slate-950 font-bold shadow-lg shadow-emerald-500/20 cursor-pointer"
                 >
-                  Submit Expense Voucher
+                  {editingVoucherId ? 'Update Expense Voucher' : 'Submit Expense Voucher'}
                 </button>
               </div>
             </form>
