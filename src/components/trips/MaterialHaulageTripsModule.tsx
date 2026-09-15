@@ -251,6 +251,13 @@ export const MaterialHaulageTripsModule: React.FC = () => {
     }
   };
 
+  const handlePrint = () => {
+    const originalTitle = document.title;
+    document.title = '';
+    window.print();
+    document.title = originalTitle;
+  };
+
   const handleOpenAdd = () => {
     setEditingId(null);
     setTripDate(new Date().toISOString().split('T')[0]);
@@ -322,7 +329,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
 
   return (
     <div className="space-y-4 sm:space-y-6 font-sans text-slate-100 print:text-black print:space-y-3">
-      {/* Print Styles: Sets page margin to hide browser headers/footers */}
+      {/* Print Styles */}
       <style dangerouslySetInnerHTML={{ __html: `
         @media print {
           @page {
@@ -394,7 +401,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
 
         <div className="flex items-center gap-2">
           <button
-            onClick={() => window.print()}
+            onClick={handlePrint}
             className="px-3.5 py-2.5 rounded-xl bg-[#131d33] hover:bg-[#1a2847] border border-[#1E293B] hover:border-slate-600 text-slate-200 text-xs font-bold flex items-center gap-1.5 transition-all shadow-sm cursor-pointer"
             title="Print or Export to PDF"
           >
