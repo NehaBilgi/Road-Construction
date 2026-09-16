@@ -156,7 +156,7 @@ interface SidebarProps {
   setActiveTab: (tab: string) => void;
   projectType?: 'ROAD' | 'BUILDING';
   onSwitchDomain?: () => void;
-  canSwitchDomain?: boolean;
+  isAdminUser?: boolean;
   onClose?: () => void;
 }
 
@@ -173,7 +173,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   setActiveTab,
   projectType = 'ROAD',
   onSwitchDomain,
-  canSwitchDomain = false,
+  isAdminUser = false,
   onClose
 }) => {
   const { currentUser, logout } = useERP();
@@ -297,7 +297,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
       </div>
 
       <div className="p-3 border-t border-[#1E293B] bg-[#080C14] space-y-2 sticky bottom-0 z-10">
-        {canSwitchDomain && onSwitchDomain && (
+        {/* Strictly visible ONLY to Admin users */}
+        {isAdminUser && onSwitchDomain && (
           <button
             onClick={() => {
               onSwitchDomain();
@@ -583,12 +584,10 @@ export const AppContent: React.FC = () => {
     setAppDomain
   } = useERP() as any;
 
+  // Strict Admin Power check
   const currentRoleStr = String(userRole || currentUser?.role || '').toUpperCase();
   const isAdmin = currentRoleStr.includes('ADMIN') || currentRoleStr.includes('SUPER');
   const userScope = currentUser?.allowedScope || (isAdmin ? 'BOTH_ROAD_AND_BUILDING' : 'ROAD_ONLY');
-
-  // Strict power check: Only Super Admin, Admin, and BOTH_ROAD_AND_BUILDING can select/switch domains
-  const hasDomainSelectionPower = isAdmin || userScope === 'BOTH_ROAD_AND_BUILDING';
 
   const [projectType, setProjectType] = useState<'ROAD' | 'BUILDING' | null>(() => {
     try {
@@ -596,8 +595,8 @@ export const AppContent: React.FC = () => {
       if (saved === 'ROAD' || saved === 'BUILDING') return saved;
     } catch {}
 
-    // Non-admin single domain users auto-resolve; Admin/Dual-domain starts at null
-    if (!hasDomainSelectionPower) {
+    // Non-admin users automatically resolve based on scope; Admins start at null to choose
+    if (!isAdmin) {
       return userScope === 'BUILDING_ONLY' ? 'BUILDING' : 'ROAD';
     }
     return null;
@@ -614,25 +613,28 @@ export const AppContent: React.FC = () => {
   const [activeTab, setActiveTab] = useState<string>('dashboard');
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState<boolean>(false);
 
-  // Auto-route single-scope users directly to their designated domain
+  // Auto-route non-admin users directly to their designated domain
   useEffect(() => {
-    if (!hasDomainSelectionPower) {
+    if (!isAdmin) {
       const fixedDomain = userScope === 'BUILDING_ONLY' ? 'BUILDING' : 'ROAD';
       if (projectType !== fixedDomain) {
         setProjectType(fixedDomain);
         if (setAppDomain) setAppDomain(fixedDomain);
         sessionStorage.setItem('CONSTRUCTION_PRO_DOMAIN_SESSION', fixedDomain);
       }
+    } else if (appDomain && appDomain !== 'BOTH') {
+      setProjectType(appDomain);
+      sessionStorage.setItem('CONSTRUCTION_PRO_DOMAIN_SESSION', appDomain);
     }
-  }, [userScope, hasDomainSelectionPower]);
+  }, [userScope, isAdmin, appDomain]);
 
   // 1. Must be logged in
   if (!isAuthenticated) {
     return <LoginPage />;
   }
 
-  // 2. Admin & Dual-Domain users see the Domain Selection Screen first
-  if (!projectType && hasDomainSelectionPower) {
+  // 2. Domain Selection Screen ONLY for Admins
+  if (!projectType && isAdmin) {
     return (
       <ProjectTypeSelectionPage
         onSelectProjectType={(type) => {
@@ -657,7 +659,7 @@ export const AppContent: React.FC = () => {
           sessionStorage.setItem('CONSTRUCTION_PRO_SITE_CHOSEN_SESSION', 'true');
         }}
         onBackToDomainSelect={
-          hasDomainSelectionPower
+          isAdmin
             ? () => {
                 setProjectType(null);
                 setHasSelectedSite(false);
@@ -687,9 +689,9 @@ export const AppContent: React.FC = () => {
             activeTab={activeTab}
             setActiveTab={setActiveTab}
             projectType={activeDomain}
-            canSwitchDomain={hasDomainSelectionPower}
+            isAdminUser={isAdmin}
             onSwitchDomain={
-              hasDomainSelectionPower
+              isAdmin
                 ? () => {
                     const next = activeDomain === 'ROAD' ? 'BUILDING' : 'ROAD';
                     setProjectType(next);
@@ -713,9 +715,9 @@ export const AppContent: React.FC = () => {
                 activeTab={activeTab}
                 setActiveTab={setActiveTab}
                 projectType={activeDomain}
-                canSwitchDomain={hasDomainSelectionPower}
+                isAdminUser={isAdmin}
                 onSwitchDomain={
-                  hasDomainSelectionPower
+                  isAdmin
                     ? () => {
                         const next = activeDomain === 'ROAD' ? 'BUILDING' : 'ROAD';
                         setProjectType(next);
