@@ -10,7 +10,9 @@ import {
   Store,
   ChevronDown,
   Printer,
-  Fuel
+  Fuel,
+  Calendar,
+  RotateCcw
 } from 'lucide-react';
 
 export interface HaulageTripRecord {
@@ -150,6 +152,10 @@ export const MaterialHaulageTripsModule: React.FC = () => {
     }
   });
 
+  // Filter States (Search + Date Picker)
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterDate, setFilterDate] = useState<string>('');
+
   useEffect(() => {
     const handleSync = () => {
       try {
@@ -172,7 +178,6 @@ export const MaterialHaulageTripsModule: React.FC = () => {
     };
   }, []);
 
-  const [searchQuery, setSearchQuery] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
 
@@ -199,6 +204,16 @@ export const MaterialHaulageTripsModule: React.FC = () => {
   };
 
   useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (vendorDropdownRef.current && !vendorDropdownRef.current.contains(event.target as Node)) {
+        setIsVendorDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  useEffect(() => {
     try {
       localStorage.setItem(STORAGE_HAULAGE_KEY, JSON.stringify(trips));
     } catch (error) {
@@ -213,26 +228,29 @@ export const MaterialHaulageTripsModule: React.FC = () => {
     return tripsNum * brassNum * rateNum;
   }, [dayTrips, brassPerTrip, ratePerBrass]);
 
+  // Combined Search + Site + Date Filter
   const filtered = useMemo(() => {
     return trips.filter((t) => {
       const matchSite = !activeSiteName || t.siteName === activeSiteName;
-      const q = searchQuery.toLowerCase();
-      return (
-        matchSite &&
-        (!q ||
-          t.vehicleNumber.toLowerCase().includes(q) ||
-          t.materialName.toLowerCase().includes(q) ||
-          (t.purchasedFrom || '').toLowerCase().includes(q))
-      );
+      const matchDate = !filterDate || t.tripDate === filterDate;
+      const q = searchQuery.toLowerCase().trim();
+      const matchQuery =
+        !q ||
+        t.vehicleNumber.toLowerCase().includes(q) ||
+        t.materialName.toLowerCase().includes(q) ||
+        (t.purchasedFrom || '').toLowerCase().includes(q) ||
+        t.tripDate.includes(q) ||
+        formatDateDMY(t.tripDate).includes(q);
+
+      return matchSite && matchDate && matchQuery;
     });
-  }, [trips, activeSiteName, searchQuery]);
+  }, [trips, activeSiteName, filterDate, searchQuery]);
 
   const currentSupplierName = useMemo(() => {
     const vendors = Array.from(new Set(filtered.map((t) => t.purchasedFrom?.trim()).filter(Boolean)));
     return vendors.length > 0 ? vendors.join(', ') : 'MBB CRUSHER';
   }, [filtered]);
 
-  // Map to find rented vehicles set
   const rentedVehiclesSet = useMemo(() => {
     return new Set(
       fleetVehicles
@@ -241,7 +259,6 @@ export const MaterialHaulageTripsModule: React.FC = () => {
     );
   }, [fleetVehicles]);
 
-  // Helper to calculate diesel cost allocated per trip row (matching date and vehicle)
   const getRowDiesel = (rowDate: string, rowVehicle: string) => {
     const isRented = rentedVehiclesSet.has(rowVehicle.trim().toUpperCase());
     if (!isRented) return { litres: 0, cost: 0 };
@@ -258,7 +275,6 @@ export const MaterialHaulageTripsModule: React.FC = () => {
     return { litres, cost };
   };
 
-  // Grand totals
   const overallTotals = useMemo(() => {
     return filtered.reduce(
       (acc, t) => {
@@ -285,10 +301,26 @@ export const MaterialHaulageTripsModule: React.FC = () => {
       .filter((a) => {
         const matchSite = !activeSiteName || a.siteName === activeSiteName;
         const matchVendor = currentVendorNames.length === 0 || currentVendorNames.includes(a.vendorName?.trim().toLowerCase());
-        return matchSite && matchVendor;
+        const matchDate = !filterDate || a.date === filterDate;
+        return matchSite && matchVendor && matchDate;
       })
       .reduce((sum, a) => sum + (Number(a.amount) || 0), 0);
-  }, [advances, filtered, activeSiteName]);
+  }, [advances, filtered, activeSiteName, filterDate]);
+
+  const advanceDatesSummary = useMemo(() => {
+    const currentVendorNames = Array.from(new Set(filtered.map((t) => t.purchasedFrom?.trim().toLowerCase()).filter(Boolean)));
+    const matchedDates = advances
+      .filter((a) => {
+        const matchSite = !activeSiteName || a.siteName === activeSiteName;
+        const matchVendor = currentVendorNames.length === 0 || currentVendorNames.includes(a.vendorName?.trim().toLowerCase());
+        const matchDate = !filterDate || a.date === filterDate;
+        return matchSite && matchVendor && matchDate && a.date;
+      })
+      .map((a) => formatDateDMY(a.date));
+
+    const uniqueDates = Array.from(new Set(matchedDates));
+    return uniqueDates.length > 0 ? uniqueDates.join(', ') : '';
+  }, [advances, filtered, activeSiteName, filterDate]);
 
   const totalDeductions = totalVendorAdvancePaid + overallTotals.dieselCost;
   const rawBalance = overallTotals.amount - totalDeductions;
@@ -381,14 +413,14 @@ export const MaterialHaulageTripsModule: React.FC = () => {
         </div>
         <div className="flex items-center justify-between text-lg font-black uppercase text-black">
           <div>{currentSupplierName}</div>
-          <div>SITE: {activeSiteName}</div>
+          <div>SITE: {activeSiteName} {filterDate && `(${formatDateDMY(filterDate)})`}</div>
         </div>
       </div>
 
       {/* Screen Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 no-print">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-blue-600/20 border border-blue-500/30 flex items-center justify-center text-blue-400">
+          <div className="w-10 h-10 rounded-2xl bg-blue-600/20 border border-blue-500/30 flex items-center justify-center text-blue-400 shrink-0">
             <Truck className="w-5 h-5" />
           </div>
           <div>
@@ -429,7 +461,9 @@ export const MaterialHaulageTripsModule: React.FC = () => {
         <div className="p-4 rounded-2xl bg-[#0B1220] border border-[#1E293B]">
           <div className="text-[10px] font-bold uppercase text-rose-400">(-) Less: Advance Paid</div>
           <div className="text-xl font-black text-rose-400 font-mono mt-1">₹{totalVendorAdvancePaid.toLocaleString('en-IN')}</div>
-          <div className="text-[10px] text-slate-500">Auto-deducted advances</div>
+          <div className="text-[10px] text-slate-500">
+            {advanceDatesSummary ? `Paid on: ${advanceDatesSummary}` : 'Auto-deducted advances'}
+          </div>
         </div>
 
         <div className={`p-4 rounded-2xl border ${netPayableAmount > 0 ? 'bg-amber-950/20 border-amber-500/30' : 'bg-[#0B1220] border-[#1E293B]'}`}>
@@ -439,7 +473,51 @@ export const MaterialHaulageTripsModule: React.FC = () => {
         </div>
       </div>
 
-      {/* Main Table with Dedicated Diesel Column */}
+      {/* Unified Search & Date-Wise Filter Bar */}
+      <div className="p-3.5 rounded-2xl bg-[#0c1427] border border-[#182643] flex flex-col sm:flex-row items-stretch sm:items-center gap-3 text-xs no-print">
+        {/* 1. Text Search Box */}
+        <div className="relative flex-1">
+          <Search className="absolute left-3.5 top-2.5 w-4 h-4 text-slate-500" />
+          <input
+            type="text"
+            placeholder="Search by vehicle (e.g. 3146), supplier, material name..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-10 pr-4 py-2 bg-[#080d19] border border-[#1E293B] rounded-xl text-white outline-none focus:border-blue-500 placeholder-slate-500"
+          />
+        </div>
+
+        {/* 2. Date-Wise Filter Control */}
+        <div className="flex items-center gap-2">
+          <div className="relative flex items-center bg-[#080d19] border border-[#1E293B] rounded-xl px-3 py-1.5 focus-within:border-blue-500">
+            <Calendar className="w-4 h-4 text-blue-400 mr-2 shrink-0" />
+            <span className="text-[11px] text-slate-400 font-medium mr-1.5 whitespace-nowrap">Date:</span>
+            <input
+              type="date"
+              value={filterDate}
+              onChange={(e) => setFilterDate(e.target.value)}
+              className="bg-transparent text-white outline-none font-mono text-xs cursor-pointer"
+            />
+          </div>
+
+          {/* Quick Clear Filter Button */}
+          {(filterDate || searchQuery) && (
+            <button
+              onClick={() => {
+                setFilterDate('');
+                setSearchQuery('');
+              }}
+              title="Reset all filters"
+              className="px-2.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white flex items-center gap-1 text-[11px] font-semibold transition-all cursor-pointer"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              <span>Reset</span>
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Main Table */}
       <div className="bg-[#0B1220] border border-[#1E293B] rounded-2xl overflow-hidden shadow-2xl print:border-none">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs border-collapse print-clean-table">
@@ -454,7 +532,6 @@ export const MaterialHaulageTripsModule: React.FC = () => {
                 <th className="py-3 px-2 text-right">QTY/TRIP</th>
                 <th className="py-3 px-2 text-right">RATE (₹)</th>
                 <th className="py-3 px-3 text-right">AMOUNT (₹)</th>
-                {/* Dedicated Diesel Amount Column */}
                 <th className="py-3 px-3 text-right text-amber-400">DIESEL (₹)</th>
                 <th className="py-3 px-3 text-center no-print">ACTION</th>
               </tr>
@@ -463,7 +540,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
               {filtered.length === 0 ? (
                 <tr>
                   <td colSpan={11} className="py-8 text-center text-slate-500">
-                    No records found for {activeSiteName}.
+                    No haulage trip records found {filterDate ? `for ${formatDateDMY(filterDate)}` : `for ${activeSiteName}`}.
                   </td>
                 </tr>
               ) : (
@@ -652,7 +729,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
                 >
                   {categories.map((c) => (
                     <option key={c.id} value={`${c.name} (₹${c.standardRate}/${c.unit})`}>
-                      {c.name} (₹{c.standardRate}/{c.unit})
+                      {c.name} (₹${c.standardRate}/${c.unit})
                     </option>
                   ))}
                 </select>
