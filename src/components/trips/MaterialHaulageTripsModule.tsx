@@ -340,8 +340,11 @@ export const MaterialHaulageTripsModule: React.FC = () => {
 
   const totalDeductions = totalVendorAdvancePaid + overallTotals.dieselCost;
   const rawBalance = overallTotals.amount - totalDeductions;
+  
+  // Negative rawBalance means advance paid is larger than bill (excess advance with vendor)
+  // Positive rawBalance means trips amount is larger (you still have to pay the vendor)
   const isAdvanceExcess = rawBalance < 0;
-  const netPayableAmount = isAdvanceExcess ? 0 : rawBalance;
+  const netPayableAmount = Math.abs(rawBalance);
 
   const handlePrint = () => {
     const originalTitle = document.title;
@@ -548,10 +551,16 @@ export const MaterialHaulageTripsModule: React.FC = () => {
           <div className="text-[10px] text-slate-500">{matchingAdvances.length} Advance Payments Recorded</div>
         </div>
 
-        <div className={`p-4 rounded-2xl border ${netPayableAmount > 0 ? 'bg-amber-950/20 border-amber-500/30' : 'bg-[#0B1220] border-[#1E293B]'}`}>
-          <div className="text-[10px] font-bold uppercase text-amber-400">(=) Net Payable Amount</div>
-          <div className="text-xl font-black text-amber-400 font-mono mt-1">₹{netPayableAmount.toLocaleString('en-IN', { minimumFractionDigits: 1 })}</div>
-          <div className="text-[10px] text-slate-400">Balance Payable to Vendor / Transporter</div>
+        <div className={`p-4 rounded-2xl border ${isAdvanceExcess ? 'bg-rose-950/20 border-rose-500/30' : 'bg-amber-950/20 border-amber-500/30'}`}>
+          <div className={`text-[10px] font-bold uppercase ${isAdvanceExcess ? 'text-rose-400' : 'text-amber-400'}`}>
+            {isAdvanceExcess ? '(+) Advance Balance With Vendor' : '(=) Net Payable to Vendor'}
+          </div>
+          <div className={`text-xl font-black font-mono mt-1 ${isAdvanceExcess ? 'text-rose-400' : 'text-amber-400'}`}>
+            {isAdvanceExcess ? '+' : ''}₹{netPayableAmount.toLocaleString('en-IN', { minimumFractionDigits: 1 })}
+          </div>
+          <div className="text-[10px] text-slate-400">
+            {isAdvanceExcess ? 'Excess advance holding / to adjust in next trips' : 'Pending balance to pay to vendor'}
+          </div>
         </div>
       </div>
 
@@ -777,13 +786,28 @@ export const MaterialHaulageTripsModule: React.FC = () => {
                   <td className="no-print"></td>
                 </tr>
 
-                {/* 4. Final Net Balance Payable */}
-                <tr className="bg-[#1e1906] text-amber-400 print:bg-transparent print:text-black font-black print-net-row">
+                {/* 4. Final Net Balance (Dynamic: Excess Advance vs Payable) */}
+                <tr
+                  className={`font-black print-net-row ${
+                    isAdvanceExcess
+                      ? 'bg-[#220c14] text-rose-400'
+                      : 'bg-[#1e1906] text-amber-400'
+                  } print:bg-transparent print:text-black`}
+                >
                   <td colSpan={8} className="py-2.5 px-3 text-right uppercase tracking-wider text-xs">
-                    (=) NET PAYABLE AMOUNT:
+                    {isAdvanceExcess ? (
+                      <span className="flex items-center justify-end gap-2 text-rose-400 print:text-black">
+                        <span className="px-2 py-0.5 rounded bg-rose-900/40 border border-rose-700/50 print:border-black text-[10px] font-sans uppercase tracking-normal">
+                          Excess Advance
+                        </span>
+                        (+) ADVANCE BALANCE REMAINING WITH VENDOR:
+                      </span>
+                    ) : (
+                      '(=) NET PAYABLE AMOUNT TO VENDOR:'
+                    )}
                   </td>
                   <td colSpan={3} className="py-2.5 px-3 text-right text-sm font-black">
-                    ₹{netPayableAmount.toLocaleString('en-IN', { minimumFractionDigits: 1 })}
+                    {isAdvanceExcess ? '+' : ''}₹{netPayableAmount.toLocaleString('en-IN', { minimumFractionDigits: 1 })}
                   </td>
                   <td className="no-print"></td>
                 </tr>
