@@ -226,13 +226,13 @@ const safeGetJSON = <T,>(key: string, fallback: T): T => {
   try {
     const item = localStorage.getItem(key);
     return item ? JSON.parse(item) : fallback;
-  } catch {
+  } catch (err) {
     return fallback;
   }
 };
 
 export const ERPProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  // Users List Management
+  // 1. User Management State
   const [usersList, setUsersList] = useState<ManagedUser[]>(() => {
     const saved = safeGetJSON(STORAGE_USERS_KEY, null);
     if (saved && Array.isArray(saved) && saved.length > 0) {
@@ -250,7 +250,7 @@ export const ERPProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
   }, [usersList]);
 
-  // Session & Auth State Restoration
+  // 2. Auth Session State
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false;
     try {
@@ -269,7 +269,7 @@ export const ERPProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   const [userRole, setUserRole] = useState<UserRole | string>(() => currentUser?.role || 'SUPER_ADMIN');
 
-  // Domain state: Synchronizes appDomain & workType
+  // 3. Dual Domain Synchronization (ROAD vs BUILDING)
   const [appDomain, setAppDomainState] = useState<AppDomainType>(() => {
     const scope = currentUser?.allowedScope;
     if (scope === 'BUILDING_ONLY') return 'BUILDING';
@@ -299,7 +299,6 @@ export const ERPProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
   };
 
-  // Sync domain automatically when active user changes
   useEffect(() => {
     if (currentUser) {
       const scope = currentUser.allowedScope;
@@ -311,7 +310,7 @@ export const ERPProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
   }, [currentUser]);
 
-  // Login handler with role-based domain migration
+  // 4. Authenticate & Auto-Migrate
   const login = (username: string, password?: string): { success: boolean; message?: string; user?: ManagedUser } => {
     const cleanUser = username.trim().toLowerCase();
     const cleanPass = (password || '').trim();
@@ -355,7 +354,6 @@ export const ERPProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       allowedScope: scope
     };
 
-    // Auto-migrate domain based on assigned scope
     if (scope === 'BUILDING_ONLY') {
       setAppDomain('BUILDING');
     } else if (scope === 'ROAD_ONLY') {
