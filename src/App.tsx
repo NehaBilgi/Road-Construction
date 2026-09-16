@@ -571,9 +571,11 @@ export const RoadMaterialCategoriesModule: React.FC = () => {
 // Main Application Router
 // ==========================================
 export const AppContent: React.FC = () => {
-  const { isAuthenticated, selectedSiteId, setSelectedSiteId, siteSheets } = useERP();
+  const { isAuthenticated, selectedSiteId, setSelectedSiteId, siteSheets, appDomain, setAppDomain } = useERP();
 
   const [projectType, setProjectType] = useState<'ROAD' | 'BUILDING' | null>(() => {
+    if (appDomain === 'BUILDING') return 'BUILDING';
+    if (appDomain === 'ROAD') return 'ROAD';
     try {
       return (sessionStorage.getItem('CONSTRUCTION_PRO_DOMAIN_SESSION') as any) || null;
     } catch {
@@ -592,6 +594,13 @@ export const AppContent: React.FC = () => {
   const [activeTab, setActiveTab] = useState<string>('dashboard');
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState<boolean>(false);
 
+  useEffect(() => {
+    if (appDomain && appDomain !== 'BOTH') {
+      setProjectType(appDomain);
+      sessionStorage.setItem('CONSTRUCTION_PRO_DOMAIN_SESSION', appDomain);
+    }
+  }, [appDomain]);
+
   if (!isAuthenticated) {
     return <LoginPage />;
   }
@@ -601,6 +610,7 @@ export const AppContent: React.FC = () => {
       <ProjectTypeSelectionPage
         onSelectProjectType={(type) => {
           setProjectType(type);
+          if (setAppDomain) setAppDomain(type);
           sessionStorage.setItem('CONSTRUCTION_PRO_DOMAIN_SESSION', type);
         }}
       />
@@ -634,10 +644,10 @@ export const AppContent: React.FC = () => {
         onToggleSidebar={() => setMobileSidebarOpen(true)}
       />
 
-      <div className="flex flex-1 relative h-[calc(100vh-48px)] overflow-hidden">
+      <div className="flex flex-1 relative h-[calc(100vh-56px)] overflow-hidden">
         
         {/* Desktop Sidebar Container (Hidden on mobile) */}
-        <div className="hidden lg:block h-full shrink-0">
+        <div className="hidden lg:block h-full shrink-0 w-64">
           <Sidebar
             activeTab={activeTab}
             setActiveTab={setActiveTab}
@@ -645,6 +655,7 @@ export const AppContent: React.FC = () => {
             onSwitchDomain={() => {
               const next = projectType === 'ROAD' ? 'BUILDING' : 'ROAD';
               setProjectType(next);
+              if (setAppDomain) setAppDomain(next);
               sessionStorage.setItem('CONSTRUCTION_PRO_DOMAIN_SESSION', next);
             }}
           />
@@ -665,6 +676,7 @@ export const AppContent: React.FC = () => {
                 onSwitchDomain={() => {
                   const next = projectType === 'ROAD' ? 'BUILDING' : 'ROAD';
                   setProjectType(next);
+                  if (setAppDomain) setAppDomain(next);
                   sessionStorage.setItem('CONSTRUCTION_PRO_DOMAIN_SESSION', next);
                 }}
                 onClose={() => setMobileSidebarOpen(false)}
@@ -674,7 +686,7 @@ export const AppContent: React.FC = () => {
         )}
 
         {/* Main Content Area */}
-        <main className="flex-1 w-full min-w-0 p-6 overflow-y-auto max-h-[calc(100vh-48px)] scrollbar-thin scrollbar-thumb-[#1E293B] scrollbar-track-transparent">
+        <main className="flex-1 w-full min-w-0 p-6 overflow-y-auto max-h-[calc(100vh-56px)] scrollbar-thin scrollbar-thumb-[#1E293B] scrollbar-track-transparent">
           <div className="max-w-7xl mx-auto pb-12 w-full overflow-x-hidden">
             {activeTab === 'dashboard' && <SiteCentricMidnightDashboard onNavigateTab={setActiveTab} />}
             {(activeTab === 'road-sites' || activeTab === 'sites') && (
@@ -688,6 +700,13 @@ export const AppContent: React.FC = () => {
                 {activeTab === 'site-expenses' && <SiteCostExpensesModule />}
                 {(activeTab === 'yield_calculator' || activeTab === 'road-yield') && <RoadYieldCalculatorModule />}
                 {(activeTab === 'machinery_fleet' || activeTab === 'machinery') && <MachineryFleetModule />}
+                {activeTab === 'categories' && <RoadMaterialCategoriesModule />}
+                {activeTab === 'users' && <UserManagementModule />}
+              </>
+            )}
+            {projectType === 'BUILDING' && (
+              <>
+                {activeTab === 'transactions' && <StockTransactionsModule />}
                 {activeTab === 'categories' && <RoadMaterialCategoriesModule />}
                 {activeTab === 'users' && <UserManagementModule />}
               </>
