@@ -63,7 +63,6 @@ export const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
   const { selectedSiteId, setSelectedSiteId, siteSheets, userRole, logout } = erpContext;
 
   const [isSiteOpen, setIsSiteOpen] = useState(false);
-  const isSuperAdmin = userRole === 'SUPER_ADMIN' || userRole === 'OWNER' || userRole === 'Admin';
   const currentSiteSheet = siteSheets.find((s) => s.siteId === selectedSiteId) || siteSheets[0];
 
   return (
@@ -157,6 +156,7 @@ interface SidebarProps {
   setActiveTab: (tab: string) => void;
   projectType?: 'ROAD' | 'BUILDING';
   onSwitchDomain?: () => void;
+  canSwitchDomain?: boolean;
   onClose?: () => void;
 }
 
@@ -173,6 +173,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   setActiveTab,
   projectType = 'ROAD',
   onSwitchDomain,
+  canSwitchDomain = false,
   onClose
 }) => {
   const { currentUser, logout } = useERP();
@@ -296,7 +297,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       </div>
 
       <div className="p-3 border-t border-[#1E293B] bg-[#080C14] space-y-2 sticky bottom-0 z-10">
-        {onSwitchDomain && (
+        {canSwitchDomain && onSwitchDomain && (
           <button
             onClick={() => {
               onSwitchDomain();
@@ -311,11 +312,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <div className="p-2 rounded-xl bg-[#121927] border border-[#1E293B] flex items-center justify-between">
           <div className="flex items-center gap-2.5 overflow-hidden">
             <div className="w-8 h-8 rounded-full bg-blue-600/20 border border-blue-500/30 flex items-center justify-center font-bold text-xs text-blue-400 shrink-0">
-              {currentUser?.name ? currentUser.name.charAt(0).toUpperCase() : 'H'}
+              {currentUser?.fullName?.charAt(0).toUpperCase() || currentUser?.name?.charAt(0).toUpperCase() || 'U'}
             </div>
             <div className="truncate">
-              <div className="text-xs font-bold text-white truncate">{currentUser?.name || 'Habibulla Bilgi'}</div>
-              <div className="text-[10px] text-[#94A3B8] truncate">Site Engineer & Admin</div>
+              <div className="text-xs font-bold text-white truncate">{currentUser?.fullName || currentUser?.name || 'User'}</div>
+              <div className="text-[10px] text-[#94A3B8] truncate">{currentUser?.role || 'SUPER_ADMIN'}</div>
             </div>
           </div>
           <button onClick={logout} title="Logout" className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-[#162032] transition-colors cursor-pointer">
@@ -571,9 +572,28 @@ export const RoadMaterialCategoriesModule: React.FC = () => {
 // Main Application Router
 // ==========================================
 export const AppContent: React.FC = () => {
-  const { isAuthenticated, selectedSiteId, setSelectedSiteId, siteSheets, appDomain, setAppDomain } = useERP();
+  const {
+    isAuthenticated,
+    selectedSiteId,
+    setSelectedSiteId,
+    siteSheets,
+    currentUser,
+    userRole,
+    appDomain,
+    setAppDomain
+  } = useERP() as any;
+
+  const currentRoleStr = String(userRole || currentUser?.role || '').toUpperCase();
+  const isAdmin = currentRoleStr.includes('ADMIN') || currentRoleStr.includes('SUPER');
+  const userScope = currentUser?.allowedScope || (isAdmin ? 'BOTH_ROAD_AND_BUILDING' : 'ROAD_ONLY');
+
+  // Strict power check: Only Super Admin, Admin, and BOTH_ROAD_AND_BUILDING can select/switch domains
+  const hasDomainSelectionPower = isAdmin || userScope === 'BOTH_ROAD_AND_BUILDING';
 
   const [projectType, setProjectType] = useState<'ROAD' | 'BUILDING' | null>(() => {
+    if (!hasDomainSelectionPower) {
+      return userScope === 'BUILDING_ONLY' ? 'BUILDING' : 'ROAD';
+    }
     if (appDomain === 'BUILDING') return 'BUILDING';
     if (appDomain === 'ROAD') return 'ROAD';
     try {
@@ -594,18 +614,27 @@ export const AppContent: React.FC = () => {
   const [activeTab, setActiveTab] = useState<string>('dashboard');
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState<boolean>(false);
 
+  // Auto-route single-scope users directly to their designated domain
   useEffect(() => {
-    if (appDomain && appDomain !== 'BOTH') {
+    if (!hasDomainSelectionPower) {
+      const fixedDomain = userScope === 'BUILDING_ONLY' ? 'BUILDING' : 'ROAD';
+      if (projectType !== fixedDomain) {
+        setProjectType(fixedDomain);
+        if (setAppDomain) setAppDomain(fixedDomain);
+        sessionStorage.setItem('CONSTRUCTION_PRO_DOMAIN_SESSION', fixedDomain);
+      }
+    } else if (appDomain && appDomain !== 'BOTH') {
       setProjectType(appDomain);
       sessionStorage.setItem('CONSTRUCTION_PRO_DOMAIN_SESSION', appDomain);
     }
-  }, [appDomain]);
+  }, [userScope, hasDomainSelectionPower, appDomain]);
 
   if (!isAuthenticated) {
     return <LoginPage />;
   }
 
-  if (!projectType) {
+  // Multi-domain selection page shown only for Admin / BOTH_ROAD_AND_BUILDING
+  if (!projectType && hasDomainSelectionPower) {
     return (
       <ProjectTypeSelectionPage
         onSelectProjectType={(type) => {
@@ -617,21 +646,27 @@ export const AppContent: React.FC = () => {
     );
   }
 
+  const activeDomain = projectType || (userScope === 'BUILDING_ONLY' ? 'BUILDING' : 'ROAD');
+
   if (!hasSelectedSite || !selectedSiteId || siteSheets.length === 0) {
     return (
       <SiteSelectionPage
-        projectType={projectType}
+        projectType={activeDomain}
         onSelectSite={(siteId) => {
           setSelectedSiteId(siteId);
           setHasSelectedSite(true);
           sessionStorage.setItem('CONSTRUCTION_PRO_SITE_CHOSEN_SESSION', 'true');
         }}
-        onBackToDomainSelect={() => {
-          setProjectType(null);
-          setHasSelectedSite(false);
-          sessionStorage.removeItem('CONSTRUCTION_PRO_DOMAIN_SESSION');
-          sessionStorage.removeItem('CONSTRUCTION_PRO_SITE_CHOSEN_SESSION');
-        }}
+        onBackToDomainSelect={
+          hasDomainSelectionPower
+            ? () => {
+                setProjectType(null);
+                setHasSelectedSite(false);
+                sessionStorage.removeItem('CONSTRUCTION_PRO_DOMAIN_SESSION');
+                sessionStorage.removeItem('CONSTRUCTION_PRO_SITE_CHOSEN_SESSION');
+              }
+            : undefined
+        }
       />
     );
   }
@@ -651,13 +686,18 @@ export const AppContent: React.FC = () => {
           <Sidebar
             activeTab={activeTab}
             setActiveTab={setActiveTab}
-            projectType={projectType}
-            onSwitchDomain={() => {
-              const next = projectType === 'ROAD' ? 'BUILDING' : 'ROAD';
-              setProjectType(next);
-              if (setAppDomain) setAppDomain(next);
-              sessionStorage.setItem('CONSTRUCTION_PRO_DOMAIN_SESSION', next);
-            }}
+            projectType={activeDomain}
+            canSwitchDomain={hasDomainSelectionPower}
+            onSwitchDomain={
+              hasDomainSelectionPower
+                ? () => {
+                    const next = activeDomain === 'ROAD' ? 'BUILDING' : 'ROAD';
+                    setProjectType(next);
+                    if (setAppDomain) setAppDomain(next);
+                    sessionStorage.setItem('CONSTRUCTION_PRO_DOMAIN_SESSION', next);
+                  }
+                : undefined
+            }
           />
         </div>
 
@@ -672,13 +712,18 @@ export const AppContent: React.FC = () => {
               <Sidebar
                 activeTab={activeTab}
                 setActiveTab={setActiveTab}
-                projectType={projectType}
-                onSwitchDomain={() => {
-                  const next = projectType === 'ROAD' ? 'BUILDING' : 'ROAD';
-                  setProjectType(next);
-                  if (setAppDomain) setAppDomain(next);
-                  sessionStorage.setItem('CONSTRUCTION_PRO_DOMAIN_SESSION', next);
-                }}
+                projectType={activeDomain}
+                canSwitchDomain={hasDomainSelectionPower}
+                onSwitchDomain={
+                  hasDomainSelectionPower
+                    ? () => {
+                        const next = activeDomain === 'ROAD' ? 'BUILDING' : 'ROAD';
+                        setProjectType(next);
+                        if (setAppDomain) setAppDomain(next);
+                        sessionStorage.setItem('CONSTRUCTION_PRO_DOMAIN_SESSION', next);
+                      }
+                    : undefined
+                }
                 onClose={() => setMobileSidebarOpen(false)}
               />
             </div>
@@ -690,9 +735,9 @@ export const AppContent: React.FC = () => {
           <div className="max-w-7xl mx-auto pb-12 w-full overflow-x-hidden">
             {activeTab === 'dashboard' && <SiteCentricMidnightDashboard onNavigateTab={setActiveTab} />}
             {(activeTab === 'road-sites' || activeTab === 'sites') && (
-              <RoadSitesManagerModule projectType={projectType || 'ROAD'} onNavigateTab={setActiveTab} />
+              <RoadSitesManagerModule projectType={activeDomain} onNavigateTab={setActiveTab} />
             )}
-            {projectType === 'ROAD' && (
+            {activeDomain === 'ROAD' && (
               <>
                 {activeTab === 'haulage-trips' && <MaterialHaulageTripsModule />}
                 {activeTab === 'vendor-advances' && <VendorAdvancesModule />}
@@ -704,7 +749,7 @@ export const AppContent: React.FC = () => {
                 {activeTab === 'users' && <UserManagementModule />}
               </>
             )}
-            {projectType === 'BUILDING' && (
+            {activeDomain === 'BUILDING' && (
               <>
                 {activeTab === 'transactions' && <StockTransactionsModule />}
                 {activeTab === 'categories' && <RoadMaterialCategoriesModule />}
