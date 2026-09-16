@@ -152,6 +152,16 @@ export const MaterialHaulageTripsModule: React.FC = () => {
     }
   });
 
+  // Extract all unique suppliers dynamically from Vendor Advances + saved list
+  const allSuppliers = useMemo(() => {
+    const list = new Set<string>(savedVendors);
+    advances.forEach((adv: any) => {
+      const name = (adv.vendorName || adv.supplierName || '').trim().toUpperCase();
+      if (name) list.add(name);
+    });
+    return Array.from(list).sort();
+  }, [savedVendors, advances]);
+
   const [searchQuery, setSearchQuery] = useState('');
   const [filterDate, setFilterDate] = useState<string>('');
 
@@ -166,6 +176,9 @@ export const MaterialHaulageTripsModule: React.FC = () => {
 
         const savedDiesel = localStorage.getItem(STORAGE_DIESEL_KEY);
         setDieselLogs(savedDiesel ? JSON.parse(savedDiesel) : []);
+
+        const savedVendorsList = localStorage.getItem(STORAGE_VENDORS_KEY);
+        if (savedVendorsList) setSavedVendors(JSON.parse(savedVendorsList));
       } catch {}
     };
 
@@ -184,8 +197,6 @@ export const MaterialHaulageTripsModule: React.FC = () => {
   const [siteName, setSiteName] = useState(activeSiteName);
   const [vehicleNumber, setVehicleNumber] = useState('');
   const [purchasedFrom, setPurchasedFrom] = useState('');
-  const [isVendorDropdownOpen, setIsVendorDropdownOpen] = useState(false);
-  const vendorDropdownRef = useRef<HTMLDivElement>(null);
 
   const defaultCategory = categories[0]
     ? `${categories[0].name} (₹${categories[0].standardRate}/${categories[0].unit})`
@@ -201,16 +212,6 @@ export const MaterialHaulageTripsModule: React.FC = () => {
     const found = categories.find((c) => `${c.name} (₹${c.standardRate}/${c.unit})` === selectedFormattedName);
     if (found) setRatePerBrass(found.standardRate);
   };
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (vendorDropdownRef.current && !vendorDropdownRef.current.contains(event.target as Node)) {
-        setIsVendorDropdownOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
 
   useEffect(() => {
     try {
@@ -312,7 +313,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
 
   const handlePrint = () => {
     const originalTitle = document.title;
-    document.title = ''; // Removes browser PDF header title
+    document.title = '';
     window.print();
     document.title = originalTitle;
   };
@@ -322,7 +323,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
     setTripDate(new Date().toISOString().split('T')[0]);
     setSiteName(activeSiteName);
     setVehicleNumber(fleetVehicles[0]?.vehicleNumber || '');
-    setPurchasedFrom('');
+    setPurchasedFrom(allSuppliers[0] || 'MBB CRUSHER');
     setMaterialName(defaultCategory);
     setDayTrips(3);
     setBrassPerTrip(6);
@@ -355,7 +356,19 @@ export const MaterialHaulageTripsModule: React.FC = () => {
     e.preventDefault();
     if (dayTrips === '' || brassPerTrip === '' || ratePerBrass === '') return;
 
-    const trimmedVendor = purchasedFrom.trim() || 'MBB CRUSHER';
+    const trimmedVendor = purchasedFrom.trim().toUpperCase() || 'MBB CRUSHER';
+
+    // Save newly typed supplier for future autocomplete
+    if (!savedVendors.includes(trimmedVendor)) {
+      const updated = [...savedVendors, trimmedVendor];
+      setSavedVendors(updated);
+      try {
+        localStorage.setItem(STORAGE_VENDORS_KEY, JSON.stringify(updated));
+      } catch (err) {
+        console.error('Failed to save vendor name:', err);
+      }
+    }
+
     const record: HaulageTripRecord = {
       id: editingId || `TRIP-${Date.now().toString().slice(-4)}`,
       tripDate,
@@ -573,7 +586,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
         </div>
       </div>
 
-      {/* Main Table with Dedicated Diesel Column */}
+      {/* Main Table */}
       <div className="bg-[#0B1220] border border-[#1E293B] rounded-2xl overflow-hidden shadow-2xl print:border-none print:shadow-none print:rounded-none">
         <div className="overflow-x-auto print:overflow-visible">
           <table className="w-full text-left text-xs border-collapse print-clean-table">
@@ -588,7 +601,6 @@ export const MaterialHaulageTripsModule: React.FC = () => {
                 <th className="py-2.5 px-2 text-right">QTY/TRIP</th>
                 <th className="py-2.5 px-2 text-right">RATE (₹)</th>
                 <th className="py-2.5 px-3 text-right">AMOUNT (₹)</th>
-                {/* Diesel Column */}
                 <th className="py-2.5 px-3 text-right text-amber-400 print:text-black">DIESEL (₹)</th>
                 <th className="py-2.5 px-3 text-center no-print">ACTION</th>
               </tr>
@@ -617,7 +629,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
                       <td className="py-2 px-2 text-right font-mono text-emerald-400 print:text-black">₹{t.ratePerBrass.toLocaleString('en-IN')}</td>
                       <td className="py-2 px-3 text-right font-mono font-black text-amber-400 print:text-black">₹{t.totalAmount.toLocaleString('en-IN')}</td>
                       
-                      {/* Diesel Deduction Column per Row */}
+                      {/* Diesel Column */}
                       <td className="py-2 px-3 text-right font-mono font-bold text-amber-400 print:text-black">
                         {rowDiesel.cost > 0 ? (
                           <div>
@@ -649,10 +661,9 @@ export const MaterialHaulageTripsModule: React.FC = () => {
               )}
             </tbody>
 
-            {/* Reconciliation Footer */}
+            {/* Table Footer */}
             {filtered.length > 0 && (
               <tfoot className="border-t-2 border-[#1E293B] print:border-t-2 print:border-black bg-[#070c18] font-mono print:bg-white text-xs">
-                {/* Row 1: Total Material Purchased */}
                 <tr className="border-b border-[#1E293B]/60 print-total-row">
                   <td colSpan={5} className="py-2 px-3 font-black uppercase text-right text-slate-200 print:text-black">
                     TOTAL MATERIAL PURCHASED:
@@ -667,7 +678,6 @@ export const MaterialHaulageTripsModule: React.FC = () => {
                   <td className="no-print"></td>
                 </tr>
 
-                {/* Row 2: Advance Payment Received */}
                 <tr className="border-b border-[#1E293B]/60 text-rose-400 print:text-black print-sub-row">
                   <td colSpan={8} className="py-2 px-3 font-black uppercase text-right">
                     (-) LESS: ADVANCE PAYMENT RECEIVED :
@@ -678,7 +688,6 @@ export const MaterialHaulageTripsModule: React.FC = () => {
                   <td className="no-print"></td>
                 </tr>
 
-                {/* Row 3: Diesel Dispensed to Rented Vehicles */}
                 <tr className="border-b border-[#1E293B]/60 text-amber-400 print:text-black print-sub-row">
                   <td colSpan={8} className="py-2 px-3 font-black uppercase text-right">
                     (-) LESS: DIESEL DISPENSED TO RENTED VEHICLES ({overallTotals.dieselLitres.toFixed(1)} L):
@@ -689,7 +698,6 @@ export const MaterialHaulageTripsModule: React.FC = () => {
                   <td className="no-print"></td>
                 </tr>
 
-                {/* Row 4: Net Payable Amount */}
                 <tr className="bg-[#1e1906] text-amber-400 print:bg-transparent print:text-black font-black print-net-row">
                   <td colSpan={8} className="py-2.5 px-3 text-right uppercase tracking-wider text-xs">
                     (=) NET PAYABLE AMOUNT:
@@ -763,16 +771,28 @@ export const MaterialHaulageTripsModule: React.FC = () => {
                 </div>
               </div>
 
+              {/* Typeable Supplier Input with Datalist Auto-Complete from Vendor Advances */}
               <div>
-                <label className="block text-slate-300 font-bold mb-1">Purchased From / Supplier *</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. MBB CRUSHER"
-                  value={purchasedFrom}
-                  onChange={(e) => setPurchasedFrom(e.target.value)}
-                  className="w-full px-3 py-2 bg-[#162032] border border-[#1E293B] rounded-xl text-white outline-none"
-                />
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-slate-300 font-bold">Purchased From / Supplier *</label>
+                  <span className="text-[10px] text-blue-400 font-mono">{allSuppliers.length} vendors available</span>
+                </div>
+                <div className="relative">
+                  <input
+                    type="text"
+                    list="vendors-datalist"
+                    required
+                    placeholder="Type or select supplier name (e.g. MBB CRUSHER)"
+                    value={purchasedFrom}
+                    onChange={(e) => setPurchasedFrom(e.target.value)}
+                    className="w-full px-3 py-2 bg-[#162032] border border-blue-500/40 rounded-xl text-white outline-none focus:border-blue-400 uppercase font-bold"
+                  />
+                  <datalist id="vendors-datalist">
+                    {allSuppliers.map((v, i) => (
+                      <option key={i} value={v} />
+                    ))}
+                  </datalist>
+                </div>
               </div>
 
               <div>
