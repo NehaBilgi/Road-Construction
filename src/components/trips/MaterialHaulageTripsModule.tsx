@@ -152,7 +152,6 @@ export const MaterialHaulageTripsModule: React.FC = () => {
     }
   });
 
-  // Filter States (Search + Date Picker)
   const [searchQuery, setSearchQuery] = useState('');
   const [filterDate, setFilterDate] = useState<string>('');
 
@@ -228,7 +227,6 @@ export const MaterialHaulageTripsModule: React.FC = () => {
     return tripsNum * brassNum * rateNum;
   }, [dayTrips, brassPerTrip, ratePerBrass]);
 
-  // Combined Search + Site + Date Filter
   const filtered = useMemo(() => {
     return trips.filter((t) => {
       const matchSite = !activeSiteName || t.siteName === activeSiteName;
@@ -393,25 +391,62 @@ export const MaterialHaulageTripsModule: React.FC = () => {
   };
 
   return (
-    <div className="space-y-4 sm:space-y-6 font-sans text-slate-100 print:text-black print:space-y-3">
-      {/* Print Styles */}
+    <div className="space-y-4 sm:space-y-6 font-sans text-slate-100 print:text-black print:space-y-2">
+      {/* 100% Page Fit Styles for Print / PDF */}
       <style dangerouslySetInnerHTML={{ __html: `
         @media print {
-          @page { size: portrait; margin: 0; }
-          html, body { background-color: #ffffff !important; color: #000000 !important; padding: 10mm !important; }
-          nav, header, aside, .no-print { display: none !important; }
-          .print-clean-table { width: 100% !important; border-collapse: collapse !important; }
-          .print-clean-table th { background-color: #f1f5f9 !important; color: #000000 !important; border-bottom: 2px solid #000000 !important; padding: 6px !important; }
-          .print-clean-table td { color: #000000 !important; border-bottom: 1px solid #e2e8f0 !important; padding: 6px !important; }
+          @page {
+            size: A4 portrait;
+            margin: 6mm 8mm;
+          }
+          html, body {
+            background-color: #ffffff !important;
+            color: #000000 !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            width: 100% !important;
+          }
+          nav, header, aside, .no-print {
+            display: none !important;
+          }
+          .print-clean-table {
+            width: 100% !important;
+            table-layout: fixed !important;
+            border-collapse: collapse !important;
+            font-size: 8.5px !important;
+          }
+          .print-clean-table th {
+            background-color: #f8fafc !important;
+            color: #000000 !important;
+            border-top: 1.5px solid #000000 !important;
+            border-bottom: 1.5px solid #000000 !important;
+            padding: 3px 2px !important;
+            font-size: 8px !important;
+            font-weight: 800 !important;
+            text-align: center !important;
+          }
+          .print-clean-table td {
+            color: #000000 !important;
+            border-bottom: 0.5px solid #cbd5e1 !important;
+            padding: 3px 2px !important;
+            line-height: 1.15 !important;
+            font-size: 8.5px !important;
+            word-wrap: break-word !important;
+          }
+          .print-clean-table tfoot td {
+            border-bottom: 0.5px solid #94a3b8 !important;
+            padding: 3px 2px !important;
+            font-size: 8.5px !important;
+          }
         }
       `}} />
 
       {/* Printable Invoice Header */}
-      <div className="hidden print:block mb-4">
-        <div className="text-center font-black text-2xl uppercase text-black pb-2 border-b-2 border-black mb-3">
+      <div className="hidden print:block mb-2">
+        <div className="text-center font-black text-xl uppercase text-black pb-1 border-b-2 border-black mb-2">
           M B BILGI CONSTRUCTIONS
         </div>
-        <div className="flex items-center justify-between text-lg font-black uppercase text-black">
+        <div className="flex items-center justify-between text-xs font-black uppercase text-black">
           <div>{currentSupplierName}</div>
           <div>SITE: {activeSiteName} {filterDate && `(${formatDateDMY(filterDate)})`}</div>
         </div>
@@ -475,7 +510,6 @@ export const MaterialHaulageTripsModule: React.FC = () => {
 
       {/* Unified Search & Date-Wise Filter Bar */}
       <div className="p-3.5 rounded-2xl bg-[#0c1427] border border-[#182643] flex flex-col sm:flex-row items-stretch sm:items-center gap-3 text-xs no-print">
-        {/* 1. Text Search Box */}
         <div className="relative flex-1">
           <Search className="absolute left-3.5 top-2.5 w-4 h-4 text-slate-500" />
           <input
@@ -487,7 +521,6 @@ export const MaterialHaulageTripsModule: React.FC = () => {
           />
         </div>
 
-        {/* 2. Date-Wise Filter Control */}
         <div className="flex items-center gap-2">
           <div className="relative flex items-center bg-[#080d19] border border-[#1E293B] rounded-xl px-3 py-1.5 focus-within:border-blue-500">
             <Calendar className="w-4 h-4 text-blue-400 mr-2 shrink-0" />
@@ -500,7 +533,6 @@ export const MaterialHaulageTripsModule: React.FC = () => {
             />
           </div>
 
-          {/* Quick Clear Filter Button */}
           {(filterDate || searchQuery) && (
             <button
               onClick={() => {
@@ -519,21 +551,21 @@ export const MaterialHaulageTripsModule: React.FC = () => {
 
       {/* Main Table */}
       <div className="bg-[#0B1220] border border-[#1E293B] rounded-2xl overflow-hidden shadow-2xl print:border-none">
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto print:overflow-visible">
           <table className="w-full text-left text-xs border-collapse print-clean-table">
             <thead>
               <tr className="border-b border-[#1E293B] text-[10px] font-extrabold uppercase text-slate-400 bg-[#080d19]/80">
-                <th className="py-3 px-3 text-left">DATE</th>
-                <th className="py-3 px-3 text-center">SITE</th>
-                <th className="py-3 px-3">PURCHASED FROM</th>
-                <th className="py-3 px-3 text-center">VEHICLE</th>
-                <th className="py-3 px-3">MATERIAL NAME</th>
-                <th className="py-3 px-2 text-center">TRIPS</th>
-                <th className="py-3 px-2 text-right">QTY/TRIP</th>
-                <th className="py-3 px-2 text-right">RATE (₹)</th>
-                <th className="py-3 px-3 text-right">AMOUNT (₹)</th>
-                <th className="py-3 px-3 text-right text-amber-400">DIESEL (₹)</th>
-                <th className="py-3 px-3 text-center no-print">ACTION</th>
+                <th className="py-2 px-2 text-left" style={{ width: '10%' }}>DATE</th>
+                <th className="py-2 px-2 text-center" style={{ width: '9%' }}>SITE</th>
+                <th className="py-2 px-2 text-left" style={{ width: '13%' }}>PURCHASED FROM</th>
+                <th className="py-2 px-2 text-center" style={{ width: '8%' }}>VEHICLE</th>
+                <th className="py-2 px-2 text-left" style={{ width: '18%' }}>MATERIAL NAME</th>
+                <th className="py-2 px-1.5 text-center" style={{ width: '6%' }}>TRIPS</th>
+                <th className="py-2 px-1.5 text-right" style={{ width: '7%' }}>QTY/TRIP</th>
+                <th className="py-2 px-2 text-right" style={{ width: '8%' }}>RATE (₹)</th>
+                <th className="py-2 px-2 text-right" style={{ width: '10%' }}>AMOUNT (₹)</th>
+                <th className="py-2 px-2 text-right text-amber-400 print:text-black" style={{ width: '11%' }}>DIESEL (₹)</th>
+                <th className="py-2 px-2 text-center no-print" style={{ width: '8%' }}>ACTION</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#1E293B]/60 text-slate-200">
@@ -548,31 +580,29 @@ export const MaterialHaulageTripsModule: React.FC = () => {
                   const rowDiesel = getRowDiesel(t.tripDate, t.vehicleNumber);
                   return (
                     <tr key={t.id} className="hover:bg-[#121c33]/50">
-                      <td className="py-2.5 px-3 font-mono text-left text-slate-300 print:text-black whitespace-nowrap">
-                        {formatDateDMY(t.tripDate)}
-                      </td>
-                      <td className="py-2.5 px-3 font-bold text-cyan-400 print:text-black text-center">{t.siteName}</td>
-                      <td className="py-2.5 px-3 font-semibold text-emerald-400 print:text-black">{t.purchasedFrom || 'MBB CRUSHER'}</td>
-                      <td className="py-2.5 px-3 font-mono text-slate-300 print:text-black text-center">{t.vehicleNumber}</td>
-                      <td className="py-2.5 px-3 font-bold text-amber-300 print:text-black">{t.materialName}</td>
-                      <td className="py-2.5 px-2 text-center font-mono print:text-black">{t.dayTrips}</td>
-                      <td className="py-2.5 px-2 text-right font-mono print:text-black">{t.brassPerTrip}</td>
-                      <td className="py-2.5 px-2 text-right font-mono text-emerald-400 print:text-black">₹{t.ratePerBrass.toLocaleString('en-IN')}</td>
-                      <td className="py-2.5 px-3 text-right font-mono font-black text-amber-400 print:text-black">₹{t.totalAmount.toLocaleString('en-IN')}</td>
+                      <td className="py-1.5 px-2 font-mono text-left whitespace-nowrap">{formatDateDMY(t.tripDate)}</td>
+                      <td className="py-1.5 px-2 font-bold text-cyan-400 print:text-black text-center">{t.siteName}</td>
+                      <td className="py-1.5 px-2 font-semibold text-emerald-400 print:text-black">{t.purchasedFrom || 'MBB CRUSHER'}</td>
+                      <td className="py-1.5 px-2 font-mono text-center">{t.vehicleNumber}</td>
+                      <td className="py-1.5 px-2 font-bold text-amber-300 print:text-black">{t.materialName}</td>
+                      <td className="py-1.5 px-1.5 text-center font-mono">{t.dayTrips}</td>
+                      <td className="py-1.5 px-1.5 text-right font-mono">{t.brassPerTrip}</td>
+                      <td className="py-1.5 px-2 text-right font-mono text-emerald-400 print:text-black">₹{t.ratePerBrass.toLocaleString('en-IN')}</td>
+                      <td className="py-1.5 px-2 text-right font-mono font-black text-amber-400 print:text-black">₹{t.totalAmount.toLocaleString('en-IN')}</td>
                       
-                      {/* Diesel Deduction Column per Row */}
-                      <td className="py-2.5 px-3 text-right font-mono font-bold text-amber-400 print:text-black">
+                      {/* Diesel Deduction Column */}
+                      <td className="py-1.5 px-2 text-right font-mono font-bold text-amber-400 print:text-black">
                         {rowDiesel.cost > 0 ? (
-                          <span>
-                            - ₹{rowDiesel.cost.toLocaleString('en-IN', { minimumFractionDigits: 1 })}
-                            <span className="block text-[9px] text-slate-500 print:text-slate-600">({rowDiesel.litres.toFixed(1)} L)</span>
-                          </span>
+                          <div>
+                            <span>- ₹{rowDiesel.cost.toLocaleString('en-IN', { minimumFractionDigits: 1 })}</span>
+                            <span className="block text-[8px] text-slate-400 print:text-slate-600">({rowDiesel.litres.toFixed(1)} L)</span>
+                          </div>
                         ) : (
                           <span className="text-slate-600 font-normal">—</span>
                         )}
                       </td>
 
-                      <td className="py-2.5 px-3 text-center no-print">
+                      <td className="py-1.5 px-2 text-center no-print">
                         {isAdmin ? (
                           <div className="flex items-center justify-center gap-1">
                             <button onClick={() => handleEdit(t)} className="p-1 rounded text-slate-400 hover:text-blue-400 cursor-pointer">
@@ -597,52 +627,52 @@ export const MaterialHaulageTripsModule: React.FC = () => {
               <tfoot className="border-t-2 border-[#1E293B] print:border-t-2 print:border-black bg-[#070c18] font-mono print:bg-white text-xs">
                 {/* 1. Total Material Purchased */}
                 <tr className="border-b border-[#1E293B]/60 print:border-b print:border-slate-300">
-                  <td colSpan={5} className="py-2.5 px-3 font-bold uppercase text-slate-300 print:text-black text-right">
+                  <td colSpan={5} className="py-1.5 px-2 font-bold uppercase text-right">
                     TOTAL MATERIAL PURCHASED:
                   </td>
-                  <td className="py-2.5 px-2 text-center font-bold text-cyan-400 print:text-black">{overallTotals.trips} Trips</td>
-                  <td className="py-2.5 px-2 text-right font-bold text-white print:text-black">{overallTotals.brass} Brass</td>
-                  <td className="py-2.5 px-2 text-right text-slate-500 print:text-black">—</td>
-                  <td className="py-2.5 px-3 text-right font-bold text-white print:text-black">₹{overallTotals.amount.toLocaleString('en-IN')}</td>
-                  <td className="py-2.5 px-3 text-right font-bold text-amber-400 print:text-black">
+                  <td className="py-1.5 px-1.5 text-center font-bold text-cyan-400 print:text-black">{overallTotals.trips} Trips</td>
+                  <td className="py-1.5 px-1.5 text-right font-bold text-white print:text-black">{overallTotals.brass} Brass</td>
+                  <td className="py-1.5 px-2 text-right text-slate-500 print:text-black">—</td>
+                  <td className="py-1.5 px-2 text-right font-bold text-white print:text-black">₹{overallTotals.amount.toLocaleString('en-IN')}</td>
+                  <td className="py-1.5 px-2 text-right font-bold text-amber-400 print:text-black">
                     {overallTotals.dieselCost > 0 ? `- ₹${overallTotals.dieselCost.toLocaleString('en-IN', { minimumFractionDigits: 1 })}` : '—'}
                   </td>
-                  <td className="py-2.5 px-3 no-print"></td>
+                  <td className="no-print"></td>
                 </tr>
 
                 {/* 2. Less: Advance Payment Received */}
                 <tr className="border-b border-[#1E293B]/60 print:border-b print:border-slate-300 text-rose-400 print:text-black">
-                  <td colSpan={8} className="py-2 px-3 font-bold uppercase text-right">
+                  <td colSpan={8} className="py-1.5 px-2 font-bold uppercase text-right">
                     (-) LESS: ADVANCE PAYMENT RECEIVED :
                   </td>
-                  <td colSpan={2} className="py-2 px-3 text-right font-bold">
+                  <td colSpan={2} className="py-1.5 px-2 text-right font-bold">
                     - ₹{totalVendorAdvancePaid.toLocaleString('en-IN')}
                   </td>
-                  <td className="py-2 px-3 no-print"></td>
+                  <td className="no-print"></td>
                 </tr>
 
-                {/* 3. Less: Diesel Dispensed to Rented Vehicles */}
+                {/* 3. Less: Diesel Dispensed */}
                 {overallTotals.dieselCost > 0 && (
                   <tr className="border-b border-[#1E293B]/60 print:border-b print:border-slate-300 text-amber-400 print:text-black">
-                    <td colSpan={8} className="py-2 px-3 font-bold uppercase text-right">
+                    <td colSpan={8} className="py-1.5 px-2 font-bold uppercase text-right">
                       (-) LESS: DIESEL DISPENSED TO RENTED VEHICLES ({overallTotals.dieselLitres.toFixed(1)} L):
                     </td>
-                    <td colSpan={2} className="py-2 px-3 text-right font-bold">
+                    <td colSpan={2} className="py-1.5 px-2 text-right font-bold">
                       - ₹{overallTotals.dieselCost.toLocaleString('en-IN', { minimumFractionDigits: 1 })}
                     </td>
-                    <td className="py-2 px-3 no-print"></td>
+                    <td className="no-print"></td>
                   </tr>
                 )}
 
                 {/* 4. Net Payable Total */}
                 <tr className="bg-[#1e1906] text-amber-400 print:bg-slate-100 print:text-black font-black">
-                  <td colSpan={8} className="py-3 px-3 text-right uppercase tracking-wider text-xs">
+                  <td colSpan={8} className="py-2 px-2 text-right uppercase tracking-wider text-xs">
                     (=) NET PAYABLE AMOUNT:
                   </td>
-                  <td colSpan={2} className="py-3 px-3 text-right text-sm font-black">
+                  <td colSpan={2} className="py-2 px-2 text-right text-sm font-black">
                     ₹{netPayableAmount.toLocaleString('en-IN', { minimumFractionDigits: 1 })}
                   </td>
-                  <td className="py-3 px-3 no-print"></td>
+                  <td className="no-print"></td>
                 </tr>
               </tfoot>
             )}
