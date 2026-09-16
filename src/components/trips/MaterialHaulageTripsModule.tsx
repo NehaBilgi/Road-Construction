@@ -33,10 +33,31 @@ export interface RoadMaterialCategory {
   unit: string;
 }
 
+export interface FleetVehicle {
+  id: string;
+  vehicleNumber: string;
+  vehicleType: string;
+  category: string;
+  metricType: 'KM' | 'HMR';
+  ownershipType?: 'company' | 'rented';
+  rentalRateType?: 'per_day' | 'per_trip';
+  rentalAmount?: number;
+}
+
 const STORAGE_HAULAGE_KEY = 'CONSTRUCTION_PRO_HAULAGE_TRIPS_V2';
 const STORAGE_ROAD_CATS_KEY = 'CONSTRUCTION_PRO_ROAD_CATEGORIES_V1';
 const STORAGE_VENDORS_KEY = 'CONSTRUCTION_PRO_VENDOR_NAMES_V1';
 const STORAGE_VENDOR_ADVANCES_KEY = 'CONSTRUCTION_PRO_VENDOR_ADVANCES_V1';
+const STORAGE_FLEET_KEY = 'CONSTRUCTION_PRO_FLEET_VEHICLES_V1';
+
+const DEFAULT_FLEET: FleetVehicle[] = [
+  { id: 'v-1', vehicleNumber: 'KA-28-EX-8901', vehicleType: 'Hydraulic Excavator (CAT/Hitachi)', category: 'Earthmoving', metricType: 'HMR', ownershipType: 'company' },
+  { id: 'v-2', vehicleNumber: 'KA-28-JC-3342', vehicleType: 'Backhoe Loader (JCB 3DX)', category: 'Earthmoving', metricType: 'HMR', ownershipType: 'rented', rentalRateType: 'per_day', rentalAmount: 4500 },
+  { id: 'v-3', vehicleNumber: 'MH-12-DT-5510', vehicleType: 'Tipper / Dump Truck', category: 'Haulage', metricType: 'KM', ownershipType: 'rented', rentalRateType: 'per_trip', rentalAmount: 850 },
+  { id: 'v-4', vehicleNumber: 'KA-28-TR-1092', vehicleType: 'Tractor & Trolley', category: 'Transport', metricType: 'HMR', ownershipType: 'company' },
+  { id: 'v-5', vehicleNumber: 'KA-28-JP-7890', vehicleType: 'Site Jeep / Bolero / Pickup', category: 'Site Inspection', metricType: 'KM', ownershipType: 'company' },
+  { id: 'v-6', vehicleNumber: 'KA-28-CR-2200', vehicleType: 'Car / SUV', category: 'Staff Transport', metricType: 'KM', ownershipType: 'company' }
+];
 
 const INITIAL_ROAD_CATEGORIES: RoadMaterialCategory[] = [
   { id: 'RCAT-01', name: 'Granular Sub-Base (GSB)', description: 'Coarse graded granular material sub-base', standardRate: 1500, unit: 'Brass' },
@@ -74,6 +95,16 @@ export const MaterialHaulageTripsModule: React.FC = () => {
     }
   });
 
+  // Fetch machinery fleet list for vehicle selection
+  const [fleetVehicles, setFleetVehicles] = useState<FleetVehicle[]>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_FLEET_KEY);
+      return saved ? JSON.parse(saved) : DEFAULT_FLEET;
+    } catch {
+      return DEFAULT_FLEET;
+    }
+  });
+
   const [categories, setCategories] = useState<RoadMaterialCategory[]>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_ROAD_CATS_KEY);
@@ -104,8 +135,11 @@ export const MaterialHaulageTripsModule: React.FC = () => {
   useEffect(() => {
     const handleSync = () => {
       try {
-        const saved = localStorage.getItem(STORAGE_VENDOR_ADVANCES_KEY);
-        setAdvances(saved ? JSON.parse(saved) : []);
+        const savedAdvances = localStorage.getItem(STORAGE_VENDOR_ADVANCES_KEY);
+        setAdvances(savedAdvances ? JSON.parse(savedAdvances) : []);
+        
+        const savedFleet = localStorage.getItem(STORAGE_FLEET_KEY);
+        setFleetVehicles(savedFleet ? JSON.parse(savedFleet) : DEFAULT_FLEET);
       } catch {
         setAdvances([]);
       }
@@ -267,10 +301,16 @@ export const MaterialHaulageTripsModule: React.FC = () => {
   };
 
   const handleOpenAdd = () => {
+    // Reload fleet from storage on open
+    try {
+      const savedFleet = localStorage.getItem(STORAGE_FLEET_KEY);
+      if (savedFleet) setFleetVehicles(JSON.parse(savedFleet));
+    } catch {}
+
     setEditingId(null);
     setTripDate(new Date().toISOString().split('T')[0]);
     setSiteName(activeSiteName);
-    setVehicleNumber('TOTAL TRIPS');
+    setVehicleNumber(fleetVehicles[0]?.vehicleNumber || 'TOTAL TRIPS');
     setPurchasedFrom('');
     setMaterialName(defaultCategory);
     setDayTrips(3);
@@ -346,6 +386,9 @@ export const MaterialHaulageTripsModule: React.FC = () => {
     setIsModalOpen(false);
     setEditingId(null);
   };
+
+  // Find currently selected vehicle metadata for info badge in modal
+  const selectedVehicleObj = fleetVehicles.find((v) => v.vehicleNumber === vehicleNumber);
 
   return (
     <div className="space-y-4 sm:space-y-6 font-sans text-slate-100 print:text-black print:space-y-3">
@@ -650,15 +693,39 @@ export const MaterialHaulageTripsModule: React.FC = () => {
                 </div>
               </div>
 
+              {/* Dynamic Vehicle Dropdown from Machinery Fleet */}
               <div>
-                <label className="block text-slate-300 font-bold mb-1">Vehicle Number *</label>
-                <input
-                  type="text"
-                  required
-                  value={vehicleNumber}
-                  onChange={(e) => setVehicleNumber(e.target.value.toUpperCase())}
-                  className="w-full px-3 py-2 bg-[#162032] border border-[#1E293B] rounded-xl text-white font-mono outline-none uppercase"
-                />
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-slate-300 font-bold">Vehicle Number *</label>
+                  {selectedVehicleObj && (
+                    <span className="text-[10px] text-slate-400">
+                      {selectedVehicleObj.vehicleType} •{' '}
+                      <span className={selectedVehicleObj.ownershipType === 'rented' ? 'text-purple-400' : 'text-sky-400 font-semibold'}>
+                        {selectedVehicleObj.ownershipType === 'rented' ? 'Rented' : 'Company'}
+                      </span>
+                    </span>
+                  )}
+                </div>
+                <div className="relative">
+                  <select
+                    required
+                    value={vehicleNumber}
+                    onChange={(e) => setVehicleNumber(e.target.value)}
+                    className="w-full px-3.5 py-2.5 bg-[#162032] border border-[#1E293B] rounded-xl text-white font-mono font-bold appearance-none outline-none focus:border-blue-500 cursor-pointer"
+                  >
+                    <option value="TOTAL TRIPS" className="bg-[#0F172A] text-slate-300">
+                      TOTAL TRIPS (Aggregate / All Vehicles)
+                    </option>
+                    <optgroup label="Registered Construction Fleet">
+                      {fleetVehicles.map((v) => (
+                        <option key={v.id} value={v.vehicleNumber} className="bg-[#0F172A] text-white">
+                          {v.vehicleNumber} — {v.vehicleType} ({v.ownershipType === 'rented' ? 'Rented' : 'Company Owned'})
+                        </option>
+                      ))}
+                    </optgroup>
+                  </select>
+                  <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-3 pointer-events-none" />
+                </div>
               </div>
 
               <div className="relative" ref={vendorDropdownRef}>
@@ -797,3 +864,5 @@ export const MaterialHaulageTripsModule: React.FC = () => {
     </div>
   );
 };
+
+export default MaterialHaulageTripsModule;
