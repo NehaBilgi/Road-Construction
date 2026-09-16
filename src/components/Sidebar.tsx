@@ -11,7 +11,10 @@ import {
   HardHat,
   Tag,
   Users,
-  HardHat as LogoIcon
+  HardHat as LogoIcon,
+  Building2,
+  ShieldCheck,
+  LogOut
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -20,19 +23,25 @@ interface SidebarProps {
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onSelectTab }) => {
-  const { currentUser, userRole } = useERP() as any;
+  const { 
+    currentUser, 
+    userRole, 
+    appDomain = 'ROAD', 
+    setAppDomain, 
+    setCurrentUser 
+  } = useERP() as any;
 
-  // Strict Admin Evaluation
+  // 1. Strict Admin Evaluation
   const isAdmin = useMemo(() => {
-    let roleCandidate = String(userRole || currentUser?.role || '').trim().toUpperCase();
+    const roleCandidate = String(userRole || currentUser?.role || '').trim().toUpperCase();
     if (roleCandidate === 'SUPER_ADMIN' || roleCandidate === 'ADMIN' || roleCandidate.includes('ADMIN')) {
       return true;
     }
     if (typeof window !== 'undefined') {
       try {
         const storedUser =
-          localStorage.getItem('CONSTRUCTION_PRO_ERP_STORAGE_V7_USER') ||
-          localStorage.getItem('PAVETRACK_CURRENT_USER');
+          localStorage.getItem('PAVETRACK_AUTHORIZED_PERSONNEL_V2') ||
+          localStorage.getItem('PAVETRACK_ACTIVE_SESSION_V2');
         if (storedUser) {
           const parsed = JSON.parse(storedUser);
           const parsedRole = String(parsed?.role || '').trim().toUpperCase();
@@ -42,6 +51,30 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onSelectTab }) => {
     }
     return false;
   }, [userRole, currentUser]);
+
+  // 2. Domain Scope Evaluation (ROAD_ONLY / BUILDING_ONLY / BOTH)
+  const userScope = useMemo(() => {
+    return currentUser?.allowedScope || (isAdmin ? 'BOTH_ROAD_AND_BUILDING' : 'ROAD_ONLY');
+  }, [currentUser, isAdmin]);
+
+  const canSwitchDomain = isAdmin || userScope === 'BOTH_ROAD_AND_BUILDING';
+
+  const handleDomainToggle = () => {
+    if (!canSwitchDomain || !setAppDomain) return;
+    const nextDomain = appDomain === 'ROAD' ? 'BUILDING' : 'ROAD';
+    setAppDomain(nextDomain);
+    onSelectTab('overview');
+  };
+
+  const handleLogout = () => {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('PAVETRACK_ACTIVE_SESSION_V2');
+      localStorage.removeItem('CONSTRUCTION_PRO_ERP_STORAGE_V7_USER');
+      localStorage.removeItem('PAVETRACK_CURRENT_USER');
+    }
+    if (setCurrentUser) setCurrentUser(null);
+    window.location.reload();
+  };
 
   const navItemClass = (tabId: string) => `
     w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer select-none
@@ -53,7 +86,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onSelectTab }) => {
   `;
 
   return (
-    <aside className="w-64 bg-[#080C14] border-r border-[#1E293B] min-h-screen flex flex-col justify-between p-4 font-sans shrink-0">
+    <aside className="w-64 bg-[#080C14] border-r border-[#1E293B] min-h-screen flex flex-col justify-between p-4 font-sans shrink-0 no-print">
       <div className="space-y-6">
         {/* Brand Logo Header */}
         <div className="flex items-center gap-3 px-2">
@@ -65,7 +98,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onSelectTab }) => {
               CONSTRUCTION PRO
             </h1>
             <p className="text-[10px] text-blue-400 font-mono">
-              Road Construction ERP
+              {appDomain === 'BUILDING' ? 'Building Construction ERP' : 'Road Construction ERP'}
             </p>
           </div>
         </div>
@@ -96,7 +129,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onSelectTab }) => {
             >
               <div className="flex items-center gap-2.5">
                 <MapPin className="w-4 h-4" />
-                <span>Ongoing Site</span>
+                <span>{appDomain === 'BUILDING' ? 'Active Projects' : 'Ongoing Site'}</span>
               </div>
               <span className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-blue-950 text-blue-400 border border-blue-800">
                 Sites
@@ -110,7 +143,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onSelectTab }) => {
             >
               <div className="flex items-center gap-2.5">
                 <Truck className="w-4 h-4" />
-                <span>Trips</span>
+                <span>{appDomain === 'BUILDING' ? 'Material Supply' : 'Trips'}</span>
               </div>
               <span className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-emerald-950 text-emerald-400 border border-emerald-800">
                 Trips
@@ -173,10 +206,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onSelectTab }) => {
             >
               <div className="flex items-center gap-2.5">
                 <Calculator className="w-4 h-4" />
-                <span>Road Trip Calculator</span>
+                <span>{appDomain === 'BUILDING' ? 'Concrete Estimator' : 'Road Trip Calculator'}</span>
               </div>
               <span className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-indigo-950 text-indigo-400 border border-indigo-800">
-                MoRTH
+                {appDomain === 'BUILDING' ? 'IS 456' : 'MoRTH'}
               </span>
             </button>
 
@@ -231,20 +264,60 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onSelectTab }) => {
         </div>
       </div>
 
-      {/* Bottom Footer: User Profile Card */}
-      <div className="p-3 bg-[#121927] border border-[#1E293B] rounded-2xl flex items-center justify-between mt-auto">
-        <div className="flex items-center gap-2.5 truncate">
-          <div className="w-8 h-8 rounded-full bg-[#1A2338] border border-[#23355A] flex items-center justify-center text-xs font-bold text-white shrink-0">
-            {currentUser?.name?.charAt(0).toUpperCase() || 'U'}
+      {/* Bottom Footer: Domain Switcher + User Profile Card */}
+      <div className="space-y-2 mt-auto pt-4">
+        {/* Domain Scope Action / Lock */}
+        {canSwitchDomain ? (
+          <button
+            type="button"
+            onClick={handleDomainToggle}
+            className="w-full py-2.5 px-3 rounded-xl bg-[#121927] hover:bg-[#1a2336] border border-[#1E293B] hover:border-slate-600 text-xs font-bold text-slate-200 flex items-center justify-center gap-2 transition-all cursor-pointer shadow-md"
+          >
+            {appDomain === 'ROAD' ? (
+              <>
+                <Building2 className="w-4 h-4 text-purple-400" />
+                <span>Switch to Buildings</span>
+              </>
+            ) : (
+              <>
+                <Truck className="w-4 h-4 text-amber-400" />
+                <span>Switch to Road Construction</span>
+              </>
+            )}
+          </button>
+        ) : (
+          <div className="w-full py-2 px-3 rounded-xl bg-[#0d1524] border border-[#1a263d] text-[11px] font-semibold text-slate-400 flex items-center justify-center gap-1.5">
+            <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+            <span>
+              {userScope === 'ROAD_ONLY' ? 'Locked: Road Sites' : 'Locked: Building Projects'}
+            </span>
           </div>
-          <div className="truncate">
-            <div className="text-xs font-bold text-white truncate">
-              {currentUser?.name || 'User'}
+        )}
+
+        {/* User Card & Logout */}
+        <div className="p-3 bg-[#121927] border border-[#1E293B] rounded-2xl flex items-center justify-between">
+          <div className="flex items-center gap-2.5 truncate">
+            <div className="w-8 h-8 rounded-full bg-[#1A2338] border border-[#23355A] flex items-center justify-center text-xs font-bold text-white shrink-0">
+              {currentUser?.fullName?.charAt(0).toUpperCase() || currentUser?.name?.charAt(0).toUpperCase() || 'U'}
             </div>
-            <div className="text-[10px] text-slate-400 truncate">
-              {currentUser?.role || 'SUPER_ADMIN'}
+            <div className="truncate">
+              <div className="text-xs font-bold text-white truncate">
+                {currentUser?.fullName || currentUser?.name || currentUser?.username || 'Authorized User'}
+              </div>
+              <div className="text-[10px] text-slate-400 truncate font-mono">
+                {currentUser?.role || 'SITE_ENGINEER'}
+              </div>
             </div>
           </div>
+
+          <button
+            type="button"
+            onClick={handleLogout}
+            title="Sign Out"
+            className="p-1.5 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-950/40 transition-colors cursor-pointer"
+          >
+            <LogOut className="w-4 h-4" />
+          </button>
         </div>
       </div>
     </aside>
