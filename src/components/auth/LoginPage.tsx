@@ -66,7 +66,7 @@ export const LoginPage: React.FC = () => {
               Username
             </label>
             <div className="relative">
-              <User className="w-4 h-4 text-slate-500 absolute left-3.5 top-3" />
+              <User className="w-4 h-4 text-slate-500 absolute left-3.5 top-3 pointer-events-none" />
               <input
                 type="text"
                 required
@@ -83,7 +83,7 @@ export const LoginPage: React.FC = () => {
               Password
             </label>
             <div className="relative flex items-center">
-              <Lock className="w-4 h-4 text-slate-500 absolute left-3.5 top-3" />
+              <Lock className="w-4 h-4 text-slate-500 absolute left-3.5 top-3 pointer-events-none" />
               <input
                 type={showPassword ? 'text' : 'password'}
                 required
