@@ -184,6 +184,8 @@ export const MaterialHaulageTripsModule: React.FC = () => {
 
   const [tripDate, setTripDate] = useState(new Date().toISOString().split('T')[0]);
   const [siteName, setSiteName] = useState(activeSiteName);
+  
+  // Empty default vehicle number so it is not pre-filled
   const [vehicleNumber, setVehicleNumber] = useState('');
   const [isVehicleMenuOpen, setIsVehicleMenuOpen] = useState(false);
   const vehicleDropdownRef = useRef<HTMLDivElement>(null);
@@ -360,19 +362,17 @@ export const MaterialHaulageTripsModule: React.FC = () => {
     setEditingId(null);
     setTripDate(new Date().toISOString().split('T')[0]);
     setSiteName(activeSiteName);
-    const initialVehicle = fleetVehicles[0]?.vehicleNumber || '';
-    setVehicleNumber(initialVehicle);
+    
+    // Kept blank so placeholder "Add Vehicle No" is shown
+    setVehicleNumber('');
+    setIsVehicleMenuOpen(false);
+
     setPurchasedFrom(allSuppliers[0] || 'MBB CRUSHER');
     setMaterialName(defaultCategory);
     setDayTrips(3);
     setBrassPerTrip(6);
+    setRatePerBrass(categories[0]?.standardRate || 1500);
 
-    const vObj = fleetVehicles.find((v) => v.vehicleNumber === initialVehicle);
-    if (vObj?.ownershipType === 'rented') {
-      setRatePerBrass(vObj.rentalAmount || 1500);
-    } else {
-      setRatePerBrass(categories[0]?.standardRate || 1500);
-    }
     setIsModalOpen(true);
   };
 
@@ -858,7 +858,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
                 </div>
               </div>
 
-              {/* Vehicle Number: Type or Select Combobox */}
+              {/* Vehicle Number: Type directly or pick from auto-suggest dropdown */}
               <div className="relative" ref={vehicleDropdownRef}>
                 <div className="flex items-center justify-between mb-1">
                   <label className="block text-slate-300 font-bold">Vehicle Number *</label>
@@ -877,7 +877,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
                   <input
                     type="text"
                     required
-                    placeholder="Type vehicle number or select from list..."
+                    placeholder="Add Vehicle No"
                     value={vehicleNumber}
                     onFocus={() => setIsVehicleMenuOpen(true)}
                     onChange={(e) => {
@@ -893,7 +893,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
                         setRatePerBrass(categories[0]?.standardRate || 1500);
                       }
                     }}
-                    className="w-full pl-3.5 pr-10 py-2.5 bg-[#162032] border border-[#1E293B] focus:border-blue-500 rounded-xl text-white font-mono font-bold uppercase outline-none"
+                    className="w-full pl-3.5 pr-10 py-2.5 bg-[#162032] border border-[#1E293B] focus:border-blue-500 rounded-xl text-white font-mono font-bold uppercase outline-none placeholder:text-slate-500 placeholder:font-normal placeholder:font-sans"
                   />
                   <button
                     type="button"
@@ -956,7 +956,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
                         className="px-3.5 py-2 text-[11px] text-emerald-400 bg-emerald-950/20 border-t border-[#1E293B] cursor-pointer hover:bg-emerald-950/40 flex items-center justify-between"
                       >
                         <span>Use entered vehicle: <strong className="font-mono">{vehicleNumber}</strong></span>
-                        <span className="text-[10px] text-slate-400 font-sans">(Press outside or click to confirm)</span>
+                        <span className="text-[10px] text-slate-400 font-sans">(Click to confirm)</span>
                       </div>
                     )}
                   </div>
