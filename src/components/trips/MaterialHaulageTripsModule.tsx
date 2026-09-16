@@ -59,6 +59,17 @@ export interface DieselFuelRecord {
   totalCost: number;
 }
 
+export interface VendorAdvanceRecord {
+  id: string;
+  date: string;
+  siteName?: string;
+  vendorName?: string;
+  supplierName?: string;
+  amount: number;
+  notes?: string;
+  paymentMode?: string;
+}
+
 const STORAGE_HAULAGE_KEY = 'CONSTRUCTION_PRO_HAULAGE_TRIPS_V2';
 const STORAGE_ROAD_CATS_KEY = 'CONSTRUCTION_PRO_ROAD_CATEGORIES_V1';
 const STORAGE_VENDORS_KEY = 'CONSTRUCTION_PRO_VENDOR_NAMES_V1';
@@ -147,7 +158,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
     }
   });
 
-  const [advances, setAdvances] = useState<any[]>(() => {
+  const [advances, setAdvances] = useState<VendorAdvanceRecord[]>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_VENDOR_ADVANCES_KEY);
       return saved ? JSON.parse(saved) : [];
@@ -158,7 +169,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
 
   const allSuppliers = useMemo(() => {
     const list = new Set<string>(savedVendors);
-    advances.forEach((adv: any) => {
+    advances.forEach((adv) => {
       const name = (adv.vendorName || adv.supplierName || '').trim().toUpperCase();
       if (name) list.add(name);
     });
@@ -312,17 +323,20 @@ export const MaterialHaulageTripsModule: React.FC = () => {
     );
   }, [filtered, rentedVehiclesMap, dieselLogs, activeSiteName]);
 
-  const totalVendorAdvancePaid = useMemo(() => {
+  // Specific Advance Records for the active filtered view
+  const matchingAdvances = useMemo(() => {
     const currentVendorNames = Array.from(new Set(filtered.map((t) => t.purchasedFrom?.trim().toLowerCase()).filter(Boolean)));
-    return advances
-      .filter((a) => {
-        const matchSite = !activeSiteName || a.siteName === activeSiteName;
-        const matchVendor = currentVendorNames.length === 0 || currentVendorNames.includes(a.vendorName?.trim().toLowerCase());
-        const matchDate = !filterDate || a.date === filterDate;
-        return matchSite && matchVendor && matchDate;
-      })
-      .reduce((sum, a) => sum + (Number(a.amount) || 0), 0);
+    return advances.filter((a) => {
+      const matchSite = !activeSiteName || a.siteName === activeSiteName;
+      const matchVendor = currentVendorNames.length === 0 || currentVendorNames.includes((a.vendorName || a.supplierName || '').trim().toLowerCase());
+      const matchDate = !filterDate || a.date === filterDate;
+      return matchSite && matchVendor && matchDate;
+    });
   }, [advances, filtered, activeSiteName, filterDate]);
+
+  const totalVendorAdvancePaid = useMemo(() => {
+    return matchingAdvances.reduce((sum, a) => sum + (Number(a.amount) || 0), 0);
+  }, [matchingAdvances]);
 
   const totalDeductions = totalVendorAdvancePaid + overallTotals.dieselCost;
   const rawBalance = overallTotals.amount - totalDeductions;
@@ -531,7 +545,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
         <div className="p-4 rounded-2xl bg-[#0B1220] border border-[#1E293B]">
           <div className="text-[10px] font-bold uppercase text-rose-400">(-) Less: Advance Paid</div>
           <div className="text-xl font-black text-rose-400 font-mono mt-1">₹{totalVendorAdvancePaid.toLocaleString('en-IN')}</div>
-          <div className="text-[10px] text-slate-500">Auto-deducted advances</div>
+          <div className="text-[10px] text-slate-500">{matchingAdvances.length} Advance Payments Recorded</div>
         </div>
 
         <div className={`p-4 rounded-2xl border ${netPayableAmount > 0 ? 'bg-amber-950/20 border-amber-500/30' : 'bg-[#0B1220] border-[#1E293B]'}`}>
@@ -698,6 +712,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
             </tbody>
             {filtered.length > 0 && (
               <tfoot className="border-t-2 border-[#1E293B] print:border-t-2 print:border-black bg-[#070c18] font-mono print:bg-white text-xs">
+                {/* 1. Trip Gross & Diesel Subtotal */}
                 <tr className="border-b border-[#1E293B]/60 print-total-row">
                   <td colSpan={5} className="py-2 px-3 font-black uppercase text-right text-slate-200 print:text-black">
                     TOTAL TRIPS & CHARGES:
@@ -714,15 +729,44 @@ export const MaterialHaulageTripsModule: React.FC = () => {
                   </td>
                   <td className="no-print"></td>
                 </tr>
-                <tr className="border-b border-[#1E293B]/60 text-rose-400 print:text-black print-sub-row">
-                  <td colSpan={8} className="py-2 px-3 font-black uppercase text-right">
-                    (-) LESS: ADVANCE PAYMENT RECEIVED :
-                  </td>
-                  <td colSpan={3} className="py-2 px-3 text-right font-black">
-                    - ₹{totalVendorAdvancePaid.toLocaleString('en-IN')}
-                  </td>
-                  <td className="no-print"></td>
-                </tr>
+
+                {/* 2. Individual Advance Payment Rows with Date */}
+                {matchingAdvances.length > 0 ? (
+                  matchingAdvances.map((adv) => (
+                    <tr key={adv.id} className="border-b border-[#1E293B]/40 text-rose-400 print:text-black print-sub-row bg-rose-950/10 print:bg-transparent">
+                      <td colSpan={8} className="py-2 px-3 text-right">
+                        <span className="font-bold text-rose-400 print:text-black uppercase">
+                          (-) LESS: ADVANCE PAYMENT RECEIVED
+                        </span>
+                        <span className="ml-2 inline-block px-2 py-0.5 rounded bg-rose-950/60 border border-rose-800/60 print:border-black text-[11px] font-mono text-rose-300 print:text-black">
+                          {formatDateDMY(adv.date)}
+                        </span>
+                        {(adv.notes || adv.paymentMode) && (
+                          <span className="ml-2 text-[10px] text-slate-400 font-sans print:text-slate-700">
+                            ({[adv.paymentMode, adv.notes].filter(Boolean).join(' - ')})
+                          </span>
+                        )}
+                        :
+                      </td>
+                      <td colSpan={3} className="py-2 px-3 text-right font-black font-mono">
+                        - ₹{Number(adv.amount || 0).toLocaleString('en-IN')}
+                      </td>
+                      <td className="no-print"></td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr className="border-b border-[#1E293B]/40 text-slate-500 print:text-black print-sub-row">
+                    <td colSpan={8} className="py-1.5 px-3 text-right font-bold uppercase text-[11px]">
+                      (-) LESS: ADVANCE PAYMENT RECEIVED:
+                    </td>
+                    <td colSpan={3} className="py-1.5 px-3 text-right font-mono text-[11px]">
+                      ₹0.0
+                    </td>
+                    <td className="no-print"></td>
+                  </tr>
+                )}
+
+                {/* 3. Diesel Deduction Subtotal */}
                 <tr className="border-b border-[#1E293B]/60 text-amber-400 print:text-black print-sub-row">
                   <td colSpan={8} className="py-2 px-3 font-black uppercase text-right">
                     (-) LESS: DIESEL ISSUED TO RENTED VEHICLES ({overallTotals.dieselLitres.toFixed(1)} L):
@@ -732,6 +776,8 @@ export const MaterialHaulageTripsModule: React.FC = () => {
                   </td>
                   <td className="no-print"></td>
                 </tr>
+
+                {/* 4. Final Net Balance Payable */}
                 <tr className="bg-[#1e1906] text-amber-400 print:bg-transparent print:text-black font-black print-net-row">
                   <td colSpan={8} className="py-2.5 px-3 text-right uppercase tracking-wider text-xs">
                     (=) NET PAYABLE AMOUNT:
