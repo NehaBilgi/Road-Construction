@@ -1,10 +1,3 @@
-To guarantee that **only Admins** (`SUPER_ADMIN` / `ADMIN`) have the power to select or switch domains, and to ensure non-admin users **never** see the "Switch to Buildings" button or the Domain Selection page, apply these exact synchronized updates across all 3 key files:
-
----
-
-### 1. `src/App.tsx`
-
-```tsx
 import React, { useState, useEffect } from 'react';
 import { ERPProvider, useERP } from './context/ERPContext';
 import { RoadERPProvider } from './context/RoadERPContext';
@@ -33,6 +26,30 @@ import {
 } from 'lucide-react';
 
 // ==========================================
+// Generic Scaffold View for Pending Tabs
+// ==========================================
+const GenericView: React.FC<{
+  title: string;
+  subtitle: string;
+  icon: React.ComponentType<{ className?: string }>;
+}> = ({ title, subtitle, icon: Icon }) => (
+  <div className="p-6 rounded-3xl bg-[#0c1427] border border-[#182643] shadow-2xl space-y-4 font-sans text-slate-100">
+    <div className="flex items-center gap-3">
+      <div className="w-10 h-10 rounded-2xl bg-blue-600/20 border border-blue-500/30 flex items-center justify-center text-blue-400">
+        <Icon className="w-5 h-5" />
+      </div>
+      <div>
+        <h1 className="text-xl font-black text-white tracking-tight">{title}</h1>
+        <p className="text-xs text-slate-400">{subtitle}</p>
+      </div>
+    </div>
+    <div className="p-8 rounded-2xl bg-[#080d19] border border-[#182643] text-center text-slate-400 text-xs">
+      {title} telemetry and operations active.
+    </div>
+  </div>
+);
+
+// ==========================================
 // Header Component with Mobile Menu Toggle
 // ==========================================
 interface HeaderProps {
@@ -42,7 +59,7 @@ interface HeaderProps {
 }
 
 export const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
-  const { selectedSiteId, setSelectedSiteId, siteSheets, logout } = useERP() as any;
+  const { selectedSiteId, setSelectedSiteId, siteSheets = [], logout } = useERP() as any;
   const [isSiteOpen, setIsSiteOpen] = useState(false);
   const currentSiteSheet = siteSheets.find((s: any) => s.siteId === selectedSiteId) || siteSheets[0];
 
@@ -274,7 +291,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
       </div>
 
       <div className="p-3 border-t border-[#1E293B] bg-[#080C14] space-y-2 sticky bottom-0 z-10">
-        {/* RENDERED STRICTLY ONLY FOR ADMINS */}
         {isAdminUser && onSwitchDomain && (
           <button
             onClick={() => {
@@ -561,13 +577,11 @@ export const AppContent: React.FC = () => {
     setAppDomain
   } = useERP() as any;
 
-  // Strict Admin Power Check
   const currentRoleStr = String(userRole || currentUser?.role || '').toUpperCase();
   const isAdmin = currentRoleStr === 'SUPER_ADMIN' || currentRoleStr === 'ADMIN' || currentRoleStr.includes('ADMIN');
   const userScope = currentUser?.allowedScope || 'ROAD_ONLY';
 
   const [projectType, setProjectType] = useState<'ROAD' | 'BUILDING' | null>(() => {
-    // Non-admin accounts NEVER have project selection power; they go straight to their assigned scope
     if (!isAdmin) {
       return userScope === 'BUILDING_ONLY' ? 'BUILDING' : 'ROAD';
     }
@@ -577,7 +591,6 @@ export const AppContent: React.FC = () => {
       if (saved === 'ROAD' || saved === 'BUILDING') return saved;
     } catch {}
 
-    // Admin starts at null so they see the Domain Selection Screen
     return null;
   });
 
@@ -592,7 +605,6 @@ export const AppContent: React.FC = () => {
   const [activeTab, setActiveTab] = useState<string>('dashboard');
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState<boolean>(false);
 
-  // Synchronize non-admin users to their fixed domain
   useEffect(() => {
     if (!isAdmin) {
       const fixedDomain = userScope === 'BUILDING_ONLY' ? 'BUILDING' : 'ROAD';
@@ -607,12 +619,10 @@ export const AppContent: React.FC = () => {
     }
   }, [userScope, isAdmin, appDomain]);
 
-  // 1. Not Authenticated -> Login
   if (!isAuthenticated) {
     return <LoginPage />;
   }
 
-  // 2. ONLY Admins can see Project Selection Page
   if (!projectType && isAdmin) {
     return (
       <ProjectTypeSelectionPage
@@ -627,7 +637,6 @@ export const AppContent: React.FC = () => {
 
   const activeDomain = projectType || (userScope === 'BUILDING_ONLY' ? 'BUILDING' : 'ROAD');
 
-  // 3. Site Selection Page
   if (!hasSelectedSite || !selectedSiteId || siteSheets.length === 0) {
     return (
       <SiteSelectionPage
@@ -651,7 +660,6 @@ export const AppContent: React.FC = () => {
     );
   }
 
-  // 4. Main Application Workspace
   return (
     <div className="min-h-screen bg-[#080C14] text-slate-100 flex flex-col selection:bg-blue-600 selection:text-white font-sans">
       <Header
@@ -662,7 +670,7 @@ export const AppContent: React.FC = () => {
 
       <div className="flex flex-1 relative h-[calc(100vh-56px)] overflow-hidden">
         
-        {/* Desktop Sidebar (Switch button visible ONLY to Admins) */}
+        {/* Desktop Sidebar (Switch button strictly visible ONLY to Admins) */}
         <div className="hidden lg:block h-full shrink-0 w-64">
           <Sidebar
             activeTab={activeTab}
@@ -755,5 +763,3 @@ export const App: React.FC = () => {
 };
 
 export default App;
-
-```
