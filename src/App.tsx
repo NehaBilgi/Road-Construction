@@ -1,3 +1,10 @@
+To guarantee that **only Admins** (`SUPER_ADMIN` / `ADMIN`) have the power to select or switch domains, and to ensure non-admin users **never** see the "Switch to Buildings" button or the Domain Selection page, apply these exact synchronized updates across all 3 key files:
+
+---
+
+### 1. `src/App.tsx`
+
+```tsx
 import React, { useState, useEffect } from 'react';
 import { ERPProvider, useERP } from './context/ERPContext';
 import { RoadERPProvider } from './context/RoadERPContext';
@@ -22,32 +29,8 @@ import {
   LayoutDashboard, Truck, Fuel, DollarSign, Calculator, HardHat,
   LogOut, Milestone, Users, Package, ArrowLeftRight, FileText,
   Bell, ShoppingCart, Cpu, CalendarCheck, Tag, Archive, Building2,
-  X, Plus, Edit2, Trash2, Menu, ChevronDown, Check, AlertTriangle, CreditCard
+  X, Plus, Edit2, Trash2, Menu, ChevronDown, Check, CreditCard
 } from 'lucide-react';
-
-// ==========================================
-// Generic Scaffold View for Pending Tabs
-// ==========================================
-const GenericView: React.FC<{
-  title: string;
-  subtitle: string;
-  icon: React.ComponentType<{ className?: string }>;
-}> = ({ title, subtitle, icon: Icon }) => (
-  <div className="p-6 rounded-3xl bg-[#0c1427] border border-[#182643] shadow-2xl space-y-4 font-sans text-slate-100">
-    <div className="flex items-center gap-3">
-      <div className="w-10 h-10 rounded-2xl bg-blue-600/20 border border-blue-500/30 flex items-center justify-center text-blue-400">
-        <Icon className="w-5 h-5" />
-      </div>
-      <div>
-        <h1 className="text-xl font-black text-white tracking-tight">{title}</h1>
-        <p className="text-xs text-slate-400">{subtitle}</p>
-      </div>
-    </div>
-    <div className="p-8 rounded-2xl bg-[#080d19] border border-[#182643] text-center text-slate-400 text-xs">
-      {title} telemetry and operations active.
-    </div>
-  </div>
-);
 
 // ==========================================
 // Header Component with Mobile Menu Toggle
@@ -59,28 +42,22 @@ interface HeaderProps {
 }
 
 export const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
-  const erpContext = useERP();
-  const { selectedSiteId, setSelectedSiteId, siteSheets, userRole, logout } = erpContext;
-
+  const { selectedSiteId, setSelectedSiteId, siteSheets, logout } = useERP() as any;
   const [isSiteOpen, setIsSiteOpen] = useState(false);
-  const currentSiteSheet = siteSheets.find((s) => s.siteId === selectedSiteId) || siteSheets[0];
+  const currentSiteSheet = siteSheets.find((s: any) => s.siteId === selectedSiteId) || siteSheets[0];
 
   return (
     <header className="h-14 bg-[#080C14] border-b border-[#1E293B] flex items-center justify-between px-3 sm:px-4 text-xs select-none font-sans z-40 relative">
       <div className="flex items-center gap-2 sm:gap-3">
-        {/* Mobile Hamburger Toggle */}
         <button
           type="button"
-          onClick={() => {
-            if (onToggleSidebar) onToggleSidebar();
-          }}
+          onClick={() => onToggleSidebar && onToggleSidebar()}
           className="p-2 lg:hidden rounded-xl bg-[#121927] hover:bg-[#162032] border border-[#1E293B] text-slate-300 hover:text-white transition-colors cursor-pointer"
           title="Toggle Navigation"
         >
           <Menu className="w-5 h-5" />
         </button>
 
-        {/* Site Selector Dropdown */}
         <div className="relative">
           <button
             onClick={() => setIsSiteOpen(!isSiteOpen)}
@@ -100,7 +77,7 @@ export const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
                 <span className="text-blue-400 font-mono">{siteSheets.length} Sites</span>
               </div>
               <div className="max-h-60 overflow-y-auto">
-                {siteSheets.map((s) => (
+                {siteSheets.map((s: any) => (
                   <div
                     key={s.siteId}
                     className={`w-full px-3.5 py-2.5 text-xs flex items-center justify-between hover:bg-[#162032] transition-colors ${
@@ -176,7 +153,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   isAdminUser = false,
   onClose
 }) => {
-  const { currentUser, logout } = useERP();
+  const { currentUser, logout } = useERP() as any;
   const isBuilding = projectType === 'BUILDING';
 
   const roadOperationsItems: NavItem[] = [
@@ -297,16 +274,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
       </div>
 
       <div className="p-3 border-t border-[#1E293B] bg-[#080C14] space-y-2 sticky bottom-0 z-10">
-        {/* Strictly visible ONLY to Admin users */}
+        {/* RENDERED STRICTLY ONLY FOR ADMINS */}
         {isAdminUser && onSwitchDomain && (
           <button
             onClick={() => {
               onSwitchDomain();
               if (onClose) onClose();
             }}
-            className="w-full py-1.5 px-2 bg-[#121927] hover:bg-[#1b263b] border border-[#1E293B] rounded-xl text-[11px] font-bold text-slate-300 flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+            className="w-full py-2 px-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 rounded-xl text-xs font-bold text-white flex items-center justify-center gap-1.5 transition-all shadow-md shadow-blue-600/30 cursor-pointer"
           >
-            <span>Switch to {isBuilding ? 'Roads' : 'Buildings'}</span>
+            <span>Switch to {isBuilding ? 'Road Construction' : 'Building Construction'}</span>
           </button>
         )}
 
@@ -351,7 +328,7 @@ const INITIAL_ROAD_CATEGORIES: RoadMaterialCategory[] = [
 ];
 
 export const RoadMaterialCategoriesModule: React.FC = () => {
-  const { currentUser, userRole } = useERP();
+  const { currentUser, userRole } = useERP() as any;
   const isAdmin = String(currentUser?.role || userRole || '').toLowerCase().includes('admin');
 
   const [categories, setCategories] = useState<RoadMaterialCategory[]>(() => {
@@ -584,21 +561,23 @@ export const AppContent: React.FC = () => {
     setAppDomain
   } = useERP() as any;
 
-  // Strict Admin Power check
+  // Strict Admin Power Check
   const currentRoleStr = String(userRole || currentUser?.role || '').toUpperCase();
-  const isAdmin = currentRoleStr.includes('ADMIN') || currentRoleStr.includes('SUPER');
-  const userScope = currentUser?.allowedScope || (isAdmin ? 'BOTH_ROAD_AND_BUILDING' : 'ROAD_ONLY');
+  const isAdmin = currentRoleStr === 'SUPER_ADMIN' || currentRoleStr === 'ADMIN' || currentRoleStr.includes('ADMIN');
+  const userScope = currentUser?.allowedScope || 'ROAD_ONLY';
 
   const [projectType, setProjectType] = useState<'ROAD' | 'BUILDING' | null>(() => {
+    // Non-admin accounts NEVER have project selection power; they go straight to their assigned scope
+    if (!isAdmin) {
+      return userScope === 'BUILDING_ONLY' ? 'BUILDING' : 'ROAD';
+    }
+
     try {
       const saved = sessionStorage.getItem('CONSTRUCTION_PRO_DOMAIN_SESSION');
       if (saved === 'ROAD' || saved === 'BUILDING') return saved;
     } catch {}
 
-    // Non-admin users automatically resolve based on scope; Admins start at null to choose
-    if (!isAdmin) {
-      return userScope === 'BUILDING_ONLY' ? 'BUILDING' : 'ROAD';
-    }
+    // Admin starts at null so they see the Domain Selection Screen
     return null;
   });
 
@@ -613,7 +592,7 @@ export const AppContent: React.FC = () => {
   const [activeTab, setActiveTab] = useState<string>('dashboard');
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState<boolean>(false);
 
-  // Auto-route non-admin users directly to their designated domain
+  // Synchronize non-admin users to their fixed domain
   useEffect(() => {
     if (!isAdmin) {
       const fixedDomain = userScope === 'BUILDING_ONLY' ? 'BUILDING' : 'ROAD';
@@ -622,18 +601,18 @@ export const AppContent: React.FC = () => {
         if (setAppDomain) setAppDomain(fixedDomain);
         sessionStorage.setItem('CONSTRUCTION_PRO_DOMAIN_SESSION', fixedDomain);
       }
-    } else if (appDomain && appDomain !== 'BOTH') {
+    } else if (appDomain && appDomain !== 'BOTH' && (appDomain === 'ROAD' || appDomain === 'BUILDING')) {
       setProjectType(appDomain);
       sessionStorage.setItem('CONSTRUCTION_PRO_DOMAIN_SESSION', appDomain);
     }
   }, [userScope, isAdmin, appDomain]);
 
-  // 1. Must be logged in
+  // 1. Not Authenticated -> Login
   if (!isAuthenticated) {
     return <LoginPage />;
   }
 
-  // 2. Domain Selection Screen ONLY for Admins
+  // 2. ONLY Admins can see Project Selection Page
   if (!projectType && isAdmin) {
     return (
       <ProjectTypeSelectionPage
@@ -648,7 +627,7 @@ export const AppContent: React.FC = () => {
 
   const activeDomain = projectType || (userScope === 'BUILDING_ONLY' ? 'BUILDING' : 'ROAD');
 
-  // 3. Site Selection Screen
+  // 3. Site Selection Page
   if (!hasSelectedSite || !selectedSiteId || siteSheets.length === 0) {
     return (
       <SiteSelectionPage
@@ -672,7 +651,7 @@ export const AppContent: React.FC = () => {
     );
   }
 
-  // 4. Main App Dashboard
+  // 4. Main Application Workspace
   return (
     <div className="min-h-screen bg-[#080C14] text-slate-100 flex flex-col selection:bg-blue-600 selection:text-white font-sans">
       <Header
@@ -683,7 +662,7 @@ export const AppContent: React.FC = () => {
 
       <div className="flex flex-1 relative h-[calc(100vh-56px)] overflow-hidden">
         
-        {/* Desktop Sidebar Container (Hidden on mobile) */}
+        {/* Desktop Sidebar (Switch button visible ONLY to Admins) */}
         <div className="hidden lg:block h-full shrink-0 w-64">
           <Sidebar
             activeTab={activeTab}
@@ -703,7 +682,7 @@ export const AppContent: React.FC = () => {
           />
         </div>
 
-        {/* Mobile Slide-over Sidebar Drawer */}
+        {/* Mobile Sidebar */}
         {mobileSidebarOpen && (
           <div className="fixed inset-0 z-50 lg:hidden flex">
             <div 
@@ -776,3 +755,5 @@ export const App: React.FC = () => {
 };
 
 export default App;
+
+```
