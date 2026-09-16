@@ -34,7 +34,6 @@ export interface FleetVehicle {
   vehicleType: string;
   category: string;
   metricType: 'KM' | 'HMR';
-  currentReading: number;
   ownershipType: 'company' | 'rented';
   rentalRateType?: 'per_day' | 'per_trip';
   rentalAmount?: number;
@@ -47,7 +46,6 @@ const DEFAULT_FLEET: FleetVehicle[] = [
     vehicleType: 'Hydraulic Excavator (CAT/Hitachi)',
     category: 'Earthmoving',
     metricType: 'HMR',
-    currentReading: 4215.5,
     ownershipType: 'company'
   },
   {
@@ -56,7 +54,6 @@ const DEFAULT_FLEET: FleetVehicle[] = [
     vehicleType: 'Backhoe Loader (JCB 3DX)',
     category: 'Earthmoving',
     metricType: 'HMR',
-    currentReading: 2850.0,
     ownershipType: 'rented',
     rentalRateType: 'per_day',
     rentalAmount: 4500
@@ -67,7 +64,6 @@ const DEFAULT_FLEET: FleetVehicle[] = [
     vehicleType: 'Tipper / Dump Truck',
     category: 'Haulage',
     metricType: 'KM',
-    currentReading: 14200,
     ownershipType: 'rented',
     rentalRateType: 'per_trip',
     rentalAmount: 850
@@ -78,7 +74,6 @@ const DEFAULT_FLEET: FleetVehicle[] = [
     vehicleType: 'Tractor & Trolley',
     category: 'Transport',
     metricType: 'HMR',
-    currentReading: 1120.0,
     ownershipType: 'company'
   },
   {
@@ -87,7 +82,6 @@ const DEFAULT_FLEET: FleetVehicle[] = [
     vehicleType: 'Site Jeep / Bolero / Pickup',
     category: 'Site Inspection',
     metricType: 'KM',
-    currentReading: 38450,
     ownershipType: 'company'
   },
   {
@@ -96,7 +90,6 @@ const DEFAULT_FLEET: FleetVehicle[] = [
     vehicleType: 'Car / SUV',
     category: 'Staff Transport',
     metricType: 'KM',
-    currentReading: 24100,
     ownershipType: 'company'
   }
 ];
@@ -106,11 +99,9 @@ const STORAGE_KEY = 'CONSTRUCTION_PRO_FLEET_VEHICLES_V1';
 export const MachineryFleetModule: React.FC = () => {
   const { currentUser, userRole } = useERP();
 
-  // Strict Admin Check: Only Admin can add or delete vehicles
   const currentRoleStr = String(currentUser?.role || userRole || '').toLowerCase();
   const isAdmin = currentRoleStr.includes('admin');
 
-  // Persistent state: load from localStorage if present
   const [fleet, setFleet] = useState<FleetVehicle[]>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
@@ -123,16 +114,14 @@ export const MachineryFleetModule: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  // Form State
+  // Form State (Odometer removed)
   const [vehicleNumber, setVehicleNumber] = useState('');
   const [selectedType, setSelectedType] = useState(VEHICLE_PRESETS[0].id);
   const [metricType, setMetricType] = useState<'KM' | 'HMR'>('KM');
-  const [currentReading, setCurrentReading] = useState<number | ''>('');
   const [ownershipType, setOwnershipType] = useState<'company' | 'rented'>('company');
   const [rentalRateType, setRentalRateType] = useState<'per_day' | 'per_trip'>('per_day');
   const [rentalAmount, setRentalAmount] = useState<number | ''>('');
 
-  // Auto-sync every change to localStorage
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(fleet));
   }, [fleet]);
@@ -151,7 +140,7 @@ export const MachineryFleetModule: React.FC = () => {
       alert('Action Restricted: Only Administrators are authorized to add fleet vehicles.');
       return;
     }
-    if (!vehicleNumber || currentReading === '') return;
+    if (!vehicleNumber.trim()) return;
     if (ownershipType === 'rented' && rentalAmount === '') return;
 
     const matched = VEHICLE_PRESETS.find(p => p.id === selectedType);
@@ -161,7 +150,6 @@ export const MachineryFleetModule: React.FC = () => {
       vehicleType: matched ? matched.name : selectedType,
       category: matched ? matched.category : 'General',
       metricType,
-      currentReading: Number(currentReading),
       ownershipType,
       ...(ownershipType === 'rented' ? {
         rentalRateType,
@@ -176,7 +164,6 @@ export const MachineryFleetModule: React.FC = () => {
     // Reset Form
     setIsModalOpen(false);
     setVehicleNumber('');
-    setCurrentReading('');
     setOwnershipType('company');
     setRentalRateType('per_day');
     setRentalAmount('');
@@ -227,7 +214,6 @@ export const MachineryFleetModule: React.FC = () => {
           </div>
         </div>
 
-        {/* Add button visible to Admin only */}
         {isAdmin && (
           <button
             onClick={() => setIsModalOpen(true)}
@@ -265,7 +251,6 @@ export const MachineryFleetModule: React.FC = () => {
               key={vehicle.id}
               className="p-5 rounded-3xl bg-[#0c1427] border border-[#1b2845] hover:border-blue-500/40 transition-all flex flex-col justify-between space-y-4 shadow-xl"
             >
-              {/* Top Details */}
               <div>
                 <div className="flex items-center justify-between gap-2 mb-2">
                   <span className="px-2.5 py-1 rounded-lg bg-amber-500/15 text-amber-400 font-mono font-black text-xs border border-amber-500/30">
@@ -296,7 +281,7 @@ export const MachineryFleetModule: React.FC = () => {
                 </h3>
               </div>
 
-              {/* Running Meter / Rate Data */}
+              {/* Tracking Unit & Rate Section */}
               <div className="space-y-2">
                 <div className="p-3 bg-[#070c18] border border-[#182643] rounded-2xl flex items-center justify-between">
                   <div className="flex items-center gap-2 text-slate-400 text-xs font-medium">
@@ -305,14 +290,11 @@ export const MachineryFleetModule: React.FC = () => {
                     ) : (
                       <Clock className="w-4 h-4 text-cyan-400" />
                     )}
-                    <span>{vehicle.metricType === 'KM' ? 'Odometer:' : 'Running Hours:'}</span>
+                    <span>Tracking Metric:</span>
                   </div>
 
-                  <span className="font-mono font-black text-sm text-white">
-                    {vehicle.currentReading.toLocaleString()}{' '}
-                    <span className="text-xs text-amber-400">
-                      {vehicle.metricType === 'KM' ? 'KM' : 'Hrs'}
-                    </span>
+                  <span className="font-mono font-bold text-xs text-slate-200">
+                    {vehicle.metricType === 'KM' ? 'Distance (KM)' : 'Hours (HMR)'}
                   </span>
                 </div>
 
@@ -403,7 +385,7 @@ export const MachineryFleetModule: React.FC = () => {
                 </select>
               </div>
 
-              {/* Ownership Type Radio Switch */}
+              {/* Ownership Type */}
               <div>
                 <label className="block text-slate-300 font-bold mb-1.5">
                   Vehicle Ownership <span className="text-amber-400">*</span>
@@ -436,7 +418,7 @@ export const MachineryFleetModule: React.FC = () => {
                 </div>
               </div>
 
-              {/* Conditional Rented Pricing Form Controls */}
+              {/* Conditional Rented Pricing */}
               {ownershipType === 'rented' && (
                 <div className="p-3.5 rounded-2xl bg-purple-950/20 border border-purple-900/40 space-y-3 animate-in fade-in slide-in-from-top-1 duration-150">
                   <div className="grid grid-cols-2 gap-3">
@@ -489,53 +471,36 @@ export const MachineryFleetModule: React.FC = () => {
                 </div>
               )}
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-slate-300 font-bold mb-1.5">
-                    Tracking Unit
-                  </label>
-                  <div className="grid grid-cols-2 gap-1.5 bg-[#162032] p-1 border border-[#1E293B] rounded-xl">
-                    <button
-                      type="button"
-                      onClick={() => setMetricType('KM')}
-                      className={`py-1.5 rounded-lg font-bold flex items-center justify-center gap-1 transition-all ${
-                        metricType === 'KM'
-                          ? 'bg-blue-600 text-white shadow-sm'
-                          : 'text-slate-400 hover:text-white'
-                      }`}
-                    >
-                      <Gauge className="w-3.5 h-3.5" />
-                      <span>KM</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setMetricType('HMR')}
-                      className={`py-1.5 rounded-lg font-bold flex items-center justify-center gap-1 transition-all ${
-                        metricType === 'HMR'
-                          ? 'bg-blue-600 text-white shadow-sm'
-                          : 'text-slate-400 hover:text-white'
-                      }`}
-                    >
-                      <Clock className="w-3.5 h-3.5" />
-                      <span>Hours</span>
-                    </button>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-slate-300 font-bold mb-1.5">
-                    {metricType === 'KM' ? 'Odometer (KM)' : 'Running Hours (HMR)'} <span className="text-amber-400">*</span>
-                  </label>
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.1"
-                    required
-                    placeholder={metricType === 'KM' ? 'e.g. 14200' : 'e.g. 2850.5'}
-                    value={currentReading}
-                    onChange={(e) => setCurrentReading(e.target.value === '' ? '' : Number(e.target.value))}
-                    className="w-full px-3.5 py-2.5 bg-[#162032] border border-[#1E293B] rounded-xl text-amber-400 font-mono font-bold outline-none focus:border-blue-500"
-                  />
+              {/* Tracking Unit Selection Only */}
+              <div>
+                <label className="block text-slate-300 font-bold mb-1.5">
+                  Tracking Unit <span className="text-amber-400">*</span>
+                </label>
+                <div className="grid grid-cols-2 gap-1.5 bg-[#162032] p-1 border border-[#1E293B] rounded-xl">
+                  <button
+                    type="button"
+                    onClick={() => setMetricType('KM')}
+                    className={`py-2 rounded-lg font-bold flex items-center justify-center gap-1.5 transition-all ${
+                      metricType === 'KM'
+                        ? 'bg-blue-600 text-white shadow-sm'
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    <Gauge className="w-3.5 h-3.5" />
+                    <span>KM (Kilometers)</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setMetricType('HMR')}
+                    className={`py-2 rounded-lg font-bold flex items-center justify-center gap-1.5 transition-all ${
+                      metricType === 'HMR'
+                        ? 'bg-blue-600 text-white shadow-sm'
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    <Clock className="w-3.5 h-3.5" />
+                    <span>Hours (HMR)</span>
+                  </button>
                 </div>
               </div>
 
