@@ -185,6 +185,9 @@ export const MaterialHaulageTripsModule: React.FC = () => {
   const [tripDate, setTripDate] = useState(new Date().toISOString().split('T')[0]);
   const [siteName, setSiteName] = useState(activeSiteName);
   const [vehicleNumber, setVehicleNumber] = useState('');
+  const [isVehicleMenuOpen, setIsVehicleMenuOpen] = useState(false);
+  const vehicleDropdownRef = useRef<HTMLDivElement>(null);
+
   const [purchasedFrom, setPurchasedFrom] = useState('');
   const [isSupplierMenuOpen, setIsSupplierMenuOpen] = useState(false);
   const [editingSupplierIndex, setEditingSupplierIndex] = useState<number | null>(null);
@@ -213,6 +216,9 @@ export const MaterialHaulageTripsModule: React.FC = () => {
       if (supplierDropdownRef.current && !supplierDropdownRef.current.contains(e.target as Node)) {
         setIsSupplierMenuOpen(false);
         setEditingSupplierIndex(null);
+      }
+      if (vehicleDropdownRef.current && !vehicleDropdownRef.current.contains(e.target as Node)) {
+        setIsVehicleMenuOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -323,7 +329,6 @@ export const MaterialHaulageTripsModule: React.FC = () => {
     );
   }, [filtered, rentedVehiclesMap, dieselLogs, activeSiteName]);
 
-  // Specific Advance Records for the active filtered view
   const matchingAdvances = useMemo(() => {
     const currentVendorNames = Array.from(new Set(filtered.map((t) => t.purchasedFrom?.trim().toLowerCase()).filter(Boolean)));
     return advances.filter((a) => {
@@ -341,8 +346,6 @@ export const MaterialHaulageTripsModule: React.FC = () => {
   const totalDeductions = totalVendorAdvancePaid + overallTotals.dieselCost;
   const rawBalance = overallTotals.amount - totalDeductions;
   
-  // Negative rawBalance means advance paid is larger than bill (excess advance with vendor)
-  // Positive rawBalance means trips amount is larger (you still have to pay the vendor)
   const isAdvanceExcess = rawBalance < 0;
   const netPayableAmount = Math.abs(rawBalance);
 
@@ -434,7 +437,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
       id: editingId || `TRIP-${Date.now().toString().slice(-4)}`,
       tripDate,
       siteName: siteName.trim() || activeSiteName,
-      vehicleNumber: vehicleNumber.trim(),
+      vehicleNumber: vehicleNumber.trim().toUpperCase(),
       purchasedFrom: trimmedVendor,
       materialName,
       dayTrips: Number(dayTrips),
@@ -855,42 +858,112 @@ export const MaterialHaulageTripsModule: React.FC = () => {
                 </div>
               </div>
 
-              <div>
+              {/* Vehicle Number: Type or Select Combobox */}
+              <div className="relative" ref={vehicleDropdownRef}>
                 <div className="flex items-center justify-between mb-1">
                   <label className="block text-slate-300 font-bold">Vehicle Number *</label>
-                  {isSelectedVehicleRented && (
+                  {isSelectedVehicleRented ? (
                     <span className="text-[10px] text-purple-400 font-bold flex items-center gap-1">
                       <KeyRound className="w-3 h-3" /> Hired / Rented Truck Tariff
                     </span>
-                  )}
+                  ) : selectedVehicleObj ? (
+                    <span className="text-[10px] text-blue-400 font-bold flex items-center gap-1">
+                      <Truck className="w-3 h-3" /> Company Owned Vehicle
+                    </span>
+                  ) : null}
                 </div>
-                <div className="relative">
-                  <select
+
+                <div className="relative flex items-center">
+                  <input
+                    type="text"
                     required
+                    placeholder="Type vehicle number or select from list..."
                     value={vehicleNumber}
+                    onFocus={() => setIsVehicleMenuOpen(true)}
                     onChange={(e) => {
-                      const newVeh = e.target.value;
-                      setVehicleNumber(newVeh);
-                      const vObj = fleetVehicles.find((v) => v.vehicleNumber === newVeh);
+                      const val = e.target.value.toUpperCase();
+                      setVehicleNumber(val);
+                      setIsVehicleMenuOpen(true);
+                      const vObj = fleetVehicles.find(
+                        (v) => v.vehicleNumber.trim().toUpperCase() === val.trim()
+                      );
                       if (vObj?.ownershipType === 'rented') {
                         setRatePerBrass(vObj.rentalAmount || 1500);
-                      } else {
+                      } else if (vObj) {
                         setRatePerBrass(categories[0]?.standardRate || 1500);
                       }
                     }}
-                    className="w-full px-3.5 py-2.5 bg-[#162032] border border-[#1E293B] rounded-xl text-white font-mono font-bold appearance-none outline-none focus:border-blue-500 cursor-pointer"
+                    className="w-full pl-3.5 pr-10 py-2.5 bg-[#162032] border border-[#1E293B] focus:border-blue-500 rounded-xl text-white font-mono font-bold uppercase outline-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setIsVehicleMenuOpen(!isVehicleMenuOpen)}
+                    className="absolute right-3 text-slate-400 hover:text-white p-1 cursor-pointer"
                   >
-                    <option value="" disabled>-- Select Registered Vehicle --</option>
-                    {fleetVehicles.map((v) => (
-                      <option key={v.id} value={v.vehicleNumber} className="bg-[#0F172A] text-white">
-                        {v.vehicleNumber} — {v.vehicleType} ({v.ownershipType === 'rented' ? `Rented: ₹${v.rentalAmount || 1500}/trip` : 'Company Owned'})
-                      </option>
-                    ))}
-                  </select>
-                  <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-3 pointer-events-none" />
+                    <ChevronDown className={`w-4 h-4 transition-transform ${isVehicleMenuOpen ? 'rotate-180' : ''}`} />
+                  </button>
                 </div>
+
+                {isVehicleMenuOpen && (
+                  <div className="absolute left-0 right-0 mt-1.5 bg-[#0F172A] border border-[#1E293B] rounded-2xl shadow-2xl py-1.5 z-50 max-h-56 overflow-y-auto">
+                    <div className="px-3.5 py-1.5 text-[10px] font-extrabold uppercase tracking-wider text-slate-400 border-b border-[#1E293B]">
+                      Registered Fleet Vehicles
+                    </div>
+
+                    {fleetVehicles
+                      .filter((v) =>
+                        !vehicleNumber ||
+                        v.vehicleNumber.toLowerCase().includes(vehicleNumber.toLowerCase()) ||
+                        v.vehicleType.toLowerCase().includes(vehicleNumber.toLowerCase())
+                      )
+                      .map((v) => (
+                        <button
+                          key={v.id}
+                          type="button"
+                          onClick={() => {
+                            setVehicleNumber(v.vehicleNumber);
+                            if (v.ownershipType === 'rented') {
+                              setRatePerBrass(v.rentalAmount || 1500);
+                            } else {
+                              setRatePerBrass(categories[0]?.standardRate || 1500);
+                            }
+                            setIsVehicleMenuOpen(false);
+                          }}
+                          className={`w-full px-3 py-2 text-xs flex items-center justify-between hover:bg-[#162032] transition-colors cursor-pointer text-left ${
+                            vehicleNumber.toUpperCase() === v.vehicleNumber.toUpperCase() ? 'bg-[#162032]/80' : ''
+                          }`}
+                        >
+                          <div className="flex items-center gap-2">
+                            <Truck className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+                            <span className="font-mono font-bold text-white">{v.vehicleNumber}</span>
+                            <span className="text-slate-400 text-[11px]">— {v.vehicleType}</span>
+                          </div>
+                          <span
+                            className={`text-[9px] font-bold px-1.5 py-0.5 rounded uppercase ${
+                              v.ownershipType === 'rented'
+                                ? 'bg-purple-950/60 border border-purple-800 text-purple-300'
+                                : 'bg-blue-950/60 border border-blue-800 text-blue-300'
+                            }`}
+                          >
+                            {v.ownershipType === 'rented' ? `Rented: ₹${v.rentalAmount || 1500}/trip` : 'Company'}
+                          </span>
+                        </button>
+                      ))}
+
+                    {vehicleNumber && !fleetVehicles.some(v => v.vehicleNumber.toUpperCase() === vehicleNumber.trim().toUpperCase()) && (
+                      <div
+                        onClick={() => setIsVehicleMenuOpen(false)}
+                        className="px-3.5 py-2 text-[11px] text-emerald-400 bg-emerald-950/20 border-t border-[#1E293B] cursor-pointer hover:bg-emerald-950/40 flex items-center justify-between"
+                      >
+                        <span>Use entered vehicle: <strong className="font-mono">{vehicleNumber}</strong></span>
+                        <span className="text-[10px] text-slate-400 font-sans">(Press outside or click to confirm)</span>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
+              {/* Purchased From / Supplier Dropdown */}
               <div className="relative" ref={supplierDropdownRef}>
                 <div className="flex items-center justify-between mb-1">
                   <label className="text-slate-300 font-bold">Purchased From / Supplier *</label>
