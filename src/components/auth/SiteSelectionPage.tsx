@@ -25,8 +25,12 @@ export const SiteSelectionPage: React.FC<Props> = ({
 }) => {
   const { siteSheets = [], addRoadSiteSection, logout, currentUser, userRole } = useERP() as any;
 
-  const currentRoleStr = String(currentUser?.role || userRole || '').toLowerCase();
-  const isAdmin = currentRoleStr.includes('admin') || currentRoleStr.includes('super');
+  const currentRoleStr = String(currentUser?.role || userRole || '').toUpperCase();
+  const isAdmin = currentRoleStr.includes('ADMIN') || currentRoleStr.includes('SUPER');
+  const userScope = currentUser?.allowedScope || (isAdmin ? 'BOTH_ROAD_AND_BUILDING' : 'ROAD_ONLY');
+
+  // Only Admins and users with BOTH_ROAD_AND_BUILDING have the power to switch domains
+  const canSwitchDomain = isAdmin || userScope === 'BOTH_ROAD_AND_BUILDING';
 
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [newSiteName, setNewSiteName] = useState('');
@@ -113,7 +117,7 @@ export const SiteSelectionPage: React.FC<Props> = ({
         </div>
 
         <div className="flex items-center gap-3">
-          {onBackToDomainSelect && (
+          {canSwitchDomain && onBackToDomainSelect && (
             <button
               onClick={onBackToDomainSelect}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#121927] hover:bg-[#1c273d] border border-[#1E293B] text-slate-300 text-xs font-semibold transition-all cursor-pointer"
@@ -169,13 +173,15 @@ export const SiteSelectionPage: React.FC<Props> = ({
                 There are no active {isRoad ? 'highway packages' : 'building/tower sites'} registered in this category.
               </p>
             </div>
-            <button
-              onClick={() => setIsAddModalOpen(true)}
-              className="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white font-black text-xs uppercase tracking-wider rounded-xl transition-all shadow-lg shadow-blue-600/30 flex items-center justify-center gap-2 cursor-pointer"
-            >
-              <Plus className="w-4 h-4" />
-              <span>+ Add First {isRoad ? 'Road Site' : 'Building Site'}</span>
-            </button>
+            {isAdmin && (
+              <button
+                onClick={() => setIsAddModalOpen(true)}
+                className="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white font-black text-xs uppercase tracking-wider rounded-xl transition-all shadow-lg shadow-blue-600/30 flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <Plus className="w-4 h-4" />
+                <span>+ Add First {isRoad ? 'Road Site' : 'Building Site'}</span>
+              </button>
+            )}
           </div>
         ) : (
           /* Filtered Site Cards Grid */
