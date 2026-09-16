@@ -311,7 +311,10 @@ export const MaterialHaulageTripsModule: React.FC = () => {
   const netPayableAmount = isAdvanceExcess ? 0 : rawBalance;
 
   const handlePrint = () => {
+    const originalTitle = document.title;
+    document.title = ''; // Removes browser PDF header title
     window.print();
+    document.title = originalTitle;
   };
 
   const handleOpenAdd = () => {
@@ -381,7 +384,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
         @media print {
           @page {
             size: A4 portrait;
-            margin: 10mm 12mm;
+            margin: 0 !important;
           }
           html, body, #root, main, div {
             background: #ffffff !important;
@@ -390,6 +393,9 @@ export const MaterialHaulageTripsModule: React.FC = () => {
             padding: 0 !important;
             box-shadow: none !important;
             width: 100% !important;
+          }
+          body {
+            padding: 12mm 15mm !important;
           }
           nav, header, aside, .no-print, ::-webkit-scrollbar {
             display: none !important;
@@ -468,7 +474,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
         </div>
         <div className="print-sub-header">
           <div>{currentSupplierName}</div>
-          <div>SITE: {activeSiteName}</div>
+          <div>SITE: {activeSiteName} {filterDate && `(${formatDateDMY(filterDate)})`}</div>
         </div>
       </div>
 
