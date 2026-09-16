@@ -23,15 +23,15 @@ export const SiteSelectionPage: React.FC<Props> = ({
   onSelectSite,
   onBackToDomainSelect
 }) => {
-  const { siteSheets = [], addRoadSiteSection, logout, currentUser, userRole } = useERP();
+  const { siteSheets = [], addRoadSiteSection, logout, currentUser, userRole } = useERP() as any;
 
   const currentRoleStr = String(currentUser?.role || userRole || '').toLowerCase();
-  const isAdmin = currentRoleStr.includes('admin');
+  const isAdmin = currentRoleStr.includes('admin') || currentRoleStr.includes('super');
 
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [newSiteName, setNewSiteName] = useState('');
   const [newLocation, setNewLocation] = useState('');
-  const [newSupervisor, setNewSupervisor] = useState(currentUser?.name || 'Ibrahim (Site Incharge)');
+  const [newSupervisor, setNewSupervisor] = useState(currentUser?.fullName || currentUser?.name || 'Ibrahim (Site Incharge)');
   const [startChainage, setStartChainage] = useState<number>(0);
   const [endChainage, setEndChainage] = useState<number>(10);
   const [buildingFloors, setBuildingFloors] = useState<string>('G + 12 Floors');
@@ -43,12 +43,12 @@ export const SiteSelectionPage: React.FC<Props> = ({
     return siteSheets.filter((site: any) => {
       // If site explicitly has projectType/category property
       if (site.projectType || site.category) {
-        const cat = (site.projectType || site.category).toUpperCase();
+        const cat = String(site.projectType || site.category).toUpperCase();
         return cat === projectType;
       }
 
-      // Smart fallback for existing legacy sites
-      const name = (site.siteName || '').toLowerCase();
+      // Fallback identification for legacy sites
+      const name = String(site.siteName || '').toLowerCase();
       const isLegacyRoad =
         name.includes('road') ||
         name.includes('stretch') ||
@@ -81,7 +81,9 @@ export const SiteSelectionPage: React.FC<Props> = ({
     setIsAddModalOpen(false);
     setNewSiteName('');
     setNewLocation('');
-    onSelectSite(newId);
+    if (newId) {
+      onSelectSite(newId);
+    }
   };
 
   return (
@@ -122,8 +124,12 @@ export const SiteSelectionPage: React.FC<Props> = ({
           )}
 
           <div className="hidden sm:block text-right">
-            <div className="text-xs font-bold text-white">{currentUser?.name || 'Habibulla Bilgi'}</div>
-            <div className="text-[11px] text-blue-400 font-mono">{currentUser?.role || 'Admin'}</div>
+            <div className="text-xs font-bold text-white">
+              {currentUser?.fullName || currentUser?.name || 'Habibulla Bilgi'}
+            </div>
+            <div className="text-[11px] text-blue-400 font-mono">
+              {currentUser?.role || 'SUPER_ADMIN'}
+            </div>
           </div>
 
           <button
@@ -174,7 +180,7 @@ export const SiteSelectionPage: React.FC<Props> = ({
         ) : (
           /* Filtered Site Cards Grid */
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredSites.map((site) => (
+            {filteredSites.map((site: any) => (
               <div
                 key={site.siteId}
                 onClick={() => onSelectSite(site.siteId)}
