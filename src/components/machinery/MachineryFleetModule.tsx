@@ -153,7 +153,6 @@ export const MaterialHaulageTripsModule: React.FC = () => {
     }
   });
 
-  // Pull suppliers from Vendor Advances + saved list
   const allSuppliers = useMemo(() => {
     const list = new Set<string>(savedVendors);
     advances.forEach((adv: any) => {
@@ -166,7 +165,6 @@ export const MaterialHaulageTripsModule: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterDate, setFilterDate] = useState<string>('');
 
-  // Modal States
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
 
@@ -188,7 +186,6 @@ export const MaterialHaulageTripsModule: React.FC = () => {
   const [brassPerTrip, setBrassPerTrip] = useState<number | ''>(6);
   const [ratePerBrass, setRatePerBrass] = useState<number | ''>(categories[0]?.standardRate || 1500);
 
-  // Close dropdown on outside click
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (supplierDropdownRef.current && !supplierDropdownRef.current.contains(e.target as Node)) {
@@ -345,7 +342,6 @@ export const MaterialHaulageTripsModule: React.FC = () => {
     }
   };
 
-  // Supplier Management within Dropdown
   const handleSaveSupplierEdit = (oldName: string) => {
     const newName = tempSupplierEditVal.trim().toUpperCase();
     if (!newName || newName === oldName) {
@@ -376,7 +372,6 @@ export const MaterialHaulageTripsModule: React.FC = () => {
 
     const trimmedVendor = purchasedFrom.trim().toUpperCase() || 'MBB CRUSHER';
 
-    // Auto-save new supplier
     if (!savedVendors.includes(trimmedVendor)) {
       const updated = [...savedVendors, trimmedVendor];
       setSavedVendors(updated);
@@ -729,7 +724,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
                 </div>
               </div>
 
-              {/* Enhanced Supplier Input with Clickable Selection Menu & Inline Edit/Delete */}
+              {/* Enhanced Supplier Input with Dropdown List & Inline Edit/Delete */}
               <div className="relative" ref={supplierDropdownRef}>
                 <div className="flex items-center justify-between mb-1">
                   <label className="text-slate-300 font-bold">Purchased From / Supplier *</label>
@@ -762,7 +757,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
                   </button>
                 </div>
 
-                {/* Dropdown Menu for Selection, Editing, and Deleting */}
+                {/* Dropdown Menu */}
                 {isSupplierMenuOpen && (
                   <div className="absolute left-0 right-0 mt-1.5 bg-[#0F172A] border border-[#1E293B] rounded-2xl shadow-2xl py-1.5 z-50 max-h-56 overflow-y-auto">
                     <div className="px-3.5 py-1.5 text-[10px] font-extrabold uppercase tracking-wider text-slate-400 border-b border-[#1E293B] flex items-center justify-between">
