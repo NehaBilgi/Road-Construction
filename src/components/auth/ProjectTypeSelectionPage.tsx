@@ -9,7 +9,8 @@ import {
   Truck,
   Layers,
   Hammer,
-  ShieldCheck
+  ShieldCheck,
+  Lock
 } from 'lucide-react';
 
 interface Props {
@@ -17,7 +18,13 @@ interface Props {
 }
 
 export const ProjectTypeSelectionPage: React.FC<Props> = ({ onSelectProjectType }) => {
-  const { logout, currentUser } = useERP();
+  const { logout, currentUser, userRole } = useERP() as any;
+
+  const isAdmin = String(userRole || currentUser?.role || '').toUpperCase().includes('ADMIN');
+  const userScope = currentUser?.allowedScope || (isAdmin ? 'BOTH_ROAD_AND_BUILDING' : 'BOTH_ROAD_AND_BUILDING');
+
+  const canAccessRoad = isAdmin || userScope === 'BOTH_ROAD_AND_BUILDING' || userScope === 'ROAD_ONLY';
+  const canAccessBuilding = isAdmin || userScope === 'BOTH_ROAD_AND_BUILDING' || userScope === 'BUILDING_ONLY';
 
   return (
     <div className="min-h-screen w-full bg-[#080C14] text-slate-100 flex flex-col justify-between p-4 sm:p-6 lg:p-10 font-sans selection:bg-blue-600 selection:text-white">
@@ -39,8 +46,12 @@ export const ProjectTypeSelectionPage: React.FC<Props> = ({ onSelectProjectType 
 
         <div className="flex items-center gap-2 sm:gap-3 shrink-0">
           <div className="hidden sm:block text-right">
-            <div className="text-xs font-bold text-white">{currentUser?.name || 'Habibulla Bilgi'}</div>
-            <div className="text-[11px] text-blue-400 font-mono">{currentUser?.role || 'Admin'}</div>
+            <div className="text-xs font-bold text-white">
+              {currentUser?.fullName || currentUser?.name || 'Habibulla Bilgi'}
+            </div>
+            <div className="text-[11px] text-blue-400 font-mono">
+              {currentUser?.role || 'SUPER_ADMIN'}
+            </div>
           </div>
           <button
             onClick={logout}
@@ -66,8 +77,14 @@ export const ProjectTypeSelectionPage: React.FC<Props> = ({ onSelectProjectType 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
           {/* Card 1: Road Construction */}
           <div
-            onClick={() => onSelectProjectType('ROAD')}
-            className="p-5 sm:p-7 rounded-[1.5rem] sm:rounded-3xl bg-[#0C1427] border border-[#182643] hover:border-blue-500 hover:bg-[#111d38] transition-all cursor-pointer group shadow-2xl flex flex-col justify-between space-y-5 sm:space-y-6 relative overflow-hidden"
+            onClick={() => {
+              if (canAccessRoad) onSelectProjectType('ROAD');
+            }}
+            className={`p-5 sm:p-7 rounded-[1.5rem] sm:rounded-3xl bg-[#0C1427] border transition-all flex flex-col justify-between space-y-5 sm:space-y-6 relative overflow-hidden shadow-2xl ${
+              canAccessRoad
+                ? 'border-[#182643] hover:border-blue-500 hover:bg-[#111d38] cursor-pointer group'
+                : 'border-[#182643]/50 opacity-50 cursor-not-allowed'
+            }`}
           >
             <div className="space-y-3 sm:space-y-4">
               <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-blue-600/20 border border-blue-500/40 flex items-center justify-center text-blue-400 shadow-md group-hover:scale-110 transition-transform">
@@ -97,16 +114,30 @@ export const ProjectTypeSelectionPage: React.FC<Props> = ({ onSelectProjectType 
               </div>
             </div>
 
-            <div className="pt-3 sm:pt-4 border-t border-[#182643] flex items-center justify-between text-xs font-bold text-blue-400 group-hover:translate-x-1 transition-transform">
-              <span>Enter Road Projects</span>
-              <ArrowRight className="w-4 h-4 shrink-0" />
+            <div className="pt-3 sm:pt-4 border-t border-[#182643] flex items-center justify-between text-xs font-bold text-blue-400">
+              {canAccessRoad ? (
+                <>
+                  <span className="group-hover:translate-x-1 transition-transform">Enter Road Projects</span>
+                  <ArrowRight className="w-4 h-4 shrink-0 group-hover:translate-x-1 transition-transform" />
+                </>
+              ) : (
+                <span className="text-slate-500 flex items-center gap-1">
+                  <Lock className="w-3.5 h-3.5" /> Scope Locked (Building Only)
+                </span>
+              )}
             </div>
           </div>
 
           {/* Card 2: Building Construction */}
           <div
-            onClick={() => onSelectProjectType('BUILDING')}
-            className="p-5 sm:p-7 rounded-[1.5rem] sm:rounded-3xl bg-[#0C1427] border border-[#182643] hover:border-emerald-500 hover:bg-[#112328] transition-all cursor-pointer group shadow-2xl flex flex-col justify-between space-y-5 sm:space-y-6 relative overflow-hidden"
+            onClick={() => {
+              if (canAccessBuilding) onSelectProjectType('BUILDING');
+            }}
+            className={`p-5 sm:p-7 rounded-[1.5rem] sm:rounded-3xl bg-[#0C1427] border transition-all flex flex-col justify-between space-y-5 sm:space-y-6 relative overflow-hidden shadow-2xl ${
+              canAccessBuilding
+                ? 'border-[#182643] hover:border-emerald-500 hover:bg-[#112328] cursor-pointer group'
+                : 'border-[#182643]/50 opacity-50 cursor-not-allowed'
+            }`}
           >
             <div className="space-y-3 sm:space-y-4">
               <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-emerald-600/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 shadow-md group-hover:scale-110 transition-transform">
@@ -136,9 +167,17 @@ export const ProjectTypeSelectionPage: React.FC<Props> = ({ onSelectProjectType 
               </div>
             </div>
 
-            <div className="pt-3 sm:pt-4 border-t border-[#182643] flex items-center justify-between text-xs font-bold text-emerald-400 group-hover:translate-x-1 transition-transform">
-              <span>Enter Building Projects</span>
-              <ArrowRight className="w-4 h-4 shrink-0" />
+            <div className="pt-3 sm:pt-4 border-t border-[#182643] flex items-center justify-between text-xs font-bold text-emerald-400">
+              {canAccessBuilding ? (
+                <>
+                  <span className="group-hover:translate-x-1 transition-transform">Enter Building Projects</span>
+                  <ArrowRight className="w-4 h-4 shrink-0 group-hover:translate-x-1 transition-transform" />
+                </>
+              ) : (
+                <span className="text-slate-500 flex items-center gap-1">
+                  <Lock className="w-3.5 h-3.5" /> Scope Locked (Road Only)
+                </span>
+              )}
             </div>
           </div>
         </div>
