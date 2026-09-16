@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useERP } from '../../context/ERPContext';
 import {
   Plus,
@@ -10,7 +10,9 @@ import {
   Download,
   ChevronDown,
   Lock,
-  Check
+  Check,
+  Truck,
+  KeyRound
 } from 'lucide-react';
 
 export interface DieselFuelRecord {
@@ -109,9 +111,22 @@ export const DieselFuelManagementModule: React.FC = () => {
   const [date, setDate] = useState('2026-08-19');
   const [siteName, setSiteName] = useState(activeSiteName);
   const [vehicleNumber, setVehicleNumber] = useState('');
+  const [isVehicleMenuOpen, setIsVehicleMenuOpen] = useState(false);
+  const vehicleDropdownRef = useRef<HTMLDivElement>(null);
+
   const [litres, setLitres] = useState<number | ''>('');
   const [ratePerLitre, setRatePerLitre] = useState<number | ''>(defaultSavedRate);
   const [rateSavedNotice, setRateSavedNotice] = useState(false);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (vehicleDropdownRef.current && !vehicleDropdownRef.current.contains(e.target as Node)) {
+        setIsVehicleMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   useEffect(() => {
     const handleSync = () => {
@@ -169,23 +184,18 @@ export const DieselFuelManagementModule: React.FC = () => {
   };
 
   const handleOpenAdd = () => {
-    // Reload fleet from storage on open
     try {
       const savedFleet = localStorage.getItem(STORAGE_FLEET_KEY);
       if (savedFleet) {
-        const parsed = JSON.parse(savedFleet);
-        setFleetVehicles(parsed);
-        setVehicleNumber(parsed[0]?.vehicleNumber || '');
-      } else {
-        setVehicleNumber(fleetVehicles[0]?.vehicleNumber || '');
+        setFleetVehicles(JSON.parse(savedFleet));
       }
-    } catch {
-      setVehicleNumber(fleetVehicles[0]?.vehicleNumber || '');
-    }
+    } catch {}
 
     setEditingId(null);
     setDate(new Date().toISOString().substring(0, 10));
     setSiteName(activeSiteName);
+    setVehicleNumber('');
+    setIsVehicleMenuOpen(false);
     setLitres('');
     setRatePerLitre(defaultSavedRate);
     setIsModalOpen(true);
@@ -200,6 +210,7 @@ export const DieselFuelManagementModule: React.FC = () => {
     setDate(record.date);
     setSiteName(record.siteName);
     setVehicleNumber(record.vehicleNumber);
+    setIsVehicleMenuOpen(false);
     setLitres(record.litres);
     setRatePerLitre(record.ratePerLitre);
     setIsModalOpen(true);
@@ -221,13 +232,13 @@ export const DieselFuelManagementModule: React.FC = () => {
       alert('Access Denied: Only administrators can update existing records.');
       return;
     }
-    if (litres === '' || ratePerLitre === '' || !vehicleNumber) return;
+    if (litres === '' || ratePerLitre === '' || !vehicleNumber.trim()) return;
 
     const record: DieselFuelRecord = {
       id: editingId || `DSL-${Date.now().toString().slice(-4)}`,
       date,
       siteName: siteName.trim() || activeSiteName,
-      vehicleNumber: vehicleNumber.trim(),
+      vehicleNumber: vehicleNumber.trim().toUpperCase(),
       litres: Number(litres),
       ratePerLitre: Number(ratePerLitre),
       totalCost: computedTotalCost
@@ -260,7 +271,11 @@ export const DieselFuelManagementModule: React.FC = () => {
     link.click();
   };
 
-  const selectedVehicleObj = fleetVehicles.find((v) => v.vehicleNumber === vehicleNumber);
+  const selectedVehicleObj = useMemo(() => {
+    return fleetVehicles.find(
+      (v) => v.vehicleNumber.trim().toUpperCase() === vehicleNumber.trim().toUpperCase()
+    );
+  }, [fleetVehicles, vehicleNumber]);
 
   return (
     <div className="space-y-6 font-sans text-slate-100">
@@ -452,35 +467,95 @@ export const DieselFuelManagementModule: React.FC = () => {
                 </div>
               </div>
 
-              {/* Machinery Vehicle Dropdown */}
-              <div>
+              {/* Vehicle Number: Type directly or pick from auto-suggest dropdown */}
+              <div className="relative" ref={vehicleDropdownRef}>
                 <div className="flex items-center justify-between mb-1.5">
                   <label className="text-slate-300 font-bold">Vehicle Number *</label>
                   {selectedVehicleObj && (
-                    <span className="text-[10px] text-slate-400 font-medium">
-                      {selectedVehicleObj.vehicleType} •{' '}
+                    <span className="text-[10px] text-slate-400 font-medium flex items-center gap-1">
+                      <span>{selectedVehicleObj.vehicleType}</span>
+                      <span>•</span>
                       <span className={selectedVehicleObj.ownershipType === 'rented' ? 'text-purple-400 font-bold' : 'text-sky-400 font-bold'}>
                         {selectedVehicleObj.ownershipType === 'rented' ? 'Rented' : 'Company'}
                       </span>
                     </span>
                   )}
                 </div>
-                <div className="relative">
-                  <select
+
+                <div className="relative flex items-center">
+                  <input
+                    type="text"
                     required
+                    placeholder="Add Vehicle No"
                     value={vehicleNumber}
-                    onChange={(e) => setVehicleNumber(e.target.value)}
-                    className="w-full px-3.5 py-2.5 bg-[#162032] border border-[#1E293B] rounded-xl text-white font-mono font-bold appearance-none outline-none focus:border-amber-500 cursor-pointer"
+                    onFocus={() => setIsVehicleMenuOpen(true)}
+                    onChange={(e) => {
+                      setVehicleNumber(e.target.value.toUpperCase());
+                      setIsVehicleMenuOpen(true);
+                    }}
+                    className="w-full pl-3.5 pr-10 py-2.5 bg-[#162032] border border-[#1E293B] focus:border-amber-500 rounded-xl text-white font-mono font-bold uppercase outline-none placeholder:text-slate-500 placeholder:font-normal placeholder:font-sans"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setIsVehicleMenuOpen(!isVehicleMenuOpen)}
+                    className="absolute right-3 text-slate-400 hover:text-white p-1 cursor-pointer"
                   >
-                    <option value="" disabled>-- Select Machinery / Vehicle --</option>
-                    {fleetVehicles.map((v) => (
-                      <option key={v.id} value={v.vehicleNumber} className="bg-[#0f172a] text-white">
-                        {v.vehicleNumber} — {v.vehicleType} ({v.ownershipType === 'rented' ? 'Rented' : 'Company Owned'})
-                      </option>
-                    ))}
-                  </select>
-                  <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-3 pointer-events-none" />
+                    <ChevronDown className={`w-4 h-4 transition-transform ${isVehicleMenuOpen ? 'rotate-180' : ''}`} />
+                  </button>
                 </div>
+
+                {isVehicleMenuOpen && (
+                  <div className="absolute left-0 right-0 mt-1.5 bg-[#0F172A] border border-[#1E293B] rounded-2xl shadow-2xl py-1.5 z-50 max-h-56 overflow-y-auto">
+                    <div className="px-3.5 py-1.5 text-[10px] font-extrabold uppercase tracking-wider text-slate-400 border-b border-[#1E293B]">
+                      Registered Fleet Vehicles
+                    </div>
+
+                    {fleetVehicles
+                      .filter((v) =>
+                        !vehicleNumber ||
+                        v.vehicleNumber.toLowerCase().includes(vehicleNumber.toLowerCase()) ||
+                        v.vehicleType.toLowerCase().includes(vehicleNumber.toLowerCase())
+                      )
+                      .map((v) => (
+                        <button
+                          key={v.id}
+                          type="button"
+                          onClick={() => {
+                            setVehicleNumber(v.vehicleNumber);
+                            setIsVehicleMenuOpen(false);
+                          }}
+                          className={`w-full px-3 py-2 text-xs flex items-center justify-between hover:bg-[#162032] transition-colors cursor-pointer text-left ${
+                            vehicleNumber.toUpperCase() === v.vehicleNumber.toUpperCase() ? 'bg-[#162032]/80' : ''
+                          }`}
+                        >
+                          <div className="flex items-center gap-2 truncate pr-2">
+                            <Truck className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                            <span className="font-mono font-bold text-white">{v.vehicleNumber}</span>
+                            <span className="text-slate-400 text-[11px] truncate">— {v.vehicleType}</span>
+                          </div>
+                          <span
+                            className={`text-[9px] font-bold px-1.5 py-0.5 rounded uppercase shrink-0 ${
+                              v.ownershipType === 'rented'
+                                ? 'bg-purple-950/60 border border-purple-800 text-purple-300'
+                                : 'bg-blue-950/60 border border-blue-800 text-blue-300'
+                            }`}
+                          >
+                            {v.ownershipType === 'rented' ? 'Rented' : 'Company'}
+                          </span>
+                        </button>
+                      ))}
+
+                    {vehicleNumber && !fleetVehicles.some(v => v.vehicleNumber.toUpperCase() === vehicleNumber.trim().toUpperCase()) && (
+                      <div
+                        onClick={() => setIsVehicleMenuOpen(false)}
+                        className="px-3.5 py-2 text-[11px] text-emerald-400 bg-emerald-950/20 border-t border-[#1E293B] cursor-pointer hover:bg-emerald-950/40 flex items-center justify-between"
+                      >
+                        <span>Use entered vehicle: <strong className="font-mono">{vehicleNumber}</strong></span>
+                        <span className="text-[10px] text-slate-400 font-sans">(Click to confirm)</span>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Litres & Rate per Litre with Default Rate Lock */}
@@ -506,7 +581,7 @@ export const DieselFuelManagementModule: React.FC = () => {
                       type="button"
                       onClick={handleSaveDefaultRate}
                       title="Save this rate as the default for future entries"
-                      className={`text-[10px] flex items-center gap-1 font-semibold px-1.5 py-0.5 rounded transition ${
+                      className={`text-[10px] flex items-center gap-1 font-semibold px-1.5 py-0.5 rounded transition cursor-pointer ${
                         rateSavedNotice
                           ? 'bg-emerald-950 text-emerald-300 border border-emerald-700'
                           : 'text-amber-400 hover:text-amber-300 bg-amber-950/40 border border-amber-800/60'
