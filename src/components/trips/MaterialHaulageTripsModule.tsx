@@ -9,7 +9,8 @@ import {
   Truck,
   Store,
   ChevronDown,
-  Printer
+  Printer,
+  Fuel
 } from 'lucide-react';
 
 export interface HaulageTripRecord {
@@ -44,11 +45,22 @@ export interface FleetVehicle {
   rentalAmount?: number;
 }
 
+export interface DieselFuelRecord {
+  id: string;
+  date: string;
+  siteName: string;
+  vehicleNumber: string;
+  litres: number;
+  ratePerLitre: number;
+  totalCost: number;
+}
+
 const STORAGE_HAULAGE_KEY = 'CONSTRUCTION_PRO_HAULAGE_TRIPS_V2';
 const STORAGE_ROAD_CATS_KEY = 'CONSTRUCTION_PRO_ROAD_CATEGORIES_V1';
 const STORAGE_VENDORS_KEY = 'CONSTRUCTION_PRO_VENDOR_NAMES_V1';
 const STORAGE_VENDOR_ADVANCES_KEY = 'CONSTRUCTION_PRO_VENDOR_ADVANCES_V1';
 const STORAGE_FLEET_KEY = 'CONSTRUCTION_PRO_FLEET_VEHICLES_V1';
+const STORAGE_DIESEL_KEY = 'CONSTRUCTION_PRO_DIESEL_LOGS_V1';
 
 const DEFAULT_FLEET: FleetVehicle[] = [
   { id: 'v-1', vehicleNumber: 'KA-28-EX-8901', vehicleType: 'Hydraulic Excavator (CAT/Hitachi)', category: 'Earthmoving', metricType: 'HMR', ownershipType: 'company' },
@@ -105,6 +117,16 @@ export const MaterialHaulageTripsModule: React.FC = () => {
     }
   });
 
+  // Fetch diesel logs to calculate rented vehicle deductions
+  const [dieselLogs, setDieselLogs] = useState<DieselFuelRecord[]>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_DIESEL_KEY);
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
   const [categories, setCategories] = useState<RoadMaterialCategory[]>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_ROAD_CATS_KEY);
@@ -117,9 +139,9 @@ export const MaterialHaulageTripsModule: React.FC = () => {
   const [savedVendors, setSavedVendors] = useState<string[]>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_VENDORS_KEY);
-      return saved ? JSON.parse(saved) : ['GIRGOANKAR', 'Mahalaxmi Stone Crusher', 'Bilgi Hot Mix Plant Quarry #1'];
+      return saved ? JSON.parse(saved) : ['MBB CRUSHER', 'GIRGOANKAR', 'Mahalaxmi Stone Crusher'];
     } catch {
-      return ['GIRGOANKAR', 'Mahalaxmi Stone Crusher', 'Bilgi Hot Mix Plant Quarry #1'];
+      return ['MBB CRUSHER', 'GIRGOANKAR', 'Mahalaxmi Stone Crusher'];
     }
   });
 
@@ -140,6 +162,9 @@ export const MaterialHaulageTripsModule: React.FC = () => {
         
         const savedFleet = localStorage.getItem(STORAGE_FLEET_KEY);
         setFleetVehicles(savedFleet ? JSON.parse(savedFleet) : DEFAULT_FLEET);
+
+        const savedDiesel = localStorage.getItem(STORAGE_DIESEL_KEY);
+        setDieselLogs(savedDiesel ? JSON.parse(savedDiesel) : []);
       } catch {
         setAdvances([]);
       }
@@ -223,7 +248,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
     const vendors = Array.from(
       new Set(filtered.map((t) => t.purchasedFrom?.trim()).filter(Boolean))
     );
-    return vendors.length > 0 ? vendors.join(', ') : 'GIRGOANKAR';
+    return vendors.length > 0 ? vendors.join(', ') : 'MBB CRUSHER';
   }, [filtered]);
 
   const overallTotals = useMemo(() => {
@@ -267,7 +292,32 @@ export const MaterialHaulageTripsModule: React.FC = () => {
     return uniqueDates.length > 0 ? uniqueDates.join(', ') : '';
   }, [advances, filtered, activeSiteName]);
 
-  const rawBalance = overallTotals.amount - totalVendorAdvancePaid;
+  // Compute total diesel cost dispensed specifically to rented/hired vehicles on this site
+  const { totalRentedDieselCost, totalRentedDieselLitres } = useMemo(() => {
+    const rentedVehNumbers = new Set(
+      fleetVehicles
+        .filter((v) => v.ownershipType === 'rented')
+        .map((v) => v.vehicleNumber.trim().toUpperCase())
+    );
+
+    const rentedDieselRecords = dieselLogs.filter((d) => {
+      const matchSite = !activeSiteName || d.siteName === activeSiteName;
+      const isRented = rentedVehNumbers.has(d.vehicleNumber?.trim().toUpperCase());
+      return matchSite && isRented;
+    });
+
+    const litres = rentedDieselRecords.reduce((sum, d) => sum + (Number(d.litres) || 0), 0);
+    const cost = rentedDieselRecords.reduce((sum, d) => sum + (Number(d.totalCost) || 0), 0);
+
+    return {
+      totalRentedDieselCost: cost,
+      totalRentedDieselLitres: litres
+    };
+  }, [fleetVehicles, dieselLogs, activeSiteName]);
+
+  // Final Net Balance = Total Purchases - Advances - Rented Vehicle Diesel
+  const totalDeductions = totalVendorAdvancePaid + totalRentedDieselCost;
+  const rawBalance = overallTotals.amount - totalDeductions;
   const isAdvanceExcess = rawBalance < 0;
   const netPayableAmount = isAdvanceExcess ? 0 : rawBalance;
   const remainingAdvanceBalance = isAdvanceExcess ? Math.abs(rawBalance) : 0;
@@ -301,7 +351,6 @@ export const MaterialHaulageTripsModule: React.FC = () => {
   };
 
   const handleOpenAdd = () => {
-    // Reload fleet from storage on open
     try {
       const savedFleet = localStorage.getItem(STORAGE_FLEET_KEY);
       if (savedFleet) setFleetVehicles(JSON.parse(savedFleet));
@@ -387,7 +436,6 @@ export const MaterialHaulageTripsModule: React.FC = () => {
     setEditingId(null);
   };
 
-  // Find currently selected vehicle metadata for info badge in modal
   const selectedVehicleObj = fleetVehicles.find((v) => v.vehicleNumber === vehicleNumber);
 
   return (
@@ -458,7 +506,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
           <div>
             <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight">Material Haulage Trips</h1>
             <p className="text-[11px] sm:text-xs text-slate-400 mt-0.5">
-              Track material purchases, auto-deduct vendor advances, and manage statements for {activeSiteName}.
+              Track material purchases, auto-deduct vendor advances & rented vehicle diesel for {activeSiteName}.
             </p>
           </div>
         </div>
@@ -484,18 +532,29 @@ export const MaterialHaulageTripsModule: React.FC = () => {
       </div>
 
       {/* Summary Stat Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 no-print">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 no-print">
         <div className="p-4 rounded-2xl bg-[#0B1220] border border-[#1E293B] shadow-lg flex flex-col justify-between">
           <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Total Material Purchase</div>
-          <div className="text-2xl font-black text-white font-mono mt-1">₹{overallTotals.amount.toLocaleString('en-IN')}</div>
+          <div className="text-xl font-black text-white font-mono mt-1">₹{overallTotals.amount.toLocaleString('en-IN')}</div>
           <div className="text-[10px] text-slate-500 font-medium">{overallTotals.trips} Trips ({overallTotals.brass} Brass)</div>
         </div>
 
         <div className="p-4 rounded-2xl bg-[#0B1220] border border-[#1E293B] shadow-lg flex flex-col justify-between">
           <div className="text-[10px] font-bold uppercase tracking-wider text-rose-400">(-) Less: Advance Paid</div>
-          <div className="text-2xl font-black text-rose-400 font-mono mt-1">₹{totalVendorAdvancePaid.toLocaleString('en-IN')}</div>
+          <div className="text-xl font-black text-rose-400 font-mono mt-1">₹{totalVendorAdvancePaid.toLocaleString('en-IN')}</div>
           <div className="text-[10px] text-slate-500 font-medium">
-            {advanceDatesSummary ? `Paid on: ${advanceDatesSummary}` : 'Auto-deducted from Advances ledger'}
+            {advanceDatesSummary ? `Paid on: ${advanceDatesSummary}` : 'Auto-deducted from Advances'}
+          </div>
+        </div>
+
+        <div className="p-4 rounded-2xl bg-[#0B1220] border border-[#1E293B] shadow-lg flex flex-col justify-between">
+          <div className="text-[10px] font-bold uppercase tracking-wider text-amber-400 flex items-center gap-1">
+            <Fuel className="w-3 h-3 text-amber-400" />
+            <span>(-) Less: Rented Diesel</span>
+          </div>
+          <div className="text-xl font-black text-amber-400 font-mono mt-1">₹{totalRentedDieselCost.toLocaleString('en-IN')}</div>
+          <div className="text-[10px] text-slate-500 font-medium">
+            {totalRentedDieselLitres > 0 ? `${totalRentedDieselLitres.toFixed(1)} Litres dispensed` : 'No rented diesel logged'}
           </div>
         </div>
 
@@ -505,9 +564,9 @@ export const MaterialHaulageTripsModule: React.FC = () => {
             : 'bg-[#0B1220] border-[#1E293B] opacity-75'
         }`}>
           <div className="text-[10px] font-bold uppercase tracking-wider text-amber-400">(=) Net Payable Amount</div>
-          <div className="text-2xl font-black text-amber-400 font-mono mt-1">₹{netPayableAmount.toLocaleString('en-IN')}</div>
+          <div className="text-xl font-black text-amber-400 font-mono mt-1">₹{netPayableAmount.toLocaleString('en-IN')}</div>
           <div className="text-[10px] text-slate-400 font-medium">
-            {netPayableAmount > 0 ? 'Remaining balance to pay vendor' : 'Cleared by Advance'}
+            {netPayableAmount > 0 ? 'Remaining balance to pay vendor' : 'Cleared by Advance/Diesel'}
           </div>
         </div>
 
@@ -517,7 +576,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
             : 'bg-[#0B1220] border-[#1E293B] opacity-75'
         }`}>
           <div className="text-[10px] font-bold uppercase tracking-wider text-emerald-400">Remaining Advance Balance</div>
-          <div className="text-2xl font-black text-emerald-400 font-mono mt-1">₹{remainingAdvanceBalance.toLocaleString('en-IN')}</div>
+          <div className="text-xl font-black text-emerald-400 font-mono mt-1">₹{remainingAdvanceBalance.toLocaleString('en-IN')}</div>
           <div className="text-[10px] text-emerald-500/80 font-bold">
             {remainingAdvanceBalance > 0 ? 'Unused Advance with Vendor' : 'No Surplus Advance'}
           </div>
@@ -604,7 +663,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
               )}
             </tbody>
 
-            {/* Table Footer */}
+            {/* Reconciliation Footer */}
             {filtered.length > 0 && (
               <tfoot className="border-t-2 border-[#1E293B] print:border-t-2 print:border-black bg-[#070c18] font-mono print:bg-white">
                 <tr className="border-b border-[#1E293B]/60 print:border-b print:border-slate-300">
@@ -627,6 +686,18 @@ export const MaterialHaulageTripsModule: React.FC = () => {
                   </td>
                   <td className="py-2 px-3 no-print"></td>
                 </tr>
+
+                {totalRentedDieselCost > 0 && (
+                  <tr className="border-b border-[#1E293B]/60 print:border-b print:border-slate-300 text-amber-400 print:text-black">
+                    <td colSpan={8} className="py-2 px-3 font-bold uppercase text-right">
+                      (-) Less: Diesel Dispensed to Rented Vehicles ({totalRentedDieselLitres.toFixed(1)} L):
+                    </td>
+                    <td className="py-2 px-3 text-right font-bold">
+                      - ₹{totalRentedDieselCost.toLocaleString('en-IN')}
+                    </td>
+                    <td className="py-2 px-3 no-print"></td>
+                  </tr>
+                )}
 
                 {remainingAdvanceBalance > 0 ? (
                   <tr className="bg-[#082216] text-emerald-400 print:bg-slate-100 print:text-black font-black">
