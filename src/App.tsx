@@ -591,16 +591,16 @@ export const AppContent: React.FC = () => {
   const hasDomainSelectionPower = isAdmin || userScope === 'BOTH_ROAD_AND_BUILDING';
 
   const [projectType, setProjectType] = useState<'ROAD' | 'BUILDING' | null>(() => {
+    try {
+      const saved = sessionStorage.getItem('CONSTRUCTION_PRO_DOMAIN_SESSION');
+      if (saved === 'ROAD' || saved === 'BUILDING') return saved;
+    } catch {}
+
+    // Non-admin single domain users auto-resolve; Admin/Dual-domain starts at null
     if (!hasDomainSelectionPower) {
       return userScope === 'BUILDING_ONLY' ? 'BUILDING' : 'ROAD';
     }
-    if (appDomain === 'BUILDING') return 'BUILDING';
-    if (appDomain === 'ROAD') return 'ROAD';
-    try {
-      return (sessionStorage.getItem('CONSTRUCTION_PRO_DOMAIN_SESSION') as any) || null;
-    } catch {
-      return null;
-    }
+    return null;
   });
 
   const [hasSelectedSite, setHasSelectedSite] = useState<boolean>(() => {
@@ -623,17 +623,15 @@ export const AppContent: React.FC = () => {
         if (setAppDomain) setAppDomain(fixedDomain);
         sessionStorage.setItem('CONSTRUCTION_PRO_DOMAIN_SESSION', fixedDomain);
       }
-    } else if (appDomain && appDomain !== 'BOTH') {
-      setProjectType(appDomain);
-      sessionStorage.setItem('CONSTRUCTION_PRO_DOMAIN_SESSION', appDomain);
     }
-  }, [userScope, hasDomainSelectionPower, appDomain]);
+  }, [userScope, hasDomainSelectionPower]);
 
+  // 1. Must be logged in
   if (!isAuthenticated) {
     return <LoginPage />;
   }
 
-  // Multi-domain selection page shown only for Admin / BOTH_ROAD_AND_BUILDING
+  // 2. Admin & Dual-Domain users see the Domain Selection Screen first
   if (!projectType && hasDomainSelectionPower) {
     return (
       <ProjectTypeSelectionPage
@@ -648,6 +646,7 @@ export const AppContent: React.FC = () => {
 
   const activeDomain = projectType || (userScope === 'BUILDING_ONLY' ? 'BUILDING' : 'ROAD');
 
+  // 3. Site Selection Screen
   if (!hasSelectedSite || !selectedSiteId || siteSheets.length === 0) {
     return (
       <SiteSelectionPage
@@ -671,6 +670,7 @@ export const AppContent: React.FC = () => {
     );
   }
 
+  // 4. Main App Dashboard
   return (
     <div className="min-h-screen bg-[#080C14] text-slate-100 flex flex-col selection:bg-blue-600 selection:text-white font-sans">
       <Header
