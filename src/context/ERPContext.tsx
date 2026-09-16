@@ -278,19 +278,23 @@ export const ERPProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const scope = currentUser?.allowedScope;
     if (scope === 'BUILDING_ONLY') return 'BUILDING';
     if (scope === 'ROAD_ONLY') return 'ROAD';
-    return 'ROAD';
+    return 'BOTH';
   });
 
   const [workType, setWorkTypeState] = useState<WorkType | null>(() => {
-    return appDomain === 'BUILDING' ? 'BUILDING' : 'ROAD';
+    if (appDomain === 'BUILDING') return 'BUILDING';
+    if (appDomain === 'ROAD') return 'ROAD';
+    return null;
   });
 
   const setAppDomain = (domain: AppDomainType) => {
     setAppDomainState(domain);
     if (domain === 'BUILDING') {
       setWorkTypeState('BUILDING');
-    } else {
+    } else if (domain === 'ROAD') {
       setWorkTypeState('ROAD');
+    } else {
+      setWorkTypeState(null);
     }
   };
 
@@ -310,6 +314,8 @@ export const ERPProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         setAppDomain('BUILDING');
       } else if (scope === 'ROAD_ONLY') {
         setAppDomain('ROAD');
+      } else {
+        setAppDomain('BOTH');
       }
     }
   }, [currentUser]);
@@ -363,7 +369,7 @@ export const ERPProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     } else if (scope === 'ROAD_ONLY') {
       setAppDomain('ROAD');
     } else {
-      setAppDomain('ROAD');
+      setAppDomain('BOTH');
     }
 
     setCurrentUser(usr);
@@ -381,6 +387,8 @@ export const ERPProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setCurrentUser(null as any);
     sessionStorage.removeItem(STORAGE_SESSION_KEY);
     sessionStorage.removeItem(LOCAL_STORAGE_KEY + '_AUTH');
+    sessionStorage.removeItem('CONSTRUCTION_PRO_DOMAIN_SESSION');
+    sessionStorage.removeItem('CONSTRUCTION_PRO_SITE_CHOSEN_SESSION');
   };
 
   const addManagedUser = (userData: Omit<ManagedUser, 'id'>) => {
