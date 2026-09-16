@@ -56,6 +56,7 @@ import {
 } from '../data/initialData';
 
 export type AllowedModuleScope = 'ROAD_ONLY' | 'BUILDING_ONLY' | 'BOTH_ROAD_AND_BUILDING';
+export type AppDomainType = 'ROAD' | 'BUILDING' | 'BOTH';
 
 export interface ManagedUser extends User {
   username: string;
@@ -68,6 +69,7 @@ export interface ManagedUser extends User {
 }
 
 const STORAGE_USERS_KEY = 'PAVETRACK_AUTHORIZED_PERSONNEL_V2';
+const STORAGE_SESSION_KEY = 'PAVETRACK_ACTIVE_SESSION_V2';
 
 const DEFAULT_MANAGED_USERS: ManagedUser[] = [
   {
@@ -102,12 +104,15 @@ export interface AddRoadSiteInput {
 
 interface ERPContextType {
   isAuthenticated: boolean;
-  login: (username: string, password?: string) => { success: boolean; message?: string };
+  login: (username: string, password?: string) => { success: boolean; message?: string; user?: ManagedUser };
   logout: () => void;
-  currentUser: User & { allowedScope?: AllowedModuleScope };
-  setCurrentUser: (user: User & { allowedScope?: AllowedModuleScope }) => void;
+  currentUser: User & { allowedScope?: AllowedModuleScope; fullName?: string; username?: string };
+  setCurrentUser: (user: User & { allowedScope?: AllowedModuleScope; fullName?: string; username?: string }) => void;
   userRole: UserRole | string;
   setUserRole: (role: UserRole | string) => void;
+
+  appDomain: AppDomainType;
+  setAppDomain: (domain: AppDomainType) => void;
 
   usersList: ManagedUser[];
   addManagedUser: (user: Omit<ManagedUser, 'id'>) => void;
@@ -221,28 +226,13 @@ const safeGetJSON = <T,>(key: string, fallback: T): T => {
   try {
     const item = localStorage.getItem(key);
     return item ? JSON.parse(item) : fallback;
-  } catch (err) {
+  } catch {
     return fallback;
   }
 };
 
 export const ERPProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  useEffect(() => {
-    try {
-      const CURRENT_DATA_VERSION = 'v8_universal_sync_fix';
-      const savedVersion = localStorage.getItem('CONSTRUCTION_PRO_DATA_VERSION');
-      if (savedVersion !== CURRENT_DATA_VERSION) {
-        localStorage.removeItem(LOCAL_STORAGE_KEY + '_TRIPS');
-        localStorage.removeItem(LOCAL_STORAGE_KEY + '_DIESEL_LOGS');
-        localStorage.removeItem(LOCAL_STORAGE_KEY + '_SITE_EXPENSES');
-        localStorage.setItem('CONSTRUCTION_PRO_DATA_VERSION', CURRENT_DATA_VERSION);
-        window.location.reload();
-      }
-    } catch {
-      // ignore
-    }
-  }, []);
-
+  // Users List Management
   const [usersList, setUsersList] = useState<ManagedUser[]>(() => {
     const saved = safeGetJSON(STORAGE_USERS_KEY, null);
     if (saved && Array.isArray(saved) && saved.length > 0) {
@@ -260,50 +250,69 @@ export const ERPProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
   }, [usersList]);
 
+  // Session & Auth State Restoration
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false;
     try {
-      const sessionAuth = sessionStorage.getItem(LOCAL_STORAGE_KEY + '_AUTH');
-      return sessionAuth ? JSON.parse(sessionAuth) : false;
+      const activeSession = localStorage.getItem(STORAGE_SESSION_KEY) || sessionStorage.getItem(LOCAL_STORAGE_KEY + '_AUTH');
+      return !!activeSession;
     } catch {
       return false;
     }
   });
 
-  const [currentUser, setCurrentUser] = useState<User & { allowedScope?: AllowedModuleScope }>(() =>
-    safeGetJSON(LOCAL_STORAGE_KEY + '_USER', DEFAULT_MANAGED_USERS[0])
-  );
+  const [currentUser, setCurrentUser] = useState<User & { allowedScope?: AllowedModuleScope; fullName?: string; username?: string }>(() => {
+    const active = safeGetJSON<any>(STORAGE_SESSION_KEY, null);
+    if (active) return active;
+    return safeGetJSON(LOCAL_STORAGE_KEY + '_USER', DEFAULT_MANAGED_USERS[0]);
+  });
 
   const [userRole, setUserRole] = useState<UserRole | string>(() => currentUser?.role || 'SUPER_ADMIN');
 
-  // Initialize workType automatically based on active scope
-  const [workType, setWorkType] = useState<WorkType | null>(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        const savedUser = localStorage.getItem('PAVETRACK_CURRENT_USER') || localStorage.getItem(LOCAL_STORAGE_KEY + '_USER');
-        if (savedUser) {
-          const parsed = JSON.parse(savedUser);
-          if (parsed.allowedScope === 'BUILDING_ONLY') return 'BUILDING';
-          if (parsed.allowedScope === 'ROAD_ONLY') return 'ROAD';
-        }
-      } catch {}
-    }
+  // Domain state: Synchronizes appDomain & workType
+  const [appDomain, setAppDomainState] = useState<AppDomainType>(() => {
+    const scope = currentUser?.allowedScope;
+    if (scope === 'BUILDING_ONLY') return 'BUILDING';
+    if (scope === 'ROAD_ONLY') return 'ROAD';
     return 'ROAD';
   });
 
-  // Auto-switch domain when active user updates
+  const [workType, setWorkTypeState] = useState<WorkType | null>(() => {
+    return appDomain === 'BUILDING' ? 'BUILDING' : 'ROAD';
+  });
+
+  const setAppDomain = (domain: AppDomainType) => {
+    setAppDomainState(domain);
+    if (domain === 'BUILDING') {
+      setWorkTypeState('BUILDING');
+    } else {
+      setWorkTypeState('ROAD');
+    }
+  };
+
+  const setWorkType = (type: WorkType | null) => {
+    setWorkTypeState(type);
+    if (type === 'BUILDING') {
+      setAppDomainState('BUILDING');
+    } else if (type === 'ROAD') {
+      setAppDomainState('ROAD');
+    }
+  };
+
+  // Sync domain automatically when active user changes
   useEffect(() => {
     if (currentUser) {
-      const scope = (currentUser as any).allowedScope;
-      if (scope === 'BUILDING_ONLY' && workType !== 'BUILDING') {
-        setWorkType('BUILDING');
-      } else if (scope === 'ROAD_ONLY' && workType !== 'ROAD') {
-        setWorkType('ROAD');
+      const scope = currentUser.allowedScope;
+      if (scope === 'BUILDING_ONLY') {
+        setAppDomain('BUILDING');
+      } else if (scope === 'ROAD_ONLY') {
+        setAppDomain('ROAD');
       }
     }
   }, [currentUser]);
 
-  const login = (username: string, password?: string): { success: boolean; message?: string } => {
+  // Login handler with role-based domain migration
+  const login = (username: string, password?: string): { success: boolean; message?: string; user?: ManagedUser } => {
     const cleanUser = username.trim().toLowerCase();
     const cleanPass = (password || '').trim();
 
@@ -334,19 +343,25 @@ export const ERPProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       return { success: false, message: 'Incorrect password. Please try again.' };
     }
 
-    const usr: User & { allowedScope?: AllowedModuleScope } = {
+    const scope = matchedUser.allowedScope || (matchedUser.role === 'SUPER_ADMIN' ? 'BOTH_ROAD_AND_BUILDING' : 'ROAD_ONLY');
+
+    const usr: User & { allowedScope?: AllowedModuleScope; fullName?: string; username?: string } = {
       id: matchedUser.id,
       name: matchedUser.fullName || matchedUser.name || 'User',
+      fullName: matchedUser.fullName || matchedUser.name || 'User',
+      username: matchedUser.username,
       email: matchedUser.email || `${matchedUser.username}@erp.internal`,
       role: (matchedUser.role || 'SUPER_ADMIN') as any,
-      allowedScope: matchedUser.allowedScope || 'BOTH_ROAD_AND_BUILDING'
+      allowedScope: scope
     };
 
-    // Auto-switch mode based on user permission scope upon login
-    if (usr.allowedScope === 'BUILDING_ONLY') {
-      setWorkType('BUILDING');
-    } else if (usr.allowedScope === 'ROAD_ONLY') {
-      setWorkType('ROAD');
+    // Auto-migrate domain based on assigned scope
+    if (scope === 'BUILDING_ONLY') {
+      setAppDomain('BUILDING');
+    } else if (scope === 'ROAD_ONLY') {
+      setAppDomain('ROAD');
+    } else {
+      setAppDomain('ROAD');
     }
 
     setCurrentUser(usr);
@@ -354,14 +369,21 @@ export const ERPProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setIsAuthenticated(true);
 
     sessionStorage.setItem(LOCAL_STORAGE_KEY + '_AUTH', JSON.stringify(true));
+    localStorage.setItem(STORAGE_SESSION_KEY, JSON.stringify(usr));
     localStorage.setItem(LOCAL_STORAGE_KEY + '_USER', JSON.stringify(usr));
     localStorage.setItem('PAVETRACK_CURRENT_USER', JSON.stringify(usr));
-    return { success: true };
+    localStorage.setItem('CONSTRUCTION_PRO_ERP_STORAGE_V7_USER', JSON.stringify(usr));
+
+    return { success: true, user: matchedUser };
   };
 
   const logout = () => {
     setIsAuthenticated(false);
     sessionStorage.removeItem(LOCAL_STORAGE_KEY + '_AUTH');
+    localStorage.removeItem(STORAGE_SESSION_KEY);
+    localStorage.removeItem(LOCAL_STORAGE_KEY + '_USER');
+    localStorage.removeItem('PAVETRACK_CURRENT_USER');
+    localStorage.removeItem('CONSTRUCTION_PRO_ERP_STORAGE_V7_USER');
   };
 
   const addManagedUser = (userData: Omit<ManagedUser, 'id'>) => {
@@ -751,7 +773,7 @@ export const ERPProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       projectId: targetProjId,
       name: input.siteName,
       code: input.siteCode || 'ST-' + Math.floor(100 + Math.random() * 900),
-      location,
+      location: input.location,
       supervisor: input.supervisor
     };
 
@@ -1149,6 +1171,8 @@ export const ERPProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         setCurrentUser,
         userRole,
         setUserRole,
+        appDomain,
+        setAppDomain,
         usersList,
         addManagedUser,
         updateManagedUser,
