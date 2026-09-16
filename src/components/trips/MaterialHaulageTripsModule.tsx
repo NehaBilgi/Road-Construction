@@ -63,17 +63,16 @@ const STORAGE_FLEET_KEY = 'CONSTRUCTION_PRO_FLEET_VEHICLES_V1';
 const STORAGE_DIESEL_KEY = 'CONSTRUCTION_PRO_DIESEL_LOGS_V1';
 
 const DEFAULT_FLEET: FleetVehicle[] = [
-  { id: 'v-1', vehicleNumber: 'KA-28-EX-8901', vehicleType: 'Hydraulic Excavator (CAT/Hitachi)', category: 'Earthmoving', metricType: 'HMR', ownershipType: 'company' },
-  { id: 'v-2', vehicleNumber: 'KA-28-JC-3342', vehicleType: 'Backhoe Loader (JCB 3DX)', category: 'Earthmoving', metricType: 'HMR', ownershipType: 'rented', rentalRateType: 'per_day', rentalAmount: 4500 },
-  { id: 'v-3', vehicleNumber: 'MH-12-DT-5510', vehicleType: 'Tipper / Dump Truck', category: 'Haulage', metricType: 'KM', ownershipType: 'rented', rentalRateType: 'per_trip', rentalAmount: 850 },
-  { id: 'v-4', vehicleNumber: 'KA-28-TR-1092', vehicleType: 'Tractor & Trolley', category: 'Transport', metricType: 'HMR', ownershipType: 'company' },
-  { id: 'v-5', vehicleNumber: 'KA-28-JP-7890', vehicleType: 'Site Jeep / Bolero / Pickup', category: 'Site Inspection', metricType: 'KM', ownershipType: 'company' },
-  { id: 'v-6', vehicleNumber: 'KA-28-CR-2200', vehicleType: 'Car / SUV', category: 'Staff Transport', metricType: 'KM', ownershipType: 'company' }
+  { id: 'v-1', vehicleNumber: 'KA-28-EX-8901', vehicleType: 'Hydraulic Excavator', category: 'Earthmoving', metricType: 'HMR', ownershipType: 'company' },
+  { id: 'v-2', vehicleNumber: '3146', vehicleType: 'Tipper (Hired)', category: 'Haulage', metricType: 'KM', ownershipType: 'rented' },
+  { id: 'v-3', vehicleNumber: '7243', vehicleType: 'Tipper (Hired)', category: 'Haulage', metricType: 'KM', ownershipType: 'rented' },
+  { id: 'v-4', vehicleNumber: '9260', vehicleType: 'Tipper (Hired)', category: 'Haulage', metricType: 'KM', ownershipType: 'rented' },
+  { id: 'v-5', vehicleNumber: '5321', vehicleType: 'Tipper (Hired)', category: 'Haulage', metricType: 'KM', ownershipType: 'rented' }
 ];
 
 const INITIAL_ROAD_CATEGORIES: RoadMaterialCategory[] = [
   { id: 'RCAT-01', name: 'Granular Sub-Base (GSB)', description: 'Coarse graded granular material sub-base', standardRate: 1500, unit: 'Brass' },
-  { id: 'RCAT-02', name: 'Wet Mix Macadam (WMM)', description: 'Crushed stone aggregate base/sub-base layer', standardRate: 4500, unit: 'Brass' },
+  { id: 'RCAT-02', name: 'Wet Mix Macadam (WMM)', description: 'Crushed stone aggregate base layer', standardRate: 1500, unit: 'Brass' },
   { id: 'RCAT-03', name: 'Dense Bituminous Macadam (DBM)', description: 'Structural layer in flexible pavements', standardRate: 5500, unit: 'Brass' },
   { id: 'RCAT-04', name: 'Bituminous Concrete (BC)', description: 'High quality wearing course finish', standardRate: 6000, unit: 'Brass' }
 ];
@@ -91,7 +90,6 @@ const formatDateDMY = (dateStr: string) => {
 export const MaterialHaulageTripsModule: React.FC = () => {
   const { siteSheets = [], selectedSiteId, currentUser, userRole } = useERP() as any;
 
-  // Role verification: only Admin can edit or delete
   const currentRole = String(userRole || currentUser?.role || '').toUpperCase();
   const isAdmin = currentRole === 'SUPER_ADMIN' || currentRole === 'ADMIN';
 
@@ -107,7 +105,6 @@ export const MaterialHaulageTripsModule: React.FC = () => {
     }
   });
 
-  // Fetch machinery fleet list for vehicle selection
   const [fleetVehicles, setFleetVehicles] = useState<FleetVehicle[]>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_FLEET_KEY);
@@ -117,7 +114,6 @@ export const MaterialHaulageTripsModule: React.FC = () => {
     }
   });
 
-  // Fetch diesel logs to calculate rented vehicle deductions
   const [dieselLogs, setDieselLogs] = useState<DieselFuelRecord[]>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_DIESEL_KEY);
@@ -159,16 +155,15 @@ export const MaterialHaulageTripsModule: React.FC = () => {
       try {
         const savedAdvances = localStorage.getItem(STORAGE_VENDOR_ADVANCES_KEY);
         setAdvances(savedAdvances ? JSON.parse(savedAdvances) : []);
-        
+
         const savedFleet = localStorage.getItem(STORAGE_FLEET_KEY);
         setFleetVehicles(savedFleet ? JSON.parse(savedFleet) : DEFAULT_FLEET);
 
         const savedDiesel = localStorage.getItem(STORAGE_DIESEL_KEY);
         setDieselLogs(savedDiesel ? JSON.parse(savedDiesel) : []);
-      } catch {
-        setAdvances([]);
-      }
+      } catch {}
     };
+
     window.addEventListener('storage', handleSync);
     window.addEventListener('focus', handleSync);
     return () => {
@@ -183,7 +178,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
 
   const [tripDate, setTripDate] = useState(new Date().toISOString().split('T')[0]);
   const [siteName, setSiteName] = useState(activeSiteName);
-  const [vehicleNumber, setVehicleNumber] = useState('TOTAL TRIPS');
+  const [vehicleNumber, setVehicleNumber] = useState('');
   const [purchasedFrom, setPurchasedFrom] = useState('');
   const [isVendorDropdownOpen, setIsVendorDropdownOpen] = useState(false);
   const vendorDropdownRef = useRef<HTMLDivElement>(null);
@@ -200,20 +195,8 @@ export const MaterialHaulageTripsModule: React.FC = () => {
   const handleMaterialChange = (selectedFormattedName: string) => {
     setMaterialName(selectedFormattedName);
     const found = categories.find((c) => `${c.name} (₹${c.standardRate}/${c.unit})` === selectedFormattedName);
-    if (found) {
-      setRatePerBrass(found.standardRate);
-    }
+    if (found) setRatePerBrass(found.standardRate);
   };
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (vendorDropdownRef.current && !vendorDropdownRef.current.contains(event.target as Node)) {
-        setIsVendorDropdownOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
 
   useEffect(() => {
     try {
@@ -245,27 +228,56 @@ export const MaterialHaulageTripsModule: React.FC = () => {
   }, [trips, activeSiteName, searchQuery]);
 
   const currentSupplierName = useMemo(() => {
-    const vendors = Array.from(
-      new Set(filtered.map((t) => t.purchasedFrom?.trim()).filter(Boolean))
-    );
+    const vendors = Array.from(new Set(filtered.map((t) => t.purchasedFrom?.trim()).filter(Boolean)));
     return vendors.length > 0 ? vendors.join(', ') : 'MBB CRUSHER';
   }, [filtered]);
 
+  // Map to find rented vehicles set
+  const rentedVehiclesSet = useMemo(() => {
+    return new Set(
+      fleetVehicles
+        .filter((v) => v.ownershipType === 'rented')
+        .map((v) => v.vehicleNumber.trim().toUpperCase())
+    );
+  }, [fleetVehicles]);
+
+  // Helper to calculate diesel cost allocated per trip row (matching date and vehicle)
+  const getRowDiesel = (rowDate: string, rowVehicle: string) => {
+    const isRented = rentedVehiclesSet.has(rowVehicle.trim().toUpperCase());
+    if (!isRented) return { litres: 0, cost: 0 };
+
+    const matchingLogs = dieselLogs.filter(
+      (d) =>
+        d.date === rowDate &&
+        d.vehicleNumber.trim().toUpperCase() === rowVehicle.trim().toUpperCase() &&
+        (!activeSiteName || d.siteName === activeSiteName)
+    );
+
+    const litres = matchingLogs.reduce((sum, l) => sum + (Number(l.litres) || 0), 0);
+    const cost = matchingLogs.reduce((sum, l) => sum + (Number(l.totalCost) || 0), 0);
+    return { litres, cost };
+  };
+
+  // Grand totals
   const overallTotals = useMemo(() => {
     return filtered.reduce(
       (acc, t) => {
         const tr = Number(t.dayTrips) || 0;
         const totalBrass = tr * (Number(t.brassPerTrip) || 0);
         const amount = Number(t.totalAmount) || 0;
+        const diesel = getRowDiesel(t.tripDate, t.vehicleNumber);
+
         return {
           trips: acc.trips + tr,
           brass: acc.brass + totalBrass,
-          amount: acc.amount + amount
+          amount: acc.amount + amount,
+          dieselLitres: acc.dieselLitres + diesel.litres,
+          dieselCost: acc.dieselCost + diesel.cost
         };
       },
-      { trips: 0, brass: 0, amount: 0 }
+      { trips: 0, brass: 0, amount: 0, dieselLitres: 0, dieselCost: 0 }
     );
-  }, [filtered]);
+  }, [filtered, rentedVehiclesSet, dieselLogs, activeSiteName]);
 
   const totalVendorAdvancePaid = useMemo(() => {
     const currentVendorNames = Array.from(new Set(filtered.map((t) => t.purchasedFrom?.trim().toLowerCase()).filter(Boolean)));
@@ -278,102 +290,31 @@ export const MaterialHaulageTripsModule: React.FC = () => {
       .reduce((sum, a) => sum + (Number(a.amount) || 0), 0);
   }, [advances, filtered, activeSiteName]);
 
-  const advanceDatesSummary = useMemo(() => {
-    const currentVendorNames = Array.from(new Set(filtered.map((t) => t.purchasedFrom?.trim().toLowerCase()).filter(Boolean)));
-    const matchedDates = advances
-      .filter((a) => {
-        const matchSite = !activeSiteName || a.siteName === activeSiteName;
-        const matchVendor = currentVendorNames.length === 0 || currentVendorNames.includes(a.vendorName?.trim().toLowerCase());
-        return matchSite && matchVendor && a.date;
-      })
-      .map((a) => formatDateDMY(a.date));
-
-    const uniqueDates = Array.from(new Set(matchedDates));
-    return uniqueDates.length > 0 ? uniqueDates.join(', ') : '';
-  }, [advances, filtered, activeSiteName]);
-
-  // Compute total diesel cost dispensed specifically to rented/hired vehicles on this site
-  const { totalRentedDieselCost, totalRentedDieselLitres } = useMemo(() => {
-    const rentedVehNumbers = new Set(
-      fleetVehicles
-        .filter((v) => v.ownershipType === 'rented')
-        .map((v) => v.vehicleNumber.trim().toUpperCase())
-    );
-
-    const rentedDieselRecords = dieselLogs.filter((d) => {
-      const matchSite = !activeSiteName || d.siteName === activeSiteName;
-      const isRented = rentedVehNumbers.has(d.vehicleNumber?.trim().toUpperCase());
-      return matchSite && isRented;
-    });
-
-    const litres = rentedDieselRecords.reduce((sum, d) => sum + (Number(d.litres) || 0), 0);
-    const cost = rentedDieselRecords.reduce((sum, d) => sum + (Number(d.totalCost) || 0), 0);
-
-    return {
-      totalRentedDieselCost: cost,
-      totalRentedDieselLitres: litres
-    };
-  }, [fleetVehicles, dieselLogs, activeSiteName]);
-
-  // Final Net Balance = Total Purchases - Advances - Rented Vehicle Diesel
-  const totalDeductions = totalVendorAdvancePaid + totalRentedDieselCost;
+  const totalDeductions = totalVendorAdvancePaid + overallTotals.dieselCost;
   const rawBalance = overallTotals.amount - totalDeductions;
   const isAdvanceExcess = rawBalance < 0;
   const netPayableAmount = isAdvanceExcess ? 0 : rawBalance;
   const remainingAdvanceBalance = isAdvanceExcess ? Math.abs(rawBalance) : 0;
 
-  const handleDeleteSavedVendor = (vendorToDelete: string, e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (!isAdmin) {
-      alert('Access Denied: Only administrators can delete saved suppliers.');
-      return;
-    }
-    if (window.confirm(`Delete "${vendorToDelete}" from saved supplier names?`)) {
-      const updated = savedVendors.filter((v) => v !== vendorToDelete);
-      setSavedVendors(updated);
-      if (purchasedFrom === vendorToDelete) {
-        setPurchasedFrom('');
-      }
-      try {
-        localStorage.setItem(STORAGE_VENDORS_KEY, JSON.stringify(updated));
-      } catch (err) {
-        console.error('Failed saving updated vendors', err);
-      }
-    }
-  };
-
   const handlePrint = () => {
-    const originalTitle = document.title;
-    document.title = '';
     window.print();
-    document.title = originalTitle;
   };
 
   const handleOpenAdd = () => {
-    try {
-      const savedFleet = localStorage.getItem(STORAGE_FLEET_KEY);
-      if (savedFleet) setFleetVehicles(JSON.parse(savedFleet));
-    } catch {}
-
     setEditingId(null);
     setTripDate(new Date().toISOString().split('T')[0]);
     setSiteName(activeSiteName);
-    setVehicleNumber(fleetVehicles[0]?.vehicleNumber || 'TOTAL TRIPS');
+    setVehicleNumber(fleetVehicles[0]?.vehicleNumber || '');
     setPurchasedFrom('');
     setMaterialName(defaultCategory);
     setDayTrips(3);
     setBrassPerTrip(6);
     setRatePerBrass(categories[0]?.standardRate || 1500);
-    setIsVendorDropdownOpen(false);
     setIsModalOpen(true);
   };
 
   const handleEdit = (trip: HaulageTripRecord) => {
-    if (!isAdmin) {
-      alert('Access Denied: Only administrators can edit haulage trip records.');
-      return;
-    }
+    if (!isAdmin) return;
     setEditingId(trip.id);
     setTripDate(trip.tripDate);
     setSiteName(trip.siteName);
@@ -383,41 +324,26 @@ export const MaterialHaulageTripsModule: React.FC = () => {
     setDayTrips(trip.dayTrips);
     setBrassPerTrip(trip.brassPerTrip);
     setRatePerBrass(trip.ratePerBrass);
-    setIsVendorDropdownOpen(false);
     setIsModalOpen(true);
   };
 
   const handleDelete = (id: string) => {
-    if (!isAdmin) {
-      alert('Access Denied: Only administrators can delete haulage trip records.');
-      return;
-    }
-    if (window.confirm('Delete this trip record?')) {
+    if (!isAdmin) return;
+    if (window.confirm('Delete this record?')) {
       setTrips((prev) => prev.filter((t) => t.id !== id));
     }
   };
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
-    if (editingId && !isAdmin) {
-      alert('Access Denied: Only administrators can update existing records.');
-      return;
-    }
     if (dayTrips === '' || brassPerTrip === '' || ratePerBrass === '') return;
 
-    const trimmedVendor = purchasedFrom.trim() || 'Direct Quarry / Plant';
-
-    if (trimmedVendor && !savedVendors.includes(trimmedVendor)) {
-      const updatedVendors = [trimmedVendor, ...savedVendors];
-      setSavedVendors(updatedVendors);
-      localStorage.setItem(STORAGE_VENDORS_KEY, JSON.stringify(updatedVendors));
-    }
-
+    const trimmedVendor = purchasedFrom.trim() || 'MBB CRUSHER';
     const record: HaulageTripRecord = {
       id: editingId || `TRIP-${Date.now().toString().slice(-4)}`,
       tripDate,
       siteName: siteName.trim() || activeSiteName,
-      vehicleNumber: vehicleNumber.trim() || 'TOTAL TRIPS',
+      vehicleNumber: vehicleNumber.trim(),
       purchasedFrom: trimmedVendor,
       materialName,
       dayTrips: Number(dayTrips),
@@ -431,67 +357,29 @@ export const MaterialHaulageTripsModule: React.FC = () => {
     } else {
       setTrips([record, ...trips]);
     }
-
     setIsModalOpen(false);
-    setEditingId(null);
   };
-
-  const selectedVehicleObj = fleetVehicles.find((v) => v.vehicleNumber === vehicleNumber);
 
   return (
     <div className="space-y-4 sm:space-y-6 font-sans text-slate-100 print:text-black print:space-y-3">
       {/* Print Styles */}
       <style dangerouslySetInnerHTML={{ __html: `
         @media print {
-          @page {
-            size: portrait;
-            margin: 0;
-          }
-          html, body, #root, main, div, table {
-            overflow: visible !important;
-            height: auto !important;
-            max-height: none !important;
-            scrollbar-width: none !important;
-            -ms-overflow-style: none !important;
-          }
-          ::-webkit-scrollbar {
-            display: none !important;
-          }
-          nav,
-          header,
-          aside,
-          .no-print {
-            display: none !important;
-          }
-          body {
-            background-color: #ffffff !important;
-            color: #000000 !important;
-            padding: 12mm 15mm !important;
-          }
-          .print-clean-table {
-            width: 100% !important;
-            border-collapse: collapse !important;
-          }
-          .print-clean-table th {
-            background-color: #f1f5f9 !important;
-            color: #000000 !important;
-            border-bottom: 2px solid #000000 !important;
-            padding: 6px 8px !important;
-          }
-          .print-clean-table td {
-            color: #000000 !important;
-            border-bottom: 1px solid #e2e8f0 !important;
-            padding: 6px 8px !important;
-          }
+          @page { size: portrait; margin: 0; }
+          html, body { background-color: #ffffff !important; color: #000000 !important; padding: 10mm !important; }
+          nav, header, aside, .no-print { display: none !important; }
+          .print-clean-table { width: 100% !important; border-collapse: collapse !important; }
+          .print-clean-table th { background-color: #f1f5f9 !important; color: #000000 !important; border-bottom: 2px solid #000000 !important; padding: 6px !important; }
+          .print-clean-table td { color: #000000 !important; border-bottom: 1px solid #e2e8f0 !important; padding: 6px !important; }
         }
       `}} />
 
-      {/* Printable Header */}
+      {/* Printable Invoice Header */}
       <div className="hidden print:block mb-4">
-        <div className="text-center font-black text-2xl tracking-wider uppercase text-black pb-2 border-b-2 border-black mb-3">
+        <div className="text-center font-black text-2xl uppercase text-black pb-2 border-b-2 border-black mb-3">
           M B BILGI CONSTRUCTIONS
         </div>
-        <div className="flex items-center justify-between text-xl font-black uppercase text-black tracking-wide">
+        <div className="flex items-center justify-between text-lg font-black uppercase text-black">
           <div>{currentSupplierName}</div>
           <div>SITE: {activeSiteName}</div>
         </div>
@@ -500,106 +388,60 @@ export const MaterialHaulageTripsModule: React.FC = () => {
       {/* Screen Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 no-print">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-blue-600/20 border border-blue-500/30 flex items-center justify-center text-blue-400 shrink-0">
+          <div className="w-10 h-10 rounded-2xl bg-blue-600/20 border border-blue-500/30 flex items-center justify-center text-blue-400">
             <Truck className="w-5 h-5" />
           </div>
           <div>
-            <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight">Material Haulage Trips</h1>
-            <p className="text-[11px] sm:text-xs text-slate-400 mt-0.5">
-              Track material purchases, auto-deduct vendor advances & rented vehicle diesel for {activeSiteName}.
-            </p>
+            <h1 className="text-xl sm:text-2xl font-black text-white">Material Haulage Trips</h1>
+            <p className="text-xs text-slate-400">Track material purchases, auto-deduct rented vehicle diesel & advances for {activeSiteName}.</p>
           </div>
         </div>
 
         <div className="flex items-center gap-2">
-          <button
-            onClick={handlePrint}
-            className="px-3.5 py-2.5 rounded-xl bg-[#131d33] hover:bg-[#1a2847] border border-[#1E293B] hover:border-slate-600 text-slate-200 text-xs font-bold flex items-center gap-1.5 transition-all shadow-sm cursor-pointer"
-            title="Print or Export to PDF"
-          >
+          <button onClick={handlePrint} className="px-3.5 py-2.5 rounded-xl bg-[#131d33] hover:bg-[#1a2847] border border-[#1E293B] text-slate-200 text-xs font-bold flex items-center gap-1.5 cursor-pointer">
             <Printer className="w-4 h-4 text-slate-300" />
             <span>Print to PDF</span>
           </button>
-
-          <button
-            onClick={handleOpenAdd}
-            className="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-black flex items-center gap-1.5 shadow-lg shadow-blue-600/30 cursor-pointer"
-          >
-            <Plus className="w-4 h-4 shrink-0" />
+          <button onClick={handleOpenAdd} className="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-black flex items-center gap-1.5 cursor-pointer">
+            <Plus className="w-4 h-4" />
             <span>+ Log Haulage Trips</span>
           </button>
         </div>
       </div>
 
-      {/* Summary Stat Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 no-print">
-        <div className="p-4 rounded-2xl bg-[#0B1220] border border-[#1E293B] shadow-lg flex flex-col justify-between">
-          <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Total Material Purchase</div>
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 no-print">
+        <div className="p-4 rounded-2xl bg-[#0B1220] border border-[#1E293B]">
+          <div className="text-[10px] font-bold uppercase text-slate-400">Total Material Purchase</div>
           <div className="text-xl font-black text-white font-mono mt-1">₹{overallTotals.amount.toLocaleString('en-IN')}</div>
-          <div className="text-[10px] text-slate-500 font-medium">{overallTotals.trips} Trips ({overallTotals.brass} Brass)</div>
+          <div className="text-[10px] text-slate-500">{overallTotals.trips} Trips ({overallTotals.brass} Brass)</div>
         </div>
 
-        <div className="p-4 rounded-2xl bg-[#0B1220] border border-[#1E293B] shadow-lg flex flex-col justify-between">
-          <div className="text-[10px] font-bold uppercase tracking-wider text-rose-400">(-) Less: Advance Paid</div>
-          <div className="text-xl font-black text-rose-400 font-mono mt-1">₹{totalVendorAdvancePaid.toLocaleString('en-IN')}</div>
-          <div className="text-[10px] text-slate-500 font-medium">
-            {advanceDatesSummary ? `Paid on: ${advanceDatesSummary}` : 'Auto-deducted from Advances'}
-          </div>
-        </div>
-
-        <div className="p-4 rounded-2xl bg-[#0B1220] border border-[#1E293B] shadow-lg flex flex-col justify-between">
-          <div className="text-[10px] font-bold uppercase tracking-wider text-amber-400 flex items-center gap-1">
+        <div className="p-4 rounded-2xl bg-[#0B1220] border border-[#1E293B]">
+          <div className="text-[10px] font-bold uppercase text-amber-400 flex items-center gap-1">
             <Fuel className="w-3 h-3 text-amber-400" />
-            <span>(-) Less: Rented Diesel</span>
+            <span>(-) Total Rented Diesel</span>
           </div>
-          <div className="text-xl font-black text-amber-400 font-mono mt-1">₹{totalRentedDieselCost.toLocaleString('en-IN')}</div>
-          <div className="text-[10px] text-slate-500 font-medium">
-            {totalRentedDieselLitres > 0 ? `${totalRentedDieselLitres.toFixed(1)} Litres dispensed` : 'No rented diesel logged'}
-          </div>
+          <div className="text-xl font-black text-amber-400 font-mono mt-1">₹{overallTotals.dieselCost.toLocaleString('en-IN', { minimumFractionDigits: 1 })}</div>
+          <div className="text-[10px] text-slate-500">{overallTotals.dieselLitres.toFixed(1)} Litres Issued</div>
         </div>
 
-        <div className={`p-4 rounded-2xl border shadow-lg flex flex-col justify-between transition-all ${
-          netPayableAmount > 0 
-            ? 'bg-amber-950/20 border-amber-500/30' 
-            : 'bg-[#0B1220] border-[#1E293B] opacity-75'
-        }`}>
-          <div className="text-[10px] font-bold uppercase tracking-wider text-amber-400">(=) Net Payable Amount</div>
-          <div className="text-xl font-black text-amber-400 font-mono mt-1">₹{netPayableAmount.toLocaleString('en-IN')}</div>
-          <div className="text-[10px] text-slate-400 font-medium">
-            {netPayableAmount > 0 ? 'Remaining balance to pay vendor' : 'Cleared by Advance/Diesel'}
-          </div>
+        <div className="p-4 rounded-2xl bg-[#0B1220] border border-[#1E293B]">
+          <div className="text-[10px] font-bold uppercase text-rose-400">(-) Less: Advance Paid</div>
+          <div className="text-xl font-black text-rose-400 font-mono mt-1">₹{totalVendorAdvancePaid.toLocaleString('en-IN')}</div>
+          <div className="text-[10px] text-slate-500">Auto-deducted advances</div>
         </div>
 
-        <div className={`p-4 rounded-2xl border shadow-lg flex flex-col justify-between transition-all ${
-          remainingAdvanceBalance > 0 
-            ? 'bg-emerald-950/30 border-emerald-500/40' 
-            : 'bg-[#0B1220] border-[#1E293B] opacity-75'
-        }`}>
-          <div className="text-[10px] font-bold uppercase tracking-wider text-emerald-400">Remaining Advance Balance</div>
-          <div className="text-xl font-black text-emerald-400 font-mono mt-1">₹{remainingAdvanceBalance.toLocaleString('en-IN')}</div>
-          <div className="text-[10px] text-emerald-500/80 font-bold">
-            {remainingAdvanceBalance > 0 ? 'Unused Advance with Vendor' : 'No Surplus Advance'}
-          </div>
+        <div className={`p-4 rounded-2xl border ${netPayableAmount > 0 ? 'bg-amber-950/20 border-amber-500/30' : 'bg-[#0B1220] border-[#1E293B]'}`}>
+          <div className="text-[10px] font-bold uppercase text-amber-400">(=) Net Payable Amount</div>
+          <div className="text-xl font-black text-amber-400 font-mono mt-1">₹{netPayableAmount.toLocaleString('en-IN', { minimumFractionDigits: 1 })}</div>
+          <div className="text-[10px] text-slate-400">Remaining Balance to Vendor</div>
         </div>
       </div>
 
-      {/* Search Bar */}
-      <div className="p-3 rounded-2xl bg-[#0c1427] border border-[#182643] flex items-center gap-3 text-xs no-print">
-        <div className="relative flex-1">
-          <Search className="absolute left-3.5 top-2.5 w-4 h-4 text-slate-500" />
-          <input
-            type="text"
-            placeholder="Search by vehicle, supplier, material..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 bg-[#080d19] border border-[#1E293B] rounded-xl text-white outline-none placeholder-slate-500"
-          />
-        </div>
-      </div>
-
-      {/* Main Table */}
-      <div className="bg-[#0B1220] border border-[#1E293B] rounded-2xl overflow-hidden shadow-2xl print:border-none print:shadow-none print:rounded-none print:overflow-visible">
-        <div className="overflow-x-auto print:overflow-visible">
+      {/* Main Table with Dedicated Diesel Column */}
+      <div className="bg-[#0B1220] border border-[#1E293B] rounded-2xl overflow-hidden shadow-2xl print:border-none">
+        <div className="overflow-x-auto">
           <table className="w-full text-left text-xs border-collapse print-clean-table">
             <thead>
               <tr className="border-b border-[#1E293B] text-[10px] font-extrabold uppercase text-slate-400 bg-[#080d19]/80">
@@ -612,114 +454,119 @@ export const MaterialHaulageTripsModule: React.FC = () => {
                 <th className="py-3 px-2 text-right">QTY/TRIP</th>
                 <th className="py-3 px-2 text-right">RATE (₹)</th>
                 <th className="py-3 px-3 text-right">AMOUNT (₹)</th>
+                {/* Dedicated Diesel Amount Column */}
+                <th className="py-3 px-3 text-right text-amber-400">DIESEL (₹)</th>
                 <th className="py-3 px-3 text-center no-print">ACTION</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#1E293B]/60 text-slate-200">
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={10} className="py-8 text-center text-slate-500">
+                  <td colSpan={11} className="py-8 text-center text-slate-500">
                     No records found for {activeSiteName}.
                   </td>
                 </tr>
               ) : (
-                filtered.map((t) => (
-                  <tr key={t.id} className="hover:bg-[#121c33]/50">
-                    <td className="py-2.5 px-3 font-mono text-left text-slate-300 print:text-black whitespace-nowrap">
-                      {formatDateDMY(t.tripDate)}
-                    </td>
-                    <td className="py-2.5 px-3 font-bold text-cyan-400 print:text-black text-center">{t.siteName}</td>
-                    <td className="py-2.5 px-3 font-semibold text-emerald-400 print:text-black">{t.purchasedFrom || 'Direct Quarry'}</td>
-                    <td className="py-2.5 px-3 font-mono text-slate-300 print:text-black text-center">{t.vehicleNumber}</td>
-                    <td className="py-2.5 px-3 font-bold text-amber-300 print:text-black">{t.materialName}</td>
-                    <td className="py-2.5 px-2 text-center font-mono print:text-black">{t.dayTrips}</td>
-                    <td className="py-2.5 px-2 text-right font-mono print:text-black">{t.brassPerTrip}</td>
-                    <td className="py-2.5 px-2 text-right font-mono text-emerald-400 print:text-black">₹{t.ratePerBrass.toLocaleString('en-IN')}</td>
-                    <td className="py-2.5 px-3 text-right font-mono font-black text-amber-400 print:text-black">₹{t.totalAmount.toLocaleString('en-IN')}</td>
-                    <td className="py-2.5 px-3 text-center no-print">
-                      {isAdmin ? (
-                        <div className="flex items-center justify-center gap-1">
-                          <button
-                            onClick={() => handleEdit(t)}
-                            className="p-1 rounded text-slate-400 hover:text-blue-400 cursor-pointer"
-                            title="Edit Record"
-                          >
-                            <Edit2 className="w-3.5 h-3.5" />
-                          </button>
-                          <button
-                            onClick={() => handleDelete(t.id)}
-                            className="p-1 rounded text-slate-400 hover:text-rose-400 cursor-pointer"
-                            title="Delete Record"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      ) : (
-                        <span className="text-slate-600 font-mono text-xs">—</span>
-                      )}
-                    </td>
-                  </tr>
-                ))
+                filtered.map((t) => {
+                  const rowDiesel = getRowDiesel(t.tripDate, t.vehicleNumber);
+                  return (
+                    <tr key={t.id} className="hover:bg-[#121c33]/50">
+                      <td className="py-2.5 px-3 font-mono text-left text-slate-300 print:text-black whitespace-nowrap">
+                        {formatDateDMY(t.tripDate)}
+                      </td>
+                      <td className="py-2.5 px-3 font-bold text-cyan-400 print:text-black text-center">{t.siteName}</td>
+                      <td className="py-2.5 px-3 font-semibold text-emerald-400 print:text-black">{t.purchasedFrom || 'MBB CRUSHER'}</td>
+                      <td className="py-2.5 px-3 font-mono text-slate-300 print:text-black text-center">{t.vehicleNumber}</td>
+                      <td className="py-2.5 px-3 font-bold text-amber-300 print:text-black">{t.materialName}</td>
+                      <td className="py-2.5 px-2 text-center font-mono print:text-black">{t.dayTrips}</td>
+                      <td className="py-2.5 px-2 text-right font-mono print:text-black">{t.brassPerTrip}</td>
+                      <td className="py-2.5 px-2 text-right font-mono text-emerald-400 print:text-black">₹{t.ratePerBrass.toLocaleString('en-IN')}</td>
+                      <td className="py-2.5 px-3 text-right font-mono font-black text-amber-400 print:text-black">₹{t.totalAmount.toLocaleString('en-IN')}</td>
+                      
+                      {/* Diesel Deduction Column per Row */}
+                      <td className="py-2.5 px-3 text-right font-mono font-bold text-amber-400 print:text-black">
+                        {rowDiesel.cost > 0 ? (
+                          <span>
+                            - ₹{rowDiesel.cost.toLocaleString('en-IN', { minimumFractionDigits: 1 })}
+                            <span className="block text-[9px] text-slate-500 print:text-slate-600">({rowDiesel.litres.toFixed(1)} L)</span>
+                          </span>
+                        ) : (
+                          <span className="text-slate-600 font-normal">—</span>
+                        )}
+                      </td>
+
+                      <td className="py-2.5 px-3 text-center no-print">
+                        {isAdmin ? (
+                          <div className="flex items-center justify-center gap-1">
+                            <button onClick={() => handleEdit(t)} className="p-1 rounded text-slate-400 hover:text-blue-400 cursor-pointer">
+                              <Edit2 className="w-3.5 h-3.5" />
+                            </button>
+                            <button onClick={() => handleDelete(t.id)} className="p-1 rounded text-slate-400 hover:text-rose-400 cursor-pointer">
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        ) : (
+                          <span className="text-slate-600 font-mono text-xs">—</span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
 
             {/* Reconciliation Footer */}
             {filtered.length > 0 && (
-              <tfoot className="border-t-2 border-[#1E293B] print:border-t-2 print:border-black bg-[#070c18] font-mono print:bg-white">
+              <tfoot className="border-t-2 border-[#1E293B] print:border-t-2 print:border-black bg-[#070c18] font-mono print:bg-white text-xs">
+                {/* 1. Total Material Purchased */}
                 <tr className="border-b border-[#1E293B]/60 print:border-b print:border-slate-300">
                   <td colSpan={5} className="py-2.5 px-3 font-bold uppercase text-slate-300 print:text-black text-right">
-                    Total Material Purchased:
+                    TOTAL MATERIAL PURCHASED:
                   </td>
                   <td className="py-2.5 px-2 text-center font-bold text-cyan-400 print:text-black">{overallTotals.trips} Trips</td>
                   <td className="py-2.5 px-2 text-right font-bold text-white print:text-black">{overallTotals.brass} Brass</td>
                   <td className="py-2.5 px-2 text-right text-slate-500 print:text-black">—</td>
                   <td className="py-2.5 px-3 text-right font-bold text-white print:text-black">₹{overallTotals.amount.toLocaleString('en-IN')}</td>
+                  <td className="py-2.5 px-3 text-right font-bold text-amber-400 print:text-black">
+                    {overallTotals.dieselCost > 0 ? `- ₹${overallTotals.dieselCost.toLocaleString('en-IN', { minimumFractionDigits: 1 })}` : '—'}
+                  </td>
                   <td className="py-2.5 px-3 no-print"></td>
                 </tr>
 
+                {/* 2. Less: Advance Payment Received */}
                 <tr className="border-b border-[#1E293B]/60 print:border-b print:border-slate-300 text-rose-400 print:text-black">
                   <td colSpan={8} className="py-2 px-3 font-bold uppercase text-right">
-                    (-) Less: Advance Payment Received {advanceDatesSummary ? `(${advanceDatesSummary})` : ''}:
+                    (-) LESS: ADVANCE PAYMENT RECEIVED :
                   </td>
-                  <td className="py-2 px-3 text-right font-bold">
+                  <td colSpan={2} className="py-2 px-3 text-right font-bold">
                     - ₹{totalVendorAdvancePaid.toLocaleString('en-IN')}
                   </td>
                   <td className="py-2 px-3 no-print"></td>
                 </tr>
 
-                {totalRentedDieselCost > 0 && (
+                {/* 3. Less: Diesel Dispensed to Rented Vehicles */}
+                {overallTotals.dieselCost > 0 && (
                   <tr className="border-b border-[#1E293B]/60 print:border-b print:border-slate-300 text-amber-400 print:text-black">
                     <td colSpan={8} className="py-2 px-3 font-bold uppercase text-right">
-                      (-) Less: Diesel Dispensed to Rented Vehicles ({totalRentedDieselLitres.toFixed(1)} L):
+                      (-) LESS: DIESEL DISPENSED TO RENTED VEHICLES ({overallTotals.dieselLitres.toFixed(1)} L):
                     </td>
-                    <td className="py-2 px-3 text-right font-bold">
-                      - ₹{totalRentedDieselCost.toLocaleString('en-IN')}
+                    <td colSpan={2} className="py-2 px-3 text-right font-bold">
+                      - ₹{overallTotals.dieselCost.toLocaleString('en-IN', { minimumFractionDigits: 1 })}
                     </td>
                     <td className="py-2 px-3 no-print"></td>
                   </tr>
                 )}
 
-                {remainingAdvanceBalance > 0 ? (
-                  <tr className="bg-[#082216] text-emerald-400 print:bg-slate-100 print:text-black font-black">
-                    <td colSpan={8} className="py-3 px-3 text-right uppercase tracking-wider text-xs">
-                      REMAINING ADVANCE BALANCE (EXCESS):
-                    </td>
-                    <td className="py-3 px-3 text-right text-sm font-black">
-                      ₹{remainingAdvanceBalance.toLocaleString('en-IN')}
-                    </td>
-                    <td className="py-3 px-3 no-print"></td>
-                  </tr>
-                ) : (
-                  <tr className="bg-[#1e1906] text-amber-400 print:bg-slate-100 print:text-black font-black">
-                    <td colSpan={8} className="py-3 px-3 text-right uppercase tracking-wider text-xs">
-                      (=) NET PAYABLE AMOUNT:
-                    </td>
-                    <td className="py-3 px-3 text-right text-sm font-black">
-                      ₹{netPayableAmount.toLocaleString('en-IN')}
-                    </td>
-                    <td className="py-3 px-3 no-print"></td>
-                  </tr>
-                )}
+                {/* 4. Net Payable Total */}
+                <tr className="bg-[#1e1906] text-amber-400 print:bg-slate-100 print:text-black font-black">
+                  <td colSpan={8} className="py-3 px-3 text-right uppercase tracking-wider text-xs">
+                    (=) NET PAYABLE AMOUNT:
+                  </td>
+                  <td colSpan={2} className="py-3 px-3 text-right text-sm font-black">
+                    ₹{netPayableAmount.toLocaleString('en-IN', { minimumFractionDigits: 1 })}
+                  </td>
+                  <td className="py-3 px-3 no-print"></td>
+                </tr>
               </tfoot>
             )}
           </table>
@@ -764,19 +611,8 @@ export const MaterialHaulageTripsModule: React.FC = () => {
                 </div>
               </div>
 
-              {/* Dynamic Vehicle Dropdown from Machinery Fleet */}
               <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="text-slate-300 font-bold">Vehicle Number *</label>
-                  {selectedVehicleObj && (
-                    <span className="text-[10px] text-slate-400">
-                      {selectedVehicleObj.vehicleType} •{' '}
-                      <span className={selectedVehicleObj.ownershipType === 'rented' ? 'text-purple-400' : 'text-sky-400 font-semibold'}>
-                        {selectedVehicleObj.ownershipType === 'rented' ? 'Rented' : 'Company'}
-                      </span>
-                    </span>
-                  )}
-                </div>
+                <label className="block text-slate-300 font-bold mb-1">Vehicle Number *</label>
                 <div className="relative">
                   <select
                     required
@@ -784,81 +620,27 @@ export const MaterialHaulageTripsModule: React.FC = () => {
                     onChange={(e) => setVehicleNumber(e.target.value)}
                     className="w-full px-3.5 py-2.5 bg-[#162032] border border-[#1E293B] rounded-xl text-white font-mono font-bold appearance-none outline-none focus:border-blue-500 cursor-pointer"
                   >
-                    <option value="TOTAL TRIPS" className="bg-[#0F172A] text-slate-300">
-                      TOTAL TRIPS (Aggregate / All Vehicles)
-                    </option>
-                    <optgroup label="Registered Construction Fleet">
-                      {fleetVehicles.map((v) => (
-                        <option key={v.id} value={v.vehicleNumber} className="bg-[#0F172A] text-white">
-                          {v.vehicleNumber} — {v.vehicleType} ({v.ownershipType === 'rented' ? 'Rented' : 'Company Owned'})
-                        </option>
-                      ))}
-                    </optgroup>
+                    <option value="" disabled>-- Select Registered Vehicle --</option>
+                    {fleetVehicles.map((v) => (
+                      <option key={v.id} value={v.vehicleNumber} className="bg-[#0F172A] text-white">
+                        {v.vehicleNumber} — {v.vehicleType} ({v.ownershipType === 'rented' ? 'Rented' : 'Company'})
+                      </option>
+                    ))}
                   </select>
                   <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-3 pointer-events-none" />
                 </div>
               </div>
 
-              <div className="relative" ref={vendorDropdownRef}>
-                <label className="block text-slate-300 font-bold mb-1">
-                  Purchased From / Supplier *
-                </label>
-                <div className="relative flex items-center">
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. GIRGOANKAR"
-                    value={purchasedFrom}
-                    onChange={(e) => {
-                      setPurchasedFrom(e.target.value);
-                      setIsVendorDropdownOpen(true);
-                    }}
-                    onFocus={() => setIsVendorDropdownOpen(true)}
-                    className="w-full pl-3.5 pr-10 py-2.5 bg-[#162032] border border-[#1E293B] focus:border-blue-500 rounded-xl text-white outline-none"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setIsVendorDropdownOpen((prev) => !prev)}
-                    className="absolute right-2.5 text-slate-400 hover:text-white p-1 cursor-pointer"
-                  >
-                    <ChevronDown className={`w-4 h-4 transition-transform ${isVendorDropdownOpen ? 'rotate-180' : ''}`} />
-                  </button>
-                </div>
-
-                {isVendorDropdownOpen && (
-                  <div className="absolute left-0 right-0 mt-1 bg-[#0F172A] border border-[#1E293B] rounded-xl shadow-2xl z-50 max-h-48 overflow-y-auto divide-y divide-[#1E293B]">
-                    {savedVendors
-                      .filter((v) => !purchasedFrom || v.toLowerCase().includes(purchasedFrom.toLowerCase()))
-                      .map((v) => (
-                        <div
-                          key={v}
-                          onClick={() => {
-                            setPurchasedFrom(v);
-                            setIsVendorDropdownOpen(false);
-                          }}
-                          className="flex items-center justify-between px-3.5 py-2.5 hover:bg-[#1E293B]/70 cursor-pointer group transition-colors"
-                        >
-                          <span className="text-white font-medium text-xs">{v}</span>
-                          {isAdmin && (
-                            <button
-                              type="button"
-                              onClick={(e) => handleDeleteSavedVendor(v, e)}
-                              title={`Delete "${v}" from saved suppliers`}
-                              className="p-1 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-950/50 transition-colors"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          )}
-                        </div>
-                      ))}
-
-                    {savedVendors.filter((v) => !purchasedFrom || v.toLowerCase().includes(purchasedFrom.toLowerCase())).length === 0 && (
-                      <div className="px-3.5 py-3 text-slate-500 text-center text-xs">
-                        Press save to add "{purchasedFrom}" as a new supplier
-                      </div>
-                    )}
-                  </div>
-                )}
+              <div>
+                <label className="block text-slate-300 font-bold mb-1">Purchased From / Supplier *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. MBB CRUSHER"
+                  value={purchasedFrom}
+                  onChange={(e) => setPurchasedFrom(e.target.value)}
+                  className="w-full px-3 py-2 bg-[#162032] border border-[#1E293B] rounded-xl text-white outline-none"
+                />
               </div>
 
               <div>
@@ -868,14 +650,11 @@ export const MaterialHaulageTripsModule: React.FC = () => {
                   onChange={(e) => handleMaterialChange(e.target.value)}
                   className="w-full px-3 py-2 bg-[#162032] border border-[#1E293B] rounded-xl text-amber-300 font-bold outline-none cursor-pointer"
                 >
-                  {categories.map((c) => {
-                    const label = `${c.name} (₹${c.standardRate}/${c.unit})`;
-                    return (
-                      <option key={c.id} value={label}>
-                        {label}
-                      </option>
-                    );
-                  })}
+                  {categories.map((c) => (
+                    <option key={c.id} value={`${c.name} (₹${c.standardRate}/${c.unit})`}>
+                      {c.name} (₹{c.standardRate}/{c.unit})
+                    </option>
+                  ))}
                 </select>
               </div>
 
