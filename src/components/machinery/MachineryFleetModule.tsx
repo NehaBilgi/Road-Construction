@@ -13,7 +13,8 @@ import {
   Calendar,
   RotateCcw,
   Check,
-  Building2
+  Building2,
+  KeyRound
 } from 'lucide-react';
 
 export interface HaulageTripRecord {
@@ -67,10 +68,12 @@ const STORAGE_DIESEL_KEY = 'CONSTRUCTION_PRO_DIESEL_LOGS_V1';
 
 const DEFAULT_FLEET: FleetVehicle[] = [
   { id: 'v-1', vehicleNumber: 'KA-28-EX-8901', vehicleType: 'Hydraulic Excavator', category: 'Earthmoving', metricType: 'HMR', ownershipType: 'company' },
-  { id: 'v-2', vehicleNumber: '3146', vehicleType: 'Tipper (Hired)', category: 'Haulage', metricType: 'KM', ownershipType: 'rented' },
-  { id: 'v-3', vehicleNumber: '7243', vehicleType: 'Tipper (Hired)', category: 'Haulage', metricType: 'KM', ownershipType: 'rented' },
-  { id: 'v-4', vehicleNumber: '9260', vehicleType: 'Tipper (Hired)', category: 'Haulage', metricType: 'KM', ownershipType: 'rented' },
-  { id: 'v-5', vehicleNumber: '5321', vehicleType: 'Tipper (Hired)', category: 'Haulage', metricType: 'KM', ownershipType: 'rented' }
+  { id: 'v-2', vehicleNumber: '3146', vehicleType: 'Tipper (Hired)', category: 'Haulage', metricType: 'KM', ownershipType: 'rented', rentalRateType: 'per_trip', rentalAmount: 1500 },
+  { id: 'v-3', vehicleNumber: '7243', vehicleType: 'Tipper (Hired)', category: 'Haulage', metricType: 'KM', ownershipType: 'rented', rentalRateType: 'per_trip', rentalAmount: 1500 },
+  { id: 'v-4', vehicleNumber: '9260', vehicleType: 'Tipper (Hired)', category: 'Haulage', metricType: 'KM', ownershipType: 'rented', rentalRateType: 'per_trip', rentalAmount: 1500 },
+  { id: 'v-5', vehicleNumber: '5321', vehicleType: 'Tipper (Hired)', category: 'Haulage', metricType: 'KM', ownershipType: 'rented', rentalRateType: 'per_trip', rentalAmount: 1500 },
+  { id: 'v-6', vehicleNumber: '8797', vehicleType: 'Tipper / Dump Truck', category: 'Haulage', metricType: 'KM', ownershipType: 'company' },
+  { id: 'v-7', vehicleNumber: '9579', vehicleType: 'Tipper / Dump Truck', category: 'Haulage', metricType: 'KM', ownershipType: 'company' }
 ];
 
 const INITIAL_ROAD_CATEGORIES: RoadMaterialCategory[] = [
@@ -186,6 +189,15 @@ export const MaterialHaulageTripsModule: React.FC = () => {
   const [brassPerTrip, setBrassPerTrip] = useState<number | ''>(6);
   const [ratePerBrass, setRatePerBrass] = useState<number | ''>(categories[0]?.standardRate || 1500);
 
+  // Lookup vehicle details
+  const selectedVehicleObj = useMemo(() => {
+    return fleetVehicles.find(
+      (v) => v.vehicleNumber.trim().toUpperCase() === vehicleNumber.trim().toUpperCase()
+    );
+  }, [fleetVehicles, vehicleNumber]);
+
+  const isSelectedVehicleRented = selectedVehicleObj?.ownershipType === 'rented';
+
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (supplierDropdownRef.current && !supplierDropdownRef.current.contains(e.target as Node)) {
@@ -200,7 +212,9 @@ export const MaterialHaulageTripsModule: React.FC = () => {
   const handleMaterialChange = (selectedFormattedName: string) => {
     setMaterialName(selectedFormattedName);
     const found = categories.find((c) => `${c.name} (₹${c.standardRate}/${c.unit})` === selectedFormattedName);
-    if (found) setRatePerBrass(found.standardRate);
+    if (found && !isSelectedVehicleRented) {
+      setRatePerBrass(found.standardRate);
+    }
   };
 
   useEffect(() => {
@@ -211,12 +225,17 @@ export const MaterialHaulageTripsModule: React.FC = () => {
     }
   }, [trips]);
 
+  // If rented: Trip Count * Rental Rate; If company: Trip Count * Qty * Material Rate
   const computedTotalAmount = useMemo(() => {
     const tripsNum = Number(dayTrips) || 0;
+    if (isSelectedVehicleRented) {
+      const tripRentalRate = Number(selectedVehicleObj?.rentalAmount) || Number(ratePerBrass) || 1500;
+      return tripsNum * tripRentalRate;
+    }
     const brassNum = Number(brassPerTrip) || 0;
     const rateNum = Number(ratePerBrass) || 0;
     return tripsNum * brassNum * rateNum;
-  }, [dayTrips, brassPerTrip, ratePerBrass]);
+  }, [dayTrips, brassPerTrip, ratePerBrass, isSelectedVehicleRented, selectedVehicleObj]);
 
   const filtered = useMemo(() => {
     return trips.filter((t) => {
@@ -240,16 +259,17 @@ export const MaterialHaulageTripsModule: React.FC = () => {
     return vendors.length > 0 ? vendors.join(', ') : 'MBB CRUSHER';
   }, [filtered]);
 
-  const rentedVehiclesSet = useMemo(() => {
-    return new Set(
-      fleetVehicles
-        .filter((v) => v.ownershipType === 'rented')
-        .map((v) => v.vehicleNumber.trim().toUpperCase())
-    );
+  const rentedVehiclesMap = useMemo(() => {
+    const map = new Map<string, FleetVehicle>();
+    fleetVehicles.forEach((v) => {
+      map.set(v.vehicleNumber.trim().toUpperCase(), v);
+    });
+    return map;
   }, [fleetVehicles]);
 
   const getRowDiesel = (rowDate: string, rowVehicle: string) => {
-    const isRented = rentedVehiclesSet.has(rowVehicle.trim().toUpperCase());
+    const vObj = rentedVehiclesMap.get(rowVehicle.trim().toUpperCase());
+    const isRented = vObj?.ownershipType === 'rented';
     if (!isRented) return { litres: 0, cost: 0 };
 
     const matchingLogs = dieselLogs.filter(
@@ -264,25 +284,37 @@ export const MaterialHaulageTripsModule: React.FC = () => {
     return { litres, cost };
   };
 
+  // Totals partitioned by vehicle ownership
   const overallTotals = useMemo(() => {
     return filtered.reduce(
       (acc, t) => {
         const tr = Number(t.dayTrips) || 0;
         const totalBrass = tr * (Number(t.brassPerTrip) || 0);
-        const amount = Number(t.totalAmount) || 0;
         const diesel = getRowDiesel(t.tripDate, t.vehicleNumber);
+
+        const vObj = rentedVehiclesMap.get(t.vehicleNumber.trim().toUpperCase());
+        const isRented = vObj?.ownershipType === 'rented';
+
+        // Calculation switch: Rented = Per Trip Rental Cost; Company = Material Purchase Cost
+        let tripAmount = 0;
+        if (isRented) {
+          const rentalRate = vObj?.rentalAmount ?? Number(t.ratePerBrass) ?? 1500;
+          tripAmount = tr * rentalRate;
+        } else {
+          tripAmount = tr * (Number(t.brassPerTrip) || 0) * (Number(t.ratePerBrass) || 0);
+        }
 
         return {
           trips: acc.trips + tr,
           brass: acc.brass + totalBrass,
-          amount: acc.amount + amount,
+          amount: acc.amount + tripAmount,
           dieselLitres: acc.dieselLitres + diesel.litres,
           dieselCost: acc.dieselCost + diesel.cost
         };
       },
       { trips: 0, brass: 0, amount: 0, dieselLitres: 0, dieselCost: 0 }
     );
-  }, [filtered, rentedVehiclesSet, dieselLogs, activeSiteName]);
+  }, [filtered, rentedVehiclesMap, dieselLogs, activeSiteName]);
 
   const totalVendorAdvancePaid = useMemo(() => {
     const currentVendorNames = Array.from(new Set(filtered.map((t) => t.purchasedFrom?.trim().toLowerCase()).filter(Boolean)));
@@ -312,12 +344,19 @@ export const MaterialHaulageTripsModule: React.FC = () => {
     setEditingId(null);
     setTripDate(new Date().toISOString().split('T')[0]);
     setSiteName(activeSiteName);
-    setVehicleNumber(fleetVehicles[0]?.vehicleNumber || '');
+    const initialVehicle = fleetVehicles[0]?.vehicleNumber || '';
+    setVehicleNumber(initialVehicle);
     setPurchasedFrom(allSuppliers[0] || 'MBB CRUSHER');
     setMaterialName(defaultCategory);
     setDayTrips(3);
     setBrassPerTrip(6);
-    setRatePerBrass(categories[0]?.standardRate || 1500);
+    
+    const vObj = fleetVehicles.find((v) => v.vehicleNumber === initialVehicle);
+    if (vObj?.ownershipType === 'rented') {
+      setRatePerBrass(vObj.rentalAmount || 1500);
+    } else {
+      setRatePerBrass(categories[0]?.standardRate || 1500);
+    }
     setIsModalOpen(true);
   };
 
@@ -460,7 +499,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
           </div>
           <div>
             <h1 className="text-xl sm:text-2xl font-black text-white">Material Haulage Trips</h1>
-            <p className="text-xs text-slate-400">Track material purchases, auto-deduct rented vehicle diesel & advances for {activeSiteName}.</p>
+            <p className="text-xs text-slate-400">Track trips, apply rented vehicle per-trip tariffs, and auto-deduct diesel & advances for {activeSiteName}.</p>
           </div>
         </div>
 
@@ -479,7 +518,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
       {/* Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 no-print">
         <div className="p-4 rounded-2xl bg-[#0B1220] border border-[#1E293B]">
-          <div className="text-[10px] font-bold uppercase text-slate-400">Total Material Purchase</div>
+          <div className="text-[10px] font-bold uppercase text-slate-400">Gross Haulage / Trips Total</div>
           <div className="text-xl font-black text-white font-mono mt-1">₹{overallTotals.amount.toLocaleString('en-IN')}</div>
           <div className="text-[10px] text-slate-500">{overallTotals.trips} Trips ({overallTotals.brass} Brass)</div>
         </div>
@@ -487,7 +526,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
         <div className="p-4 rounded-2xl bg-[#0B1220] border border-[#1E293B]">
           <div className="text-[10px] font-bold uppercase text-amber-400 flex items-center gap-1">
             <Fuel className="w-3 h-3 text-amber-400" />
-            <span>(-) Total Rented Diesel</span>
+            <span>(-) Less: Rented Diesel</span>
           </div>
           <div className="text-xl font-black text-amber-400 font-mono mt-1">₹{overallTotals.dieselCost.toLocaleString('en-IN', { minimumFractionDigits: 1 })}</div>
           <div className="text-[10px] text-slate-500">{overallTotals.dieselLitres.toFixed(1)} Litres Issued</div>
@@ -502,7 +541,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
         <div className={`p-4 rounded-2xl border ${netPayableAmount > 0 ? 'bg-amber-950/20 border-amber-500/30' : 'bg-[#0B1220] border-[#1E293B]'}`}>
           <div className="text-[10px] font-bold uppercase text-amber-400">(=) Net Payable Amount</div>
           <div className="text-xl font-black text-amber-400 font-mono mt-1">₹{netPayableAmount.toLocaleString('en-IN', { minimumFractionDigits: 1 })}</div>
-          <div className="text-[10px] text-slate-400">Remaining Balance to Vendor</div>
+          <div className="text-[10px] text-slate-400">Balance Payable to Vendor / Transporter</div>
         </div>
       </div>
 
@@ -557,25 +596,40 @@ export const MaterialHaulageTripsModule: React.FC = () => {
                 <th className="py-2.5 px-3 text-center">SITE</th>
                 <th className="py-2.5 px-3 text-left">PURCHASED FROM</th>
                 <th className="py-2.5 px-3 text-center">VEHICLE</th>
-                <th className="py-2.5 px-3 text-left">MATERIAL NAME</th>
+                <th className="py-2.5 px-3 text-left">MATERIAL / TRIP TYPE</th>
                 <th className="py-2.5 px-2 text-center">TRIPS</th>
                 <th className="py-2.5 px-2 text-right">QTY/TRIP</th>
                 <th className="py-2.5 px-2 text-right">RATE (₹)</th>
-                <th className="py-2.5 px-3 text-right">AMOUNT (₹)</th>
-                <th className="py-2.5 px-3 text-right text-amber-400 print:text-black">DIESEL (₹)</th>
+                <th className="py-2.5 px-3 text-right">TRIP / MAT AMOUNT (₹)</th>
+                <th className="py-2.5 px-3 text-right text-amber-400 print:text-black">(-) DIESEL (₹)</th>
+                <th className="py-2.5 px-3 text-right font-black text-emerald-400 print:text-black">NET ROW (₹)</th>
                 <th className="py-2.5 px-3 text-center no-print">ACTION</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#1E293B]/60 text-slate-200">
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={11} className="py-8 text-center text-slate-500">
+                  <td colSpan={12} className="py-8 text-center text-slate-500">
                     No records found for {activeSiteName}.
                   </td>
                 </tr>
               ) : (
                 filtered.map((t) => {
+                  const vObj = rentedVehiclesMap.get(t.vehicleNumber.trim().toUpperCase());
+                  const isRented = vObj?.ownershipType === 'rented';
                   const rowDiesel = getRowDiesel(t.tripDate, t.vehicleNumber);
+
+                  // Rented Vehicle = Day Trips * Rental Rate; Company = Trips * Qty * Rate
+                  let rowGrossAmount = 0;
+                  if (isRented) {
+                    const rentalRate = vObj?.rentalAmount ?? Number(t.ratePerBrass) ?? 1500;
+                    rowGrossAmount = Number(t.dayTrips) * rentalRate;
+                  } else {
+                    rowGrossAmount = Number(t.dayTrips) * (Number(t.brassPerTrip) || 0) * (Number(t.ratePerBrass) || 0);
+                  }
+
+                  const rowNetPayable = Math.max(0, rowGrossAmount - rowDiesel.cost);
+
                   return (
                     <tr key={t.id} className="hover:bg-[#121c33]/50">
                       <td className="py-2 px-3 font-mono text-left whitespace-nowrap text-slate-300 print:text-black">
@@ -583,12 +637,41 @@ export const MaterialHaulageTripsModule: React.FC = () => {
                       </td>
                       <td className="py-2 px-3 font-bold text-cyan-400 print:text-black text-center">{t.siteName}</td>
                       <td className="py-2 px-3 font-semibold text-emerald-400 print:text-black">{t.purchasedFrom || 'MBB CRUSHER'}</td>
-                      <td className="py-2 px-3 font-mono text-center print:text-black">{t.vehicleNumber}</td>
+                      
+                      {/* Vehicle Column with Ownership Tag */}
+                      <td className="py-2 px-3 font-mono text-center print:text-black">
+                        <span className="font-bold">{t.vehicleNumber}</span>
+                        {isRented ? (
+                          <span className="block text-[8px] text-purple-400 print:text-black font-sans font-bold uppercase">(Rented)</span>
+                        ) : (
+                          <span className="block text-[8px] text-blue-400 print:text-black font-sans font-bold uppercase">(Company)</span>
+                        )}
+                      </td>
+
                       <td className="py-2 px-3 font-bold text-amber-300 print:text-black">{t.materialName}</td>
                       <td className="py-2 px-2 text-center font-mono print:text-black">{t.dayTrips}</td>
-                      <td className="py-2 px-2 text-right font-mono print:text-black">{t.brassPerTrip}</td>
-                      <td className="py-2 px-2 text-right font-mono text-emerald-400 print:text-black">₹{t.ratePerBrass.toLocaleString('en-IN')}</td>
-                      <td className="py-2 px-3 text-right font-mono font-black text-amber-400 print:text-black">₹{t.totalAmount.toLocaleString('en-IN')}</td>
+                      
+                      {/* Quantity per trip */}
+                      <td className="py-2 px-2 text-right font-mono print:text-black">
+                        {isRented ? (
+                          <span className="text-slate-500 font-sans text-[10px]">{t.brassPerTrip} Brass (Haul)</span>
+                        ) : (
+                          `${t.brassPerTrip} Brass`
+                        )}
+                      </td>
+
+                      {/* Applied Rate: Per Trip Tariff for Rented, Per Brass Rate for Company */}
+                      <td className="py-2 px-2 text-right font-mono text-emerald-400 print:text-black">
+                        ₹{(isRented ? (vObj?.rentalAmount ?? t.ratePerBrass) : t.ratePerBrass).toLocaleString('en-IN')}
+                        <span className="text-[9px] text-slate-400 block">{isRented ? '/Trip' : '/Brass'}</span>
+                      </td>
+
+                      {/* Gross Trip Amount */}
+                      <td className="py-2 px-3 text-right font-mono font-black text-amber-400 print:text-black">
+                        ₹{rowGrossAmount.toLocaleString('en-IN')}
+                      </td>
+
+                      {/* Diesel Deduction */}
                       <td className="py-2 px-3 text-right font-mono font-bold text-amber-400 print:text-black">
                         {rowDiesel.cost > 0 ? (
                           <div>
@@ -599,6 +682,12 @@ export const MaterialHaulageTripsModule: React.FC = () => {
                           <span className="text-slate-600 font-normal">—</span>
                         )}
                       </td>
+
+                      {/* Row Net Amount (After Diesel Deduction) */}
+                      <td className="py-2 px-3 text-right font-mono font-black text-emerald-400 print:text-black">
+                        ₹{rowNetPayable.toLocaleString('en-IN', { minimumFractionDigits: 1 })}
+                      </td>
+
                       <td className="py-2 px-3 text-center no-print">
                         {isAdmin ? (
                           <div className="flex items-center justify-center gap-1">
@@ -622,7 +711,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
               <tfoot className="border-t-2 border-[#1E293B] print:border-t-2 print:border-black bg-[#070c18] font-mono print:bg-white text-xs">
                 <tr className="border-b border-[#1E293B]/60 print-total-row">
                   <td colSpan={5} className="py-2 px-3 font-black uppercase text-right text-slate-200 print:text-black">
-                    TOTAL MATERIAL PURCHASED:
+                    TOTAL TRIPS & CHARGES:
                   </td>
                   <td className="py-2 px-2 text-center font-black text-cyan-400 print:text-black">{overallTotals.trips} Trips</td>
                   <td className="py-2 px-2 text-right font-black text-white print:text-black">{overallTotals.brass} Brass</td>
@@ -631,22 +720,25 @@ export const MaterialHaulageTripsModule: React.FC = () => {
                   <td className="py-2 px-3 text-right font-bold text-amber-400 print:text-black">
                     {overallTotals.dieselCost > 0 ? `- ₹${overallTotals.dieselCost.toLocaleString('en-IN', { minimumFractionDigits: 1 })}` : '—'}
                   </td>
+                  <td className="py-2 px-3 text-right font-black text-emerald-400 print:text-black">
+                    ₹{Math.max(0, overallTotals.amount - overallTotals.dieselCost).toLocaleString('en-IN', { minimumFractionDigits: 1 })}
+                  </td>
                   <td className="no-print"></td>
                 </tr>
                 <tr className="border-b border-[#1E293B]/60 text-rose-400 print:text-black print-sub-row">
                   <td colSpan={8} className="py-2 px-3 font-black uppercase text-right">
                     (-) LESS: ADVANCE PAYMENT RECEIVED :
                   </td>
-                  <td colSpan={2} className="py-2 px-3 text-right font-black">
+                  <td colSpan={3} className="py-2 px-3 text-right font-black">
                     - ₹{totalVendorAdvancePaid.toLocaleString('en-IN')}
                   </td>
                   <td className="no-print"></td>
                 </tr>
                 <tr className="border-b border-[#1E293B]/60 text-amber-400 print:text-black print-sub-row">
                   <td colSpan={8} className="py-2 px-3 font-black uppercase text-right">
-                    (-) LESS: DIESEL DISPENSED TO RENTED VEHICLES ({overallTotals.dieselLitres.toFixed(1)} L):
+                    (-) LESS: DIESEL ISSUED TO RENTED VEHICLES ({overallTotals.dieselLitres.toFixed(1)} L):
                   </td>
-                  <td colSpan={2} className="py-2 px-3 text-right font-black">
+                  <td colSpan={3} className="py-2 px-3 text-right font-black">
                     - ₹{overallTotals.dieselCost.toLocaleString('en-IN', { minimumFractionDigits: 1 })}
                   </td>
                   <td className="no-print"></td>
@@ -655,7 +747,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
                   <td colSpan={8} className="py-2.5 px-3 text-right uppercase tracking-wider text-xs">
                     (=) NET PAYABLE AMOUNT:
                   </td>
-                  <td colSpan={2} className="py-2.5 px-3 text-right text-sm font-black">
+                  <td colSpan={3} className="py-2.5 px-3 text-right text-sm font-black">
                     ₹{netPayableAmount.toLocaleString('en-IN', { minimumFractionDigits: 1 })}
                   </td>
                   <td className="no-print"></td>
@@ -704,19 +796,36 @@ export const MaterialHaulageTripsModule: React.FC = () => {
                 </div>
               </div>
 
+              {/* Vehicle Selector */}
               <div>
-                <label className="block text-slate-300 font-bold mb-1">Vehicle Number *</label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-slate-300 font-bold">Vehicle Number *</label>
+                  {isSelectedVehicleRented && (
+                    <span className="text-[10px] text-purple-400 font-bold flex items-center gap-1">
+                      <KeyRound className="w-3 h-3" /> Hired / Rented Truck Tariff
+                    </span>
+                  )}
+                </div>
                 <div className="relative">
                   <select
                     required
                     value={vehicleNumber}
-                    onChange={(e) => setVehicleNumber(e.target.value)}
+                    onChange={(e) => {
+                      const newVeh = e.target.value;
+                      setVehicleNumber(newVeh);
+                      const vObj = fleetVehicles.find((v) => v.vehicleNumber === newVeh);
+                      if (vObj?.ownershipType === 'rented') {
+                        setRatePerBrass(vObj.rentalAmount || 1500);
+                      } else {
+                        setRatePerBrass(categories[0]?.standardRate || 1500);
+                      }
+                    }}
                     className="w-full px-3.5 py-2.5 bg-[#162032] border border-[#1E293B] rounded-xl text-white font-mono font-bold appearance-none outline-none focus:border-blue-500 cursor-pointer"
                   >
                     <option value="" disabled>-- Select Registered Vehicle --</option>
                     {fleetVehicles.map((v) => (
                       <option key={v.id} value={v.vehicleNumber} className="bg-[#0F172A] text-white">
-                        {v.vehicleNumber} — {v.vehicleType} ({v.ownershipType === 'rented' ? 'Rented' : 'Company'})
+                        {v.vehicleNumber} — {v.vehicleType} ({v.ownershipType === 'rented' ? `Rented: ₹${v.rentalAmount || 1500}/trip` : 'Company Owned'})
                       </option>
                     ))}
                   </select>
@@ -724,7 +833,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
                 </div>
               </div>
 
-              {/* Enhanced Supplier Input with Dropdown List & Inline Edit/Delete */}
+              {/* Supplier Input with Dropdown List & Inline Edit/Delete */}
               <div className="relative" ref={supplierDropdownRef}>
                 <div className="flex items-center justify-between mb-1">
                   <label className="text-slate-300 font-bold">Purchased From / Supplier *</label>
@@ -864,6 +973,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
                 </select>
               </div>
 
+              {/* Day Trips, Qty, Rate */}
               <div className="grid grid-cols-3 gap-2">
                 <div>
                   <label className="block text-slate-300 font-bold mb-1">Day Trips *</label>
@@ -877,7 +987,9 @@ export const MaterialHaulageTripsModule: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-slate-300 font-bold mb-1">Qty/Trip *</label>
+                  <label className="block text-slate-300 font-bold mb-1">
+                    {isSelectedVehicleRented ? 'Capacity/Trip' : 'Qty/Trip *'}
+                  </label>
                   <input
                     type="number"
                     min="1"
@@ -888,7 +1000,9 @@ export const MaterialHaulageTripsModule: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-slate-300 font-bold mb-1">Rate (₹) *</label>
+                  <label className="block text-slate-300 font-bold mb-1">
+                    {isSelectedVehicleRented ? 'Rental/Trip (₹) *' : 'Rate/Brass (₹) *'}
+                  </label>
                   <input
                     type="number"
                     min="1"
@@ -900,9 +1014,19 @@ export const MaterialHaulageTripsModule: React.FC = () => {
                 </div>
               </div>
 
+              {/* Total Calculation Note */}
               <div className="p-3 rounded-xl bg-[#080d19] border border-[#1E293B] flex justify-between items-center">
-                <span className="text-xs font-bold text-slate-300">Total Day Amount:</span>
-                <span className="text-base font-black text-amber-400 font-mono">₹{computedTotalAmount.toLocaleString('en-IN')}</span>
+                <div>
+                  <span className="text-xs font-bold text-slate-300 block">Total Day Amount:</span>
+                  <span className="text-[10px] text-slate-500">
+                    {isSelectedVehicleRented
+                      ? `(${dayTrips || 0} Trips × ₹${ratePerBrass || 0} Trip Tariff)`
+                      : `(${dayTrips || 0} Trips × ${brassPerTrip || 0} Brass × ₹${ratePerBrass || 0})`}
+                  </span>
+                </div>
+                <span className="text-base font-black text-amber-400 font-mono">
+                  ₹{computedTotalAmount.toLocaleString('en-IN')}
+                </span>
               </div>
 
               <div className="flex justify-end gap-2 pt-3 border-t border-[#1E293B]">
