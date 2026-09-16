@@ -52,13 +52,13 @@ const INITIAL_USERS: SystemUser[] = [
 ];
 
 export const UserManagement: React.FC = () => {
-  const { 
-    currentUser, 
-    userRole, 
-    usersList = [], 
-    addManagedUser, 
-    updateManagedUser, 
-    deleteManagedUser 
+  const {
+    currentUser,
+    userRole,
+    usersList = [],
+    addManagedUser,
+    updateManagedUser,
+    deleteManagedUser
   } = useERP() as any;
 
   // Strict Admin Check
@@ -373,9 +373,9 @@ export const UserManagement: React.FC = () => {
                 onChange={(e) => setAllowedScope(e.target.value as AllowedModuleScope)}
                 className="w-full px-3.5 py-2.5 bg-[#070D18] border border-sky-500/40 rounded-xl text-white outline-none focus:border-sky-400 cursor-pointer font-medium"
               >
-                <option value="BOTH_ROAD_AND_BUILDING">Road & Building (Both Domains)</option>
-                <option value="ROAD_ONLY">Road Construction Only</option>
-                <option value="BUILDING_ONLY">Building Construction Only</option>
+                <option value="BOTH_ROAD_AND_BUILDING">Road & Building (Both Domains - Dual Power)</option>
+                <option value="ROAD_ONLY">Road Construction Only (Direct Route)</option>
+                <option value="BUILDING_ONLY">Building Construction Only (Direct Route)</option>
               </select>
             </div>
 
