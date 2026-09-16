@@ -7,7 +7,10 @@ import {
   Trash2,
   Edit2,
   Fuel,
-  Download
+  Download,
+  ChevronDown,
+  Lock,
+  Check
 } from 'lucide-react';
 
 export interface DieselFuelRecord {
@@ -15,23 +18,39 @@ export interface DieselFuelRecord {
   date: string;
   siteName: string;
   vehicleNumber: string;
-  driverName: string;
-  slipNumber: string;
   litres: number;
   ratePerLitre: number;
   totalCost: number;
 }
 
+export interface FleetVehicle {
+  id: string;
+  vehicleNumber: string;
+  vehicleType: string;
+  category: string;
+  metricType: 'KM' | 'HMR';
+  ownershipType?: 'company' | 'rented';
+}
+
 const STORAGE_DIESEL_KEY = 'CONSTRUCTION_PRO_DIESEL_LOGS_V1';
+const STORAGE_FLEET_KEY = 'CONSTRUCTION_PRO_FLEET_VEHICLES_V1';
+const STORAGE_DEFAULT_FUEL_RATE_KEY = 'CONSTRUCTION_PRO_DEFAULT_FUEL_RATE_V1';
+
+const DEFAULT_FLEET: FleetVehicle[] = [
+  { id: 'v-1', vehicleNumber: 'KA-28-EX-8901', vehicleType: 'Hydraulic Excavator (CAT/Hitachi)', category: 'Earthmoving', metricType: 'HMR', ownershipType: 'company' },
+  { id: 'v-2', vehicleNumber: 'KA-28-JC-3342', vehicleType: 'Backhoe Loader (JCB 3DX)', category: 'Earthmoving', metricType: 'HMR', ownershipType: 'rented' },
+  { id: 'v-3', vehicleNumber: 'MH-12-DT-5510', vehicleType: 'Tipper / Dump Truck', category: 'Haulage', metricType: 'KM', ownershipType: 'rented' },
+  { id: 'v-4', vehicleNumber: 'KA-28-TR-1092', vehicleType: 'Tractor & Trolley', category: 'Transport', metricType: 'HMR', ownershipType: 'company' },
+  { id: 'v-5', vehicleNumber: 'KA-28-JP-7890', vehicleType: 'Site Jeep / Bolero / Pickup', category: 'Site Inspection', metricType: 'KM', ownershipType: 'company' },
+  { id: 'v-6', vehicleNumber: 'KA-28-CR-2200', vehicleType: 'Car / SUV', category: 'Staff Transport', metricType: 'KM', ownershipType: 'company' }
+];
 
 const INITIAL_RECORDS: DieselFuelRecord[] = [
   {
     id: 'DSL-101',
     date: '2026-08-19',
     siteName: 'SINDAGI - ALMEL ROAD',
-    vehicleNumber: 'TOTAL TRIPS',
-    driverName: 'Santosh Kamble',
-    slipNumber: 'V-001',
+    vehicleNumber: 'MH-12-DT-5510',
     litres: 100,
     ratePerLitre: 92.50,
     totalCost: 9250.00
@@ -62,6 +81,26 @@ export const DieselFuelManagementModule: React.FC = () => {
     }
   });
 
+  // Machinery fleet state
+  const [fleetVehicles, setFleetVehicles] = useState<FleetVehicle[]>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_FLEET_KEY);
+      return saved ? JSON.parse(saved) : DEFAULT_FLEET;
+    } catch {
+      return DEFAULT_FLEET;
+    }
+  });
+
+  // Default editable fuel rate
+  const [defaultSavedRate, setDefaultSavedRate] = useState<number>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_DEFAULT_FUEL_RATE_KEY);
+      return saved ? Number(saved) : 92.50;
+    } catch {
+      return 92.50;
+    }
+  });
+
   const [searchQuery, setSearchQuery] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -70,10 +109,28 @@ export const DieselFuelManagementModule: React.FC = () => {
   const [date, setDate] = useState('2026-08-19');
   const [siteName, setSiteName] = useState(activeSiteName);
   const [vehicleNumber, setVehicleNumber] = useState('');
-  const [driverName, setDriverName] = useState('');
-  const [slipNumber, setSlipNumber] = useState('');
   const [litres, setLitres] = useState<number | ''>('');
-  const [ratePerLitre, setRatePerLitre] = useState<number | ''>(92.50);
+  const [ratePerLitre, setRatePerLitre] = useState<number | ''>(defaultSavedRate);
+  const [rateSavedNotice, setRateSavedNotice] = useState(false);
+
+  useEffect(() => {
+    const handleSync = () => {
+      try {
+        const savedFleet = localStorage.getItem(STORAGE_FLEET_KEY);
+        setFleetVehicles(savedFleet ? JSON.parse(savedFleet) : DEFAULT_FLEET);
+
+        const savedRate = localStorage.getItem(STORAGE_DEFAULT_FUEL_RATE_KEY);
+        if (savedRate) setDefaultSavedRate(Number(savedRate));
+      } catch {}
+    };
+
+    window.addEventListener('storage', handleSync);
+    window.addEventListener('focus', handleSync);
+    return () => {
+      window.removeEventListener('storage', handleSync);
+      window.removeEventListener('focus', handleSync);
+    };
+  }, []);
 
   useEffect(() => {
     localStorage.setItem(STORAGE_DIESEL_KEY, JSON.stringify(records));
@@ -93,8 +150,7 @@ export const DieselFuelManagementModule: React.FC = () => {
       const matchQuery =
         !q ||
         r.vehicleNumber.toLowerCase().includes(q) ||
-        r.driverName.toLowerCase().includes(q) ||
-        r.slipNumber.toLowerCase().includes(q);
+        r.date.includes(q);
       return matchSite && matchQuery;
     });
   }, [records, activeSiteName, searchQuery]);
@@ -102,15 +158,36 @@ export const DieselFuelManagementModule: React.FC = () => {
   const totalLitresDispensed = filtered.reduce((sum, r) => sum + r.litres, 0);
   const totalFuelCost = filtered.reduce((sum, r) => sum + r.totalCost, 0);
 
+  const handleSaveDefaultRate = () => {
+    if (ratePerLitre !== '' && Number(ratePerLitre) > 0) {
+      const newRate = Number(ratePerLitre);
+      setDefaultSavedRate(newRate);
+      localStorage.setItem(STORAGE_DEFAULT_FUEL_RATE_KEY, String(newRate));
+      setRateSavedNotice(true);
+      setTimeout(() => setRateSavedNotice(false), 2000);
+    }
+  };
+
   const handleOpenAdd = () => {
+    // Reload fleet from storage on open
+    try {
+      const savedFleet = localStorage.getItem(STORAGE_FLEET_KEY);
+      if (savedFleet) {
+        const parsed = JSON.parse(savedFleet);
+        setFleetVehicles(parsed);
+        setVehicleNumber(parsed[0]?.vehicleNumber || '');
+      } else {
+        setVehicleNumber(fleetVehicles[0]?.vehicleNumber || '');
+      }
+    } catch {
+      setVehicleNumber(fleetVehicles[0]?.vehicleNumber || '');
+    }
+
     setEditingId(null);
     setDate(new Date().toISOString().substring(0, 10));
     setSiteName(activeSiteName);
-    setVehicleNumber('');
-    setDriverName('');
-    setSlipNumber(`V-${Date.now().toString().slice(-4)}`);
     setLitres('');
-    setRatePerLitre(92.50);
+    setRatePerLitre(defaultSavedRate);
     setIsModalOpen(true);
   };
 
@@ -123,8 +200,6 @@ export const DieselFuelManagementModule: React.FC = () => {
     setDate(record.date);
     setSiteName(record.siteName);
     setVehicleNumber(record.vehicleNumber);
-    setDriverName(record.driverName);
-    setSlipNumber(record.slipNumber);
     setLitres(record.litres);
     setRatePerLitre(record.ratePerLitre);
     setIsModalOpen(true);
@@ -146,15 +221,13 @@ export const DieselFuelManagementModule: React.FC = () => {
       alert('Access Denied: Only administrators can update existing records.');
       return;
     }
-    if (litres === '' || ratePerLitre === '') return;
+    if (litres === '' || ratePerLitre === '' || !vehicleNumber) return;
 
     const record: DieselFuelRecord = {
       id: editingId || `DSL-${Date.now().toString().slice(-4)}`,
       date,
       siteName: siteName.trim() || activeSiteName,
-      vehicleNumber: vehicleNumber.trim() || 'UNKNOWN',
-      driverName: driverName.trim() || 'UNKNOWN',
-      slipNumber: slipNumber.trim() || `V-${Date.now().toString().slice(-4)}`,
+      vehicleNumber: vehicleNumber.trim(),
       litres: Number(litres),
       ratePerLitre: Number(ratePerLitre),
       totalCost: computedTotalCost
@@ -165,19 +238,17 @@ export const DieselFuelManagementModule: React.FC = () => {
     } else {
       setRecords([record, ...records]);
     }
-    
+
     setIsModalOpen(false);
     setEditingId(null);
   };
 
   const handleExportCSV = () => {
-    const headers = ['Date', 'Site Name', 'Vehicle Number', 'Driver Name', 'Slip Number', 'Litres', 'Rate/Litre', 'Total Cost'];
+    const headers = ['Date', 'Site Name', 'Vehicle Number', 'Litres', 'Rate/Litre', 'Total Cost'];
     const rows = filtered.map((r) => [
       r.date,
       `"${r.siteName}"`,
       `"${r.vehicleNumber}"`,
-      `"${r.driverName}"`,
-      `"${r.slipNumber}"`,
       r.litres,
       r.ratePerLitre,
       r.totalCost
@@ -188,6 +259,8 @@ export const DieselFuelManagementModule: React.FC = () => {
     link.download = `Diesel_Fuel_Log_${activeSiteName}_${Date.now()}.csv`;
     link.click();
   };
+
+  const selectedVehicleObj = fleetVehicles.find((v) => v.vehicleNumber === vehicleNumber);
 
   return (
     <div className="space-y-6 font-sans text-slate-100">
@@ -216,7 +289,7 @@ export const DieselFuelManagementModule: React.FC = () => {
             className="px-4 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-black flex items-center gap-1.5 transition-all shadow-lg shadow-amber-600/30 cursor-pointer"
           >
             <Plus className="w-4 h-4" />
-            <span>+ Log Fuel Slip</span>
+            <span>+ Log Fuel Dispense</span>
           </button>
         </div>
       </div>
@@ -227,7 +300,7 @@ export const DieselFuelManagementModule: React.FC = () => {
           <Search className="absolute left-3.5 top-3 w-4 h-4 text-slate-500" />
           <input
             type="text"
-            placeholder="Search by vehicle, driver, or slip number..."
+            placeholder="Search by vehicle number or date..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-10 pr-4 py-2 bg-[#080d19] border border-[#1E293B] rounded-xl text-white outline-none placeholder-slate-500"
@@ -252,7 +325,7 @@ export const DieselFuelManagementModule: React.FC = () => {
       <div className="bg-[#0B1220] border border-[#1E293B] rounded-3xl overflow-hidden shadow-2xl">
         <div className="px-6 py-4 border-b border-[#1E293B] bg-[#0d1527]/50 flex items-center justify-between">
           <h2 className="text-base font-bold text-white">Diesel Fuel Dispense Reconciliation Log</h2>
-          <span className="text-xs text-slate-400">{filtered.length} Slips Recorded</span>
+          <span className="text-xs text-slate-400">{filtered.length} Entries Recorded</span>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs border-collapse">
@@ -261,7 +334,6 @@ export const DieselFuelManagementModule: React.FC = () => {
                 <th className="py-3.5 px-6">DATE</th>
                 <th className="py-3.5 px-6">SITE NAME</th>
                 <th className="py-3.5 px-6">VEHICLE NUMBER</th>
-                <th className="py-3.5 px-6">DRIVER / OPERATOR</th>
                 <th className="py-3.5 px-4 text-right">LITRES DISPENSED</th>
                 <th className="py-3.5 px-4 text-right">RATE / LITRE</th>
                 <th className="py-3.5 px-6 text-right">TOTAL VOUCHER COST (₹)</th>
@@ -271,7 +343,7 @@ export const DieselFuelManagementModule: React.FC = () => {
             <tbody className="divide-y divide-[#1E293B]/60 text-slate-200">
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="py-8 text-center text-slate-500">
+                  <td colSpan={7} className="py-8 text-center text-slate-500">
                     No fuel dispense logs found for {activeSiteName}.
                   </td>
                 </tr>
@@ -285,7 +357,6 @@ export const DieselFuelManagementModule: React.FC = () => {
                         {r.vehicleNumber}
                       </span>
                     </td>
-                    <td className="py-4 px-6 font-bold text-white">{r.driverName}</td>
                     <td className="py-4 px-4 text-right font-mono font-black text-amber-400 text-sm">
                       {r.litres.toFixed(1)} L
                     </td>
@@ -328,11 +399,11 @@ export const DieselFuelManagementModule: React.FC = () => {
       {/* Log/Edit Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-[#121927] border border-[#1E293B] rounded-3xl w-full max-w-lg p-6 shadow-2xl space-y-4 max-h-[92vh] overflow-y-auto text-slate-100">
+          <div className="bg-[#121927] border border-[#1E293B] rounded-3xl w-full max-w-md p-6 shadow-2xl space-y-4 max-h-[92vh] overflow-y-auto text-slate-100">
             <div className="flex items-center justify-between border-b border-[#1E293B] pb-3">
               <h3 className="text-base font-bold text-white flex items-center gap-2">
                 <Fuel className="w-4 h-4 text-amber-400" />
-                <span>{editingId ? 'Edit Fuel Slip' : 'Log Fuel Dispense'}</span>
+                <span>{editingId ? 'Edit Fuel Record' : 'Log Fuel Dispense'}</span>
               </h3>
               <button onClick={() => { setIsModalOpen(false); setEditingId(null); }} className="text-slate-400 hover:text-white p-1 cursor-pointer">
                 <X className="w-5 h-5" />
@@ -340,94 +411,121 @@ export const DieselFuelManagementModule: React.FC = () => {
             </div>
 
             <form onSubmit={handleSave} className="space-y-4 text-xs">
+              {/* Date & Site */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-slate-300 font-bold mb-1">Date *</label>
+                  <label className="block text-slate-300 font-bold mb-1.5">Date *</label>
                   <input
                     type="date"
                     required
                     value={date}
                     onChange={(e) => setDate(e.target.value)}
-                    className="w-full px-3.5 py-2.5 bg-[#162032] border border-[#1E293B] rounded-xl text-white font-mono outline-none"
+                    className="w-full px-3.5 py-2.5 bg-[#162032] border border-[#1E293B] rounded-xl text-white font-mono outline-none focus:border-amber-500"
                   />
                 </div>
                 <div>
-                  <label className="block text-slate-300 font-bold mb-1">Slip Number / Ref *</label>
-                  <input
-                    type="text"
-                    required
-                    value={slipNumber}
-                    onChange={(e) => setSlipNumber(e.target.value)}
-                    className="w-full px-3.5 py-2.5 bg-[#162032] border border-[#1E293B] rounded-xl text-white font-mono outline-none"
-                  />
+                  <label className="block text-slate-300 font-bold mb-1.5">Site / Project *</label>
+                  {siteSheets.length > 0 ? (
+                    <div className="relative">
+                      <select
+                        value={siteName}
+                        onChange={(e) => setSiteName(e.target.value)}
+                        className="w-full px-3.5 py-2.5 bg-[#162032] border border-[#1E293B] rounded-xl text-cyan-400 font-bold appearance-none outline-none focus:border-amber-500 cursor-pointer"
+                      >
+                        {siteSheets.map((s: any) => (
+                          <option key={s.siteId} value={s.siteName} className="bg-[#0f172a] text-white">
+                            {s.siteName}
+                          </option>
+                        ))}
+                      </select>
+                      <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-3 pointer-events-none" />
+                    </div>
+                  ) : (
+                    <input
+                      type="text"
+                      required
+                      value={siteName}
+                      onChange={(e) => setSiteName(e.target.value)}
+                      className="w-full px-3.5 py-2.5 bg-[#162032] border border-[#1E293B] rounded-xl text-white outline-none focus:border-amber-500"
+                    />
+                  )}
                 </div>
               </div>
 
+              {/* Machinery Vehicle Dropdown */}
               <div>
-                <label className="block text-slate-300 font-bold mb-1">Site / Project *</label>
-                {siteSheets.length > 0 ? (
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-slate-300 font-bold">Vehicle Number *</label>
+                  {selectedVehicleObj && (
+                    <span className="text-[10px] text-slate-400 font-medium">
+                      {selectedVehicleObj.vehicleType} •{' '}
+                      <span className={selectedVehicleObj.ownershipType === 'rented' ? 'text-purple-400 font-bold' : 'text-sky-400 font-bold'}>
+                        {selectedVehicleObj.ownershipType === 'rented' ? 'Rented' : 'Company'}
+                      </span>
+                    </span>
+                  )}
+                </div>
+                <div className="relative">
                   <select
-                    value={siteName}
-                    onChange={(e) => setSiteName(e.target.value)}
-                    className="w-full px-3.5 py-2.5 bg-[#162032] border border-[#1E293B] rounded-xl text-white outline-none cursor-pointer"
+                    required
+                    value={vehicleNumber}
+                    onChange={(e) => setVehicleNumber(e.target.value)}
+                    className="w-full px-3.5 py-2.5 bg-[#162032] border border-[#1E293B] rounded-xl text-white font-mono font-bold appearance-none outline-none focus:border-amber-500 cursor-pointer"
                   >
-                    {siteSheets.map((s: any) => (
-                      <option key={s.siteId} value={s.siteName}>
-                        {s.siteName}
+                    <option value="" disabled>-- Select Machinery / Vehicle --</option>
+                    {fleetVehicles.map((v) => (
+                      <option key={v.id} value={v.vehicleNumber} className="bg-[#0f172a] text-white">
+                        {v.vehicleNumber} — {v.vehicleType} ({v.ownershipType === 'rented' ? 'Rented' : 'Company Owned'})
                       </option>
                     ))}
                   </select>
-                ) : (
-                  <input
-                    type="text"
-                    required
-                    value={siteName}
-                    onChange={(e) => setSiteName(e.target.value)}
-                    className="w-full px-3.5 py-2.5 bg-[#162032] border border-[#1E293B] rounded-xl text-white outline-none"
-                  />
-                )}
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-slate-300 font-bold mb-1">Vehicle Number *</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. KA-28-B-1234"
-                    value={vehicleNumber}
-                    onChange={(e) => setVehicleNumber(e.target.value.toUpperCase())}
-                    className="w-full px-3.5 py-2.5 bg-[#162032] border border-[#1E293B] rounded-xl text-white font-mono outline-none uppercase"
-                  />
-                </div>
-                <div>
-                  <label className="block text-slate-300 font-bold mb-1">Driver / Operator *</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="Name of driver"
-                    value={driverName}
-                    onChange={(e) => setDriverName(e.target.value)}
-                    className="w-full px-3.5 py-2.5 bg-[#162032] border border-[#1E293B] rounded-xl text-white outline-none"
-                  />
+                  <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-3 pointer-events-none" />
                 </div>
               </div>
 
+              {/* Litres & Rate per Litre with Default Rate Lock */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-slate-300 font-bold mb-1">Litres Dispensed *</label>
+                  <label className="block text-slate-300 font-bold mb-1.5">Litres Dispensed *</label>
                   <input
                     type="number"
                     min="0.1"
                     step="0.1"
                     required
+                    placeholder="e.g. 50"
                     value={litres}
                     onChange={(e) => setLitres(e.target.value === '' ? '' : Number(e.target.value))}
-                    className="w-full px-3.5 py-2.5 bg-[#162032] border border-[#1E293B] rounded-xl text-amber-400 font-mono font-bold outline-none"
+                    className="w-full px-3.5 py-2.5 bg-[#162032] border border-[#1E293B] rounded-xl text-amber-400 font-mono font-bold outline-none focus:border-amber-500"
                   />
                 </div>
+
                 <div>
-                  <label className="block text-slate-300 font-bold mb-1">Rate per Litre (₹) *</label>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="text-slate-300 font-bold">Rate/Litre (₹) *</label>
+                    <button
+                      type="button"
+                      onClick={handleSaveDefaultRate}
+                      title="Save this rate as the default for future entries"
+                      className={`text-[10px] flex items-center gap-1 font-semibold px-1.5 py-0.5 rounded transition ${
+                        rateSavedNotice
+                          ? 'bg-emerald-950 text-emerald-300 border border-emerald-700'
+                          : 'text-amber-400 hover:text-amber-300 bg-amber-950/40 border border-amber-800/60'
+                      }`}
+                    >
+                      {rateSavedNotice ? (
+                        <>
+                          <Check className="w-2.5 h-2.5" />
+                          <span>Saved</span>
+                        </>
+                      ) : (
+                        <>
+                          <Lock className="w-2.5 h-2.5" />
+                          <span>Set Default</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+
                   <input
                     type="number"
                     min="1"
@@ -435,11 +533,12 @@ export const DieselFuelManagementModule: React.FC = () => {
                     required
                     value={ratePerLitre}
                     onChange={(e) => setRatePerLitre(e.target.value === '' ? '' : Number(e.target.value))}
-                    className="w-full px-3.5 py-2.5 bg-[#162032] border border-[#1E293B] rounded-xl text-white font-mono outline-none"
+                    className="w-full px-3.5 py-2.5 bg-[#162032] border border-[#1E293B] rounded-xl text-emerald-400 font-mono font-bold outline-none focus:border-amber-500"
                   />
                 </div>
               </div>
 
+              {/* Total Calculation */}
               <div className="p-4 rounded-2xl bg-[#080d19] border border-[#1E293B] flex items-center justify-between mt-2">
                 <span className="text-sm font-bold text-slate-300">Total Voucher Cost:</span>
                 <span className="text-xl font-black text-emerald-400 font-mono">
@@ -447,17 +546,18 @@ export const DieselFuelManagementModule: React.FC = () => {
                 </span>
               </div>
 
+              {/* Actions */}
               <div className="flex justify-end gap-2 pt-3 border-t border-[#1E293B]">
                 <button
                   type="button"
                   onClick={() => { setIsModalOpen(false); setEditingId(null); }}
-                  className="px-4 py-2 rounded-xl text-slate-400 hover:text-white cursor-pointer"
+                  className="px-4 py-2 rounded-xl text-slate-400 hover:text-white cursor-pointer transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-black shadow-lg shadow-amber-600/30 cursor-pointer"
+                  className="px-5 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-black shadow-lg shadow-amber-600/30 cursor-pointer transition-all"
                 >
                   {editingId ? 'Update Record' : 'Save Record'}
                 </button>
