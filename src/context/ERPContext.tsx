@@ -232,7 +232,7 @@ const safeGetJSON = <T,>(key: string, fallback: T): T => {
 };
 
 export const ERPProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  // 1. User Management State
+  // 1. Registered User Accounts
   const [usersList, setUsersList] = useState<ManagedUser[]>(() => {
     const saved = safeGetJSON(STORAGE_USERS_KEY, null);
     if (saved && Array.isArray(saved) && saved.length > 0) {
@@ -250,11 +250,11 @@ export const ERPProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
   }, [usersList]);
 
-  // 2. Auth Session State
+  // 2. Active Session Authentication (uses sessionStorage so closing the app requires login)
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false;
     try {
-      const activeSession = localStorage.getItem(STORAGE_SESSION_KEY) || sessionStorage.getItem(LOCAL_STORAGE_KEY + '_AUTH');
+      const activeSession = sessionStorage.getItem(STORAGE_SESSION_KEY);
       return !!activeSession;
     } catch {
       return false;
@@ -262,14 +262,18 @@ export const ERPProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   });
 
   const [currentUser, setCurrentUser] = useState<User & { allowedScope?: AllowedModuleScope; fullName?: string; username?: string }>(() => {
-    const active = safeGetJSON<any>(STORAGE_SESSION_KEY, null);
-    if (active) return active;
-    return safeGetJSON(LOCAL_STORAGE_KEY + '_USER', DEFAULT_MANAGED_USERS[0]);
+    if (typeof window !== 'undefined') {
+      try {
+        const session = sessionStorage.getItem(STORAGE_SESSION_KEY);
+        if (session) return JSON.parse(session);
+      } catch {}
+    }
+    return null as any;
   });
 
   const [userRole, setUserRole] = useState<UserRole | string>(() => currentUser?.role || 'SUPER_ADMIN');
 
-  // 3. Dual Domain Synchronization (ROAD vs BUILDING)
+  // 3. Domain Synchronization
   const [appDomain, setAppDomainState] = useState<AppDomainType>(() => {
     const scope = currentUser?.allowedScope;
     if (scope === 'BUILDING_ONLY') return 'BUILDING';
@@ -310,7 +314,7 @@ export const ERPProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
   }, [currentUser]);
 
-  // 4. Authenticate & Auto-Migrate
+  // 4. Login & Logout
   const login = (username: string, password?: string): { success: boolean; message?: string; user?: ManagedUser } => {
     const cleanUser = username.trim().toLowerCase();
     const cleanPass = (password || '').trim();
@@ -366,22 +370,17 @@ export const ERPProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setUserRole(matchedUser.role as any);
     setIsAuthenticated(true);
 
+    sessionStorage.setItem(STORAGE_SESSION_KEY, JSON.stringify(usr));
     sessionStorage.setItem(LOCAL_STORAGE_KEY + '_AUTH', JSON.stringify(true));
-    localStorage.setItem(STORAGE_SESSION_KEY, JSON.stringify(usr));
-    localStorage.setItem(LOCAL_STORAGE_KEY + '_USER', JSON.stringify(usr));
-    localStorage.setItem('PAVETRACK_CURRENT_USER', JSON.stringify(usr));
-    localStorage.setItem('CONSTRUCTION_PRO_ERP_STORAGE_V7_USER', JSON.stringify(usr));
 
     return { success: true, user: matchedUser };
   };
 
   const logout = () => {
     setIsAuthenticated(false);
+    setCurrentUser(null as any);
+    sessionStorage.removeItem(STORAGE_SESSION_KEY);
     sessionStorage.removeItem(LOCAL_STORAGE_KEY + '_AUTH');
-    localStorage.removeItem(STORAGE_SESSION_KEY);
-    localStorage.removeItem(LOCAL_STORAGE_KEY + '_USER');
-    localStorage.removeItem('PAVETRACK_CURRENT_USER');
-    localStorage.removeItem('CONSTRUCTION_PRO_ERP_STORAGE_V7_USER');
   };
 
   const addManagedUser = (userData: Omit<ManagedUser, 'id'>) => {
