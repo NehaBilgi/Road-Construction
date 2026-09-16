@@ -9,7 +9,9 @@ import {
   Gauge, 
   X, 
   HardHat,
-  CheckCircle2
+  CheckCircle2,
+  Building2,
+  HandCoins
 } from 'lucide-react';
 
 const VEHICLE_PRESETS = [
@@ -33,6 +35,9 @@ export interface FleetVehicle {
   category: string;
   metricType: 'KM' | 'HMR';
   currentReading: number;
+  ownershipType: 'company' | 'rented';
+  rentalRateType?: 'per_day' | 'per_trip';
+  rentalAmount?: number;
 }
 
 const DEFAULT_FLEET: FleetVehicle[] = [
@@ -42,7 +47,8 @@ const DEFAULT_FLEET: FleetVehicle[] = [
     vehicleType: 'Hydraulic Excavator (CAT/Hitachi)',
     category: 'Earthmoving',
     metricType: 'HMR',
-    currentReading: 4215.5
+    currentReading: 4215.5,
+    ownershipType: 'company'
   },
   {
     id: 'v-2',
@@ -50,7 +56,10 @@ const DEFAULT_FLEET: FleetVehicle[] = [
     vehicleType: 'Backhoe Loader (JCB 3DX)',
     category: 'Earthmoving',
     metricType: 'HMR',
-    currentReading: 2850.0
+    currentReading: 2850.0,
+    ownershipType: 'rented',
+    rentalRateType: 'per_day',
+    rentalAmount: 4500
   },
   {
     id: 'v-3',
@@ -58,7 +67,10 @@ const DEFAULT_FLEET: FleetVehicle[] = [
     vehicleType: 'Tipper / Dump Truck',
     category: 'Haulage',
     metricType: 'KM',
-    currentReading: 14200
+    currentReading: 14200,
+    ownershipType: 'rented',
+    rentalRateType: 'per_trip',
+    rentalAmount: 850
   },
   {
     id: 'v-4',
@@ -66,7 +78,8 @@ const DEFAULT_FLEET: FleetVehicle[] = [
     vehicleType: 'Tractor & Trolley',
     category: 'Transport',
     metricType: 'HMR',
-    currentReading: 1120.0
+    currentReading: 1120.0,
+    ownershipType: 'company'
   },
   {
     id: 'v-5',
@@ -74,7 +87,8 @@ const DEFAULT_FLEET: FleetVehicle[] = [
     vehicleType: 'Site Jeep / Bolero / Pickup',
     category: 'Site Inspection',
     metricType: 'KM',
-    currentReading: 38450
+    currentReading: 38450,
+    ownershipType: 'company'
   },
   {
     id: 'v-6',
@@ -82,7 +96,8 @@ const DEFAULT_FLEET: FleetVehicle[] = [
     vehicleType: 'Car / SUV',
     category: 'Staff Transport',
     metricType: 'KM',
-    currentReading: 24100
+    currentReading: 24100,
+    ownershipType: 'company'
   }
 ];
 
@@ -113,6 +128,9 @@ export const MachineryFleetModule: React.FC = () => {
   const [selectedType, setSelectedType] = useState(VEHICLE_PRESETS[0].id);
   const [metricType, setMetricType] = useState<'KM' | 'HMR'>('KM');
   const [currentReading, setCurrentReading] = useState<number | ''>('');
+  const [ownershipType, setOwnershipType] = useState<'company' | 'rented'>('company');
+  const [rentalRateType, setRentalRateType] = useState<'per_day' | 'per_trip'>('per_day');
+  const [rentalAmount, setRentalAmount] = useState<number | ''>('');
 
   // Auto-sync every change to localStorage
   useEffect(() => {
@@ -134,6 +152,7 @@ export const MachineryFleetModule: React.FC = () => {
       return;
     }
     if (!vehicleNumber || currentReading === '') return;
+    if (ownershipType === 'rented' && rentalAmount === '') return;
 
     const matched = VEHICLE_PRESETS.find(p => p.id === selectedType);
     const newVehicle: FleetVehicle = {
@@ -142,16 +161,25 @@ export const MachineryFleetModule: React.FC = () => {
       vehicleType: matched ? matched.name : selectedType,
       category: matched ? matched.category : 'General',
       metricType,
-      currentReading: Number(currentReading)
+      currentReading: Number(currentReading),
+      ownershipType,
+      ...(ownershipType === 'rented' ? {
+        rentalRateType,
+        rentalAmount: Number(rentalAmount)
+      } : {})
     };
 
     const updated = [newVehicle, ...fleet];
     setFleet(updated);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
 
+    // Reset Form
     setIsModalOpen(false);
     setVehicleNumber('');
     setCurrentReading('');
+    setOwnershipType('company');
+    setRentalRateType('per_day');
+    setRentalAmount('');
   };
 
   const handleDeleteVehicle = (id: string, number: string, type: string) => {
@@ -171,7 +199,8 @@ export const MachineryFleetModule: React.FC = () => {
     return (
       v.vehicleNumber.toLowerCase().includes(q) ||
       v.vehicleType.toLowerCase().includes(q) ||
-      v.category.toLowerCase().includes(q)
+      v.category.toLowerCase().includes(q) ||
+      (v.ownershipType && v.ownershipType.toLowerCase().includes(q))
     );
   });
 
@@ -215,7 +244,7 @@ export const MachineryFleetModule: React.FC = () => {
         <Search className="w-4 h-4 text-slate-500 absolute left-3.5 top-3" />
         <input
           type="text"
-          placeholder="Search by vehicle number (e.g. KA-28), type (Tipper, Car, Jeep, Tractor, Roller)..."
+          placeholder="Search by vehicle number, type, ownership (Company / Rented)..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           className="w-full pl-10 pr-4 py-2.5 bg-[#0D111D] border border-[#1E293B] rounded-2xl text-xs text-white outline-none focus:border-blue-500 placeholder-slate-500"
@@ -243,9 +272,23 @@ export const MachineryFleetModule: React.FC = () => {
                     {vehicle.vehicleNumber}
                   </span>
 
-                  <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700">
-                    {vehicle.category}
-                  </span>
+                  <div className="flex items-center gap-1.5">
+                    {vehicle.ownershipType === 'rented' ? (
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-purple-950/60 text-purple-300 border border-purple-800/60 flex items-center gap-1">
+                        <HandCoins className="w-3 h-3 text-purple-400" />
+                        Rented
+                      </span>
+                    ) : (
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-sky-950/60 text-sky-300 border border-sky-800/60 flex items-center gap-1">
+                        <Building2 className="w-3 h-3 text-sky-400" />
+                        Company
+                      </span>
+                    )}
+
+                    <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700">
+                      {vehicle.category}
+                    </span>
+                  </div>
                 </div>
 
                 <h3 className="text-sm font-bold text-white leading-snug">
@@ -253,23 +296,37 @@ export const MachineryFleetModule: React.FC = () => {
                 </h3>
               </div>
 
-              {/* Running Meter / Hours Data */}
-              <div className="p-3.5 bg-[#070c18] border border-[#182643] rounded-2xl flex items-center justify-between">
-                <div className="flex items-center gap-2 text-slate-400 text-xs font-medium">
-                  {vehicle.metricType === 'KM' ? (
-                    <Gauge className="w-4 h-4 text-amber-400" />
-                  ) : (
-                    <Clock className="w-4 h-4 text-cyan-400" />
-                  )}
-                  <span>{vehicle.metricType === 'KM' ? 'Odometer Running:' : 'Running Hours (HMR):'}</span>
+              {/* Running Meter / Rate Data */}
+              <div className="space-y-2">
+                <div className="p-3 bg-[#070c18] border border-[#182643] rounded-2xl flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-slate-400 text-xs font-medium">
+                    {vehicle.metricType === 'KM' ? (
+                      <Gauge className="w-4 h-4 text-amber-400" />
+                    ) : (
+                      <Clock className="w-4 h-4 text-cyan-400" />
+                    )}
+                    <span>{vehicle.metricType === 'KM' ? 'Odometer:' : 'Running Hours:'}</span>
+                  </div>
+
+                  <span className="font-mono font-black text-sm text-white">
+                    {vehicle.currentReading.toLocaleString()}{' '}
+                    <span className="text-xs text-amber-400">
+                      {vehicle.metricType === 'KM' ? 'KM' : 'Hrs'}
+                    </span>
+                  </span>
                 </div>
 
-                <span className="font-mono font-black text-sm text-white">
-                  {vehicle.currentReading.toLocaleString()}{' '}
-                  <span className="text-xs text-amber-400">
-                    {vehicle.metricType === 'KM' ? 'KM' : 'Hrs'}
-                  </span>
-                </span>
+                {vehicle.ownershipType === 'rented' && vehicle.rentalAmount !== undefined && (
+                  <div className="px-3.5 py-2 bg-purple-950/20 border border-purple-900/30 rounded-xl flex items-center justify-between text-xs">
+                    <span className="text-purple-300 font-medium">Rental Tariff:</span>
+                    <span className="font-mono font-bold text-purple-200">
+                      ₹{vehicle.rentalAmount.toLocaleString()}{' '}
+                      <span className="text-[10px] text-purple-400 font-sans">
+                        / {vehicle.rentalRateType === 'per_day' ? 'Day' : 'Trip'}
+                      </span>
+                    </span>
+                  </div>
+                )}
               </div>
 
               {/* Card Footer */}
@@ -299,7 +356,7 @@ export const MachineryFleetModule: React.FC = () => {
       {/* 4. Add Vehicle Modal (Admin Only) */}
       {isModalOpen && isAdmin && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150">
-          <div className="bg-[#121927] border border-[#1E293B] rounded-3xl w-full max-w-md p-6 shadow-2xl space-y-5 animate-in zoom-in-95 duration-150 text-slate-100">
+          <div className="bg-[#121927] border border-[#1E293B] rounded-3xl w-full max-w-md p-6 shadow-2xl space-y-5 animate-in zoom-in-95 duration-150 text-slate-100 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-[#1E293B] pb-3">
               <div className="flex items-center gap-2 text-white font-bold text-base">
                 <Truck className="w-5 h-5 text-blue-400" />
@@ -345,6 +402,92 @@ export const MachineryFleetModule: React.FC = () => {
                   ))}
                 </select>
               </div>
+
+              {/* Ownership Type Radio Switch */}
+              <div>
+                <label className="block text-slate-300 font-bold mb-1.5">
+                  Vehicle Ownership <span className="text-amber-400">*</span>
+                </label>
+                <div className="grid grid-cols-2 gap-2 bg-[#162032] p-1 border border-[#1E293B] rounded-xl">
+                  <button
+                    type="button"
+                    onClick={() => setOwnershipType('company')}
+                    className={`py-2 rounded-lg font-bold flex items-center justify-center gap-1.5 transition-all ${
+                      ownershipType === 'company'
+                        ? 'bg-blue-600 text-white shadow-sm'
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    <Building2 className="w-3.5 h-3.5" />
+                    <span>Company Owned</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setOwnershipType('rented')}
+                    className={`py-2 rounded-lg font-bold flex items-center justify-center gap-1.5 transition-all ${
+                      ownershipType === 'rented'
+                        ? 'bg-blue-600 text-white shadow-sm'
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    <HandCoins className="w-3.5 h-3.5" />
+                    <span>Rented / Hired</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Conditional Rented Pricing Form Controls */}
+              {ownershipType === 'rented' && (
+                <div className="p-3.5 rounded-2xl bg-purple-950/20 border border-purple-900/40 space-y-3 animate-in fade-in slide-in-from-top-1 duration-150">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-purple-200 font-bold mb-1.5">
+                        Billing Basis <span className="text-amber-400">*</span>
+                      </label>
+                      <div className="grid grid-cols-2 gap-1 bg-[#162032] p-1 border border-purple-900/50 rounded-xl">
+                        <button
+                          type="button"
+                          onClick={() => setRentalRateType('per_day')}
+                          className={`py-1.5 rounded-lg font-bold text-[11px] transition-all ${
+                            rentalRateType === 'per_day'
+                              ? 'bg-purple-600 text-white shadow-sm'
+                              : 'text-slate-400 hover:text-white'
+                          }`}
+                        >
+                          Per Day
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setRentalRateType('per_trip')}
+                          className={`py-1.5 rounded-lg font-bold text-[11px] transition-all ${
+                            rentalRateType === 'per_trip'
+                              ? 'bg-purple-600 text-white shadow-sm'
+                              : 'text-slate-400 hover:text-white'
+                          }`}
+                        >
+                          Per Trip
+                        </button>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-purple-200 font-bold mb-1.5">
+                        Amount (₹) <span className="text-amber-400">*</span>
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        step="1"
+                        required
+                        placeholder={rentalRateType === 'per_day' ? 'e.g. 4500' : 'e.g. 850'}
+                        value={rentalAmount}
+                        onChange={(e) => setRentalAmount(e.target.value === '' ? '' : Number(e.target.value))}
+                        className="w-full px-3 py-2 bg-[#162032] border border-purple-900/50 rounded-xl text-amber-400 font-mono font-bold outline-none focus:border-purple-500"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
