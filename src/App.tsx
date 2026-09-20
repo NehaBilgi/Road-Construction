@@ -22,7 +22,7 @@ import { UserManagementModule } from './components/configuration/UserManagementM
 import {
   LayoutDashboard, Truck, Fuel, DollarSign, Calculator, HardHat,
   LogOut, Milestone, Users, Package, ArrowLeftRight, FileText,
-  Bell, ShoppingCart, Cpu, CalendarCheck, Tag, Archive, Building2,
+  Bell, CalendarCheck, Tag, Archive, Building2,
   X, Plus, Edit2, Trash2, Menu, ChevronDown, Check, CreditCard,
   Download, Search, ArrowDownLeft, ArrowUpRight, Layers, AlertCircle,
   AlertTriangle, TrendingDown, CheckCircle2, ArrowRight, RotateCcw
@@ -194,7 +194,7 @@ export const BuildingReportsModule: React.FC = () => {
             <span>Building Consumption & Stock Audits</span>
           </h1>
           <p className="text-xs text-slate-400 mt-0.5">
-            Reconciliation report connecting current store inventory to site dispatch transactions[cite: 12].
+            Reconciliation report connecting current store inventory to site dispatch transactions.
           </p>
         </div>
       </div>
@@ -287,7 +287,7 @@ export const BuildingAlertsModule: React.FC<{ onNavigateTab: (tabId: string) => 
             <Bell className="w-6 h-6 text-rose-500" />
             <span>Inventory Alerts</span>
           </h1>
-          <p className="text-xs text-slate-400 mt-0.5">Critical material buffer levels[cite: 13].</p>
+          <p className="text-xs text-slate-400 mt-0.5">Critical material buffer levels.</p>
         </div>
         <button
           onClick={() => onNavigateTab('products')}
@@ -327,7 +327,7 @@ export const BuildingAlertsModule: React.FC<{ onNavigateTab: (tabId: string) => 
 // Building Material Categories Module
 // ==========================================
 export const BuildingMaterialCategoriesModule: React.FC = () => {
-  const [categories, setCategories] = useState(() => {
+  const [categories] = useState(() => {
     try {
       const saved = localStorage.getItem(STORAGE_BUILDING_CATS_KEY);
       return saved ? JSON.parse(saved) : [
@@ -471,6 +471,34 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const { currentUser, logout } = useERP() as any;
   const isBuilding = projectType === 'BUILDING';
 
+  // Dynamic alert count from live local storage
+  const [liveAlertCount, setLiveAlertCount] = useState<number>(0);
+
+  useEffect(() => {
+    const computeAlertCount = () => {
+      try {
+        const prodRaw = localStorage.getItem(STORAGE_BUILDING_PRODUCTS_KEY);
+        if (!prodRaw) {
+          setLiveAlertCount(0);
+          return;
+        }
+        const prods = JSON.parse(prodRaw);
+        const count = prods.filter((p: any) => Number(p.currentStock || 0) <= 20).length;
+        setLiveAlertCount(count);
+      } catch {
+        setLiveAlertCount(0);
+      }
+    };
+
+    computeAlertCount();
+    window.addEventListener('storage', computeAlertCount);
+    window.addEventListener('focus', computeAlertCount);
+    return () => {
+      window.removeEventListener('storage', computeAlertCount);
+      window.removeEventListener('focus', computeAlertCount);
+    };
+  }, []);
+
   const buildingCoreItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'road-sites', label: 'Ongoing Site', icon: Milestone, badge: 'Sites' },
@@ -478,11 +506,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { id: 'transactions', label: 'Transactions', icon: ArrowLeftRight }
   ];
 
+  // Reorder Suggestions and Equipment Register removed from here
   const buildingAnalysisItems = [
     { id: 'reports', label: 'Reports', icon: FileText },
-    { id: 'alerts', label: 'Alerts', icon: Bell },
-    { id: 'reorder-suggestions', label: 'Reorder Suggestions', icon: ShoppingCart },
-    { id: 'equipment-register', label: 'Equipment Register', icon: Cpu },
+    { 
+      id: 'alerts', 
+      label: 'Alerts', 
+      icon: Bell, 
+      badge: liveAlertCount > 0 ? liveAlertCount : undefined 
+    },
     { id: 'attendance-salary', label: 'Attendance & Salary', icon: CalendarCheck }
   ];
 
@@ -525,14 +557,22 @@ export const Sidebar: React.FC<SidebarProps> = ({
               if (onClose) onClose();
             }}
             className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold cursor-pointer transition-all ${
-              isActive ? 'bg-[#2563EB] text-white shadow-lg' : 'text-[#94A3B8] hover:bg-[#162032] hover:text-white'
+              isActive ? 'bg-[#2563EB] text-white shadow-lg shadow-blue-600/30' : 'text-[#94A3B8] hover:bg-[#162032] hover:text-white'
             }`}
           >
             <div className="flex items-center gap-2.5">
               <Icon className="w-4 h-4 shrink-0" />
               <span>{item.label}</span>
             </div>
-            {item.badge && <span className="text-[9px] px-1.5 py-0.5 rounded font-black bg-blue-900/40 text-blue-300">{item.badge}</span>}
+            {item.badge && (
+              <span className={`text-[9px] px-1.5 py-0.5 rounded font-black ${
+                item.id === 'alerts'
+                  ? 'bg-rose-600 text-white rounded-full w-4 h-4 flex items-center justify-center'
+                  : 'bg-blue-900/40 text-blue-300'
+              }`}>
+                {item.badge}
+              </span>
+            )}
           </button>
         );
       })}
@@ -717,6 +757,7 @@ export const AppContent: React.FC = () => {
               </>
             )}
 
+            {/* BUILDING Construction Tabs (Isolated) */}
             {activeDomain === 'BUILDING' && (
               <>
                 {activeTab === 'products' && <ProductsMasterModule />}
@@ -725,8 +766,6 @@ export const AppContent: React.FC = () => {
                 {activeTab === 'reports' && <BuildingReportsModule />}
                 {activeTab === 'alerts' && <BuildingAlertsModule onNavigateTab={setActiveTab} />}
                 {activeTab === 'users' && <UserManagementModule />}
-                {activeTab === 'reorder-suggestions' && <GenericView title="Reorder Suggestions" subtitle="Automated purchase order recommendations" icon={ShoppingCart} />}
-                {activeTab === 'equipment-register' && <GenericView title="Equipment Register" subtitle="Centering plates, props, and batching plant logs" icon={Cpu} />}
                 {activeTab === 'attendance-salary' && <GenericView title="Attendance & Salary" subtitle="Site labor muster roll and payroll disbursements" icon={CalendarCheck} />}
                 {activeTab === 'yearly-archive' && <GenericView title="Yearly Archive" subtitle="Annual building records & financial closings" icon={Archive} />}
               </>
