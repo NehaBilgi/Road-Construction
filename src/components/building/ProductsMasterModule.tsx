@@ -18,7 +18,7 @@ export interface BuildingProduct {
   currentStock: number;
 }
 
-const STORAGE_PRODUCTS_KEY = 'CONSTRUCTION_PRO_BUILDING_PRODUCTS_SIMPLIFIED_V1';
+const STORAGE_PRODUCTS_KEY = 'CONSTRUCTION_PRO_BUILDING_PRODUCTS_SIMPLIFIED_V2';
 
 const INITIAL_PRODUCTS: BuildingProduct[] = [
   { id: 'PRD-001', name: 'Castrol Optigear 320', category: 'Lubricants & Oils', unit: 'Litre', unitCost: 450, currentStock: 10 },
@@ -53,9 +53,9 @@ export const ProductsMasterModule: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
 
-  // Simplified Form State: Only the 5 requested fields
+  // Form State
   const [name, setName] = useState('');
-  const [category, setCategory] = useState('Structural Steel');
+  const [category, setCategory] = useState('Cement & Binding');
   const [unit, setUnit] = useState('Nos');
   const [unitCost, setUnitCost] = useState<number | ''>(0);
   const [currentStock, setCurrentStock] = useState<number | ''>(0);
@@ -67,7 +67,7 @@ export const ProductsMasterModule: React.FC = () => {
   const handleOpenAdd = () => {
     setEditingId(null);
     setName('');
-    setCategory('Structural Steel');
+    setCategory('Cement & Binding');
     setUnit('Nos');
     setUnitCost(0);
     setCurrentStock(0);
@@ -114,6 +114,8 @@ export const ProductsMasterModule: React.FC = () => {
     );
   });
 
+  const computedTotalCost = (Number(unitCost) || 0) * (Number(currentStock) || 0);
+
   return (
     <div className="space-y-6 font-sans text-slate-100">
       {/* Header */}
@@ -121,7 +123,7 @@ export const ProductsMasterModule: React.FC = () => {
         <div>
           <h1 className="text-2xl font-black text-white tracking-tight">Products Master</h1>
           <p className="text-xs text-slate-400 mt-0.5">
-            Manage product catalog, costs, and stock on site.
+            Manage product catalog, unit rates, quantities, and inventory values.
           </p>
         </div>
 
@@ -155,71 +157,78 @@ export const ProductsMasterModule: React.FC = () => {
                 <th className="py-3.5 px-5">ID</th>
                 <th className="py-3.5 px-5">PRODUCT NAME</th>
                 <th className="py-3.5 px-5">CATEGORY</th>
-                <th className="py-3.5 px-5 text-right">UNIT COST (₹)</th>
-                <th className="py-3.5 px-5 text-right">STOCK IN</th>
+                <th className="py-3.5 px-5 text-right">UNIT RATE (₹)</th>
+                <th className="py-3.5 px-5 text-right">STOCK IN (NOS)</th>
+                <th className="py-3.5 px-5 text-right">TOTAL COST (₹)</th>
                 <th className="py-3.5 px-5 text-right">ACTIONS</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#1E293B]/60 text-slate-200">
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="py-10 text-center text-slate-500 text-xs">
+                  <td colSpan={7} className="py-10 text-center text-slate-500 text-xs">
                     No products found in catalog.
                   </td>
                 </tr>
               ) : (
-                filtered.map((item) => (
-                  <tr key={item.id} className="hover:bg-[#121c33]/50 transition-colors">
-                    <td className="py-4 px-5 font-mono font-bold text-slate-400">{item.id}</td>
-                    <td className="py-4 px-5 font-bold text-white text-xs">{item.name}</td>
-                    <td className="py-4 px-5">
-                      <span className="px-2.5 py-1 rounded-full text-[10px] font-semibold bg-slate-800 text-blue-300 border border-slate-700">
-                        {item.category}
-                      </span>
-                    </td>
-                    <td className="py-4 px-5 text-right font-mono font-bold text-slate-200">
-                      ₹{item.unitCost.toLocaleString()} <span className="text-[10px] text-slate-400 font-normal">/ {item.unit}</span>
-                    </td>
-                    <td className="py-4 px-5 text-right">
-                      <div className="font-mono font-black text-sm text-emerald-400">
-                        {item.currentStock} <span className="text-[10px] font-normal text-slate-400">{item.unit}</span>
-                      </div>
-                    </td>
-                    <td className="py-4 px-5 text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <button
-                          onClick={() => {
-                            setEditingId(item.id);
-                            setName(item.name);
-                            setCategory(item.category);
-                            setUnit(item.unit);
-                            setUnitCost(item.unitCost);
-                            setCurrentStock(item.currentStock);
-                            setIsModalOpen(true);
-                          }}
-                          className="p-1.5 rounded-lg text-slate-400 hover:text-blue-400 hover:bg-blue-950/40"
-                        >
-                          <Edit2 className="w-3.5 h-3.5" />
-                        </button>
-                        {isAdmin && (
+                filtered.map((item) => {
+                  const lineTotal = Number(item.unitCost || 0) * Number(item.currentStock || 0);
+                  return (
+                    <tr key={item.id} className="hover:bg-[#121c33]/50 transition-colors">
+                      <td className="py-4 px-5 font-mono font-bold text-slate-400">{item.id}</td>
+                      <td className="py-4 px-5 font-bold text-white text-xs">{item.name}</td>
+                      <td className="py-4 px-5">
+                        <span className="px-2.5 py-1 rounded-full text-[10px] font-semibold bg-slate-800 text-blue-300 border border-slate-700">
+                          {item.category}
+                        </span>
+                      </td>
+                      <td className="py-4 px-5 text-right font-mono font-bold text-slate-200">
+                        ₹{item.unitCost.toLocaleString('en-IN')} <span className="text-[10px] text-slate-400 font-normal">/ {item.unit}</span>
+                      </td>
+                      <td className="py-4 px-5 text-right">
+                        <div className="font-mono font-black text-sm text-cyan-400">
+                          {item.currentStock.toLocaleString('en-IN')} <span className="text-[10px] font-normal text-slate-400">{item.unit}</span>
+                        </div>
+                      </td>
+                      <td className="py-4 px-5 text-right font-mono font-black text-sm text-emerald-400">
+                        ₹{lineTotal.toLocaleString('en-IN')}
+                      </td>
+                      <td className="py-4 px-5 text-right">
+                        <div className="flex items-center justify-end gap-2">
                           <button
-                            onClick={() => handleDelete(item.id)}
-                            className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-950/40"
+                            onClick={() => {
+                              setEditingId(item.id);
+                              setName(item.name);
+                              setCategory(item.category);
+                              setUnit(item.unit);
+                              setUnitCost(item.unitCost);
+                              setCurrentStock(item.currentStock);
+                              setIsModalOpen(true);
+                            }}
+                            className="p-1.5 rounded-lg text-slate-400 hover:text-blue-400 hover:bg-blue-950/40"
                           >
-                            <Trash2 className="w-3.5 h-3.5" />
+                            <Edit2 className="w-3.5 h-3.5" />
                           </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))
+                          {isAdmin && (
+                            <button
+                              onClick={() => handleDelete(item.id)}
+                              className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-950/40"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
         </div>
       </div>
 
-      {/* Clean 5-Field Modal */}
+      {/* Modal with Quantity & Live Total Cost Calculation */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-in fade-in">
           <div className="bg-[#0b1120] border border-[#1e293b] rounded-2xl w-full max-w-lg p-6 shadow-2xl space-y-5 text-slate-100">
@@ -240,7 +249,7 @@ export const ProductsMasterModule: React.FC = () => {
 
             <form onSubmit={handleSaveProduct} className="space-y-4 text-xs">
               
-              {/* 1. Product Name */}
+              {/* Product Name */}
               <div>
                 <label className="block text-slate-300 font-semibold mb-1.5">
                   Product Name <span className="text-rose-500">*</span>
@@ -248,14 +257,14 @@ export const ProductsMasterModule: React.FC = () => {
                 <input
                   type="text"
                   required
-                  placeholder="e.g. Castrol Optigear 320"
+                  placeholder="e.g. cement"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   className="w-full px-3.5 py-2.5 bg-[#131b2e] border border-[#1e293b] rounded-xl text-white outline-none focus:border-blue-500 placeholder-slate-500"
                 />
               </div>
 
-              {/* 2. Category */}
+              {/* Category */}
               <div>
                 <label className="block text-slate-300 font-semibold mb-1.5">
                   Category <span className="text-rose-500">*</span>
@@ -265,8 +274,8 @@ export const ProductsMasterModule: React.FC = () => {
                   onChange={(e) => setCategory(e.target.value)}
                   className="w-full px-3.5 py-2.5 bg-[#131b2e] border border-[#1e293b] rounded-xl text-white outline-none focus:border-blue-500 cursor-pointer"
                 >
-                  <option value="Structural Steel">Structural Steel (TMT Rebars)</option>
                   <option value="Cement & Binding">Cement & Binding Bags</option>
+                  <option value="Structural Steel">Structural Steel (TMT Rebars)</option>
                   <option value="Aggregates & Sand">Aggregates & Sand</option>
                   <option value="Brick & Masonry Blocks">Brick & Masonry Blocks</option>
                   <option value="Plumbing & Electrical">Plumbing & Electrical</option>
@@ -275,7 +284,7 @@ export const ProductsMasterModule: React.FC = () => {
                 </select>
               </div>
 
-              {/* 3. Unit & 4. Unit Cost */}
+              {/* Unit & Unit Cost */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-slate-300 font-semibold mb-1.5">
@@ -298,7 +307,7 @@ export const ProductsMasterModule: React.FC = () => {
 
                 <div>
                   <label className="block text-slate-300 font-semibold mb-1.5">
-                    Cost (₹) <span className="text-rose-500">*</span>
+                    Cost (₹) per {unit} <span className="text-rose-500">*</span>
                   </label>
                   <input
                     type="number"
@@ -312,23 +321,39 @@ export const ProductsMasterModule: React.FC = () => {
                 </div>
               </div>
 
-              {/* 5. Stock In */}
-              <div>
-                <label className="block text-slate-300 font-semibold mb-1.5">
-                  Stock In (Initial Quantity) <span className="text-rose-500">*</span>
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  required
-                  placeholder="0"
-                  value={currentStock}
-                  onChange={(e) => setCurrentStock(e.target.value === '' ? '' : Number(e.target.value))}
-                  className="w-full px-3.5 py-2.5 bg-[#131b2e] border border-[#1e293b] rounded-xl text-emerald-400 font-mono font-bold outline-none focus:border-blue-500"
-                />
+              {/* How Many Nos / Stock In & Auto Computed Total Cost */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1.5">
+                    Stock In (Quantity / Nos) <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    required
+                    placeholder="0"
+                    value={currentStock}
+                    onChange={(e) => setCurrentStock(e.target.value === '' ? '' : Number(e.target.value))}
+                    className="w-full px-3.5 py-2.5 bg-[#131b2e] border border-[#1e293b] rounded-xl text-cyan-400 font-mono font-bold outline-none focus:border-blue-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-slate-400 font-semibold mb-1.5">
+                    Total Cost
+                  </label>
+                  <div className="w-full px-3.5 py-2 bg-[#080d19] border border-[#1e293b] rounded-xl flex items-center justify-between min-h-[42px]">
+                    <span className="text-[10px] text-slate-500 font-mono">
+                      {Number(currentStock || 0)} × ₹{Number(unitCost || 0)}
+                    </span>
+                    <span className="text-sm font-black font-mono text-emerald-400">
+                      ₹{computedTotalCost.toLocaleString('en-IN')}
+                    </span>
+                  </div>
+                </div>
               </div>
 
-              {/* Buttons */}
+              {/* Action Buttons */}
               <div className="flex justify-end items-center gap-2 pt-3 border-t border-[#1e293b]">
                 <button
                   type="button"
