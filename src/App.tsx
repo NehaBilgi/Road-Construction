@@ -24,9 +24,7 @@ import {
   LogOut, Milestone, Users, Package, ArrowLeftRight, FileText,
   Bell, CalendarCheck, Tag, Archive, Building2,
   X, Plus, Edit2, Trash2, Menu, ChevronDown, Check, CreditCard,
-  Download, Search, ArrowDownLeft, ArrowUpRight, Layers, AlertCircle,
-  AlertTriangle, TrendingDown, CheckCircle2, ArrowRight, RotateCcw,
-  Printer, ChevronLeft, ChevronRight, FileSpreadsheet, Paperclip, Upload
+  ChevronLeft, ChevronRight, FileSpreadsheet, Paperclip, Upload, RotateCcw, AlertTriangle
 } from 'lucide-react';
 
 // ==========================================
@@ -121,8 +119,8 @@ const GenericView: React.FC<{
 export const BuildingReportsModule: React.FC = () => {
   const [products, setProducts] = useState<any[]>([]);
   const [transactions, setTransactions] = useState<any[]>([]);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [dateRange, setDateRange] = useState({
+  const [searchQuery] = useState('');
+  const [dateRange] = useState({
     from: '2026-08-01',
     to: '2026-09-30'
   });
@@ -693,7 +691,7 @@ export const RoadMaterialCategoriesModule: React.FC = () => {
             <span>Road Material Categories & Rates</span>
           </h1>
           <p className="text-xs text-slate-400 mt-0.5">
-            Manage standard road aggregate and mix names, specifications, and benchmark rates[cite: 5].
+            Manage standard road aggregate and mix names, specifications, and benchmark rates.
           </p>
         </div>
 
@@ -863,7 +861,7 @@ export const RoadMaterialCategoriesModule: React.FC = () => {
 };
 
 // ==========================================
-// Attendance & Payroll Module (Exact Screenshot 189 Match)
+// Attendance & Payroll Module
 // ==========================================
 export interface BuildingEmployee {
   id: string;
@@ -931,82 +929,6 @@ const INITIAL_STAFF: BuildingEmployee[] = [
       16: 'P', 17: 'P', 18: 'O', 19: 'O', 20: 'P'
     },
     attachedFiles: []
-  },
-  {
-    id: 'EMP-03',
-    name: 'Valu rathore',
-    type: 'Employee',
-    department: 'Crusher',
-    role: 'Staff',
-    perDayAmount: 300,
-    monthlyBase: 11000,
-    dateOfJoining: '2026-06-15',
-    status: 'Active',
-    advancesGiven: 0,
-    advancesDeducted: 0,
-    attendance: {
-      1: 'P', 2: 'P', 3: 'P', 4: 'P', 5: 'P', 6: 'P', 7: 'P', 8: 'P',
-      9: 'P', 10: 'P', 11: 'P', 12: 'P', 13: 'P', 14: 'A', 15: 'P',
-      16: 'P', 17: 'P', 18: 'P', 19: 'P', 20: 'P'
-    },
-    attachedFiles: []
-  },
-  {
-    id: 'EMP-04',
-    name: 'Raju Operator',
-    type: 'Employee',
-    department: 'Crusher',
-    role: 'Staff',
-    perDayAmount: 200,
-    monthlyBase: 9000,
-    dateOfJoining: '2026-06-15',
-    status: 'Active',
-    advancesGiven: 2000,
-    advancesDeducted: 2000,
-    attendance: {
-      1: 'P', 2: 'P', 3: 'P', 4: 'P', 5: 'P', 6: 'P', 7: 'P', 8: 'P',
-      9: 'P', 10: 'P', 11: 'P', 12: 'P', 13: 'P', 14: 'A', 15: 'P',
-      16: 'P', 17: 'P', 18: 'P', 19: 'P', 20: 'P'
-    },
-    attachedFiles: []
-  },
-  {
-    id: 'EMP-05',
-    name: 'Premsingh Operator',
-    type: 'Employee',
-    department: 'Crusher',
-    role: 'Staff',
-    perDayAmount: 300,
-    monthlyBase: 11000,
-    dateOfJoining: '2026-06-15',
-    status: 'Active',
-    advancesGiven: 55000,
-    advancesDeducted: 5000,
-    attendance: {
-      1: 'A', 2: 'P', 3: 'P', 4: 'P', 5: 'P', 6: 'P', 7: 'P', 8: 'P',
-      9: 'P', 10: 'P', 11: 'P', 12: 'P', 13: 'P', 14: 'A', 15: 'P',
-      16: 'P', 17: 'P', 18: 'P', 19: 'P', 20: 'P'
-    },
-    attachedFiles: []
-  },
-  {
-    id: 'EMP-06',
-    name: 'Sameer Operator',
-    type: 'Employee',
-    department: 'Crusher',
-    role: 'Staff',
-    perDayAmount: 300,
-    monthlyBase: 11000,
-    dateOfJoining: '2026-06-15',
-    status: 'Active',
-    advancesGiven: 0,
-    advancesDeducted: 0,
-    attendance: {
-      1: 'P', 2: 'P', 3: 'A', 4: 'P', 5: 'P', 6: 'P', 7: 'P', 8: 'A',
-      9: 'P', 10: 'P', 11: 'P', 12: 'P', 13: 'A', 14: 'P', 15: 'P',
-      16: 'A', 17: 'P', 18: 'P', 19: 'P', 20: 'P'
-    },
-    attachedFiles: []
   }
 ];
 
@@ -1044,7 +966,7 @@ export const AttendancePayrollModule: React.FC = () => {
 
   const [activeTab, setActiveTab] = useState<'GRID' | 'LABOUR_HEADCOUNT' | 'PAYROLL' | 'REGISTER'>('GRID');
   const [payType, setPayType] = useState<'WEEKLY' | 'MONTHLY'>('WEEKLY');
-  const [selectedMonth, setSelectedMonth] = useState('September 2026');
+  const [selectedMonth] = useState('September 2026');
   const [employeeFilter, setEmployeeFilter] = useState('All Employees');
   const [payrollDateFrom, setPayrollDateFrom] = useState('2026-09-13');
   const [payrollDateTo, setPayrollDateTo] = useState('2026-09-20');
@@ -1103,19 +1025,6 @@ export const AttendancePayrollModule: React.FC = () => {
     if (employeeFilter === 'All Employees') return true;
     return emp.name.toLowerCase() === employeeFilter.toLowerCase();
   });
-
-  const handleOpenAdd = () => {
-    setEditingEmpId(null);
-    setFullName('');
-    setEmpType('Employee');
-    setDepartment('Crusher');
-    setRole('Staff');
-    setPerDayAmount(300);
-    setMonthlyBase(11000);
-    setDateOfJoining('2026-09-20');
-    setEmpStatus('Active');
-    setIsAddModalOpen(true);
-  };
 
   const handleSaveEmployee = (e: React.FormEvent) => {
     e.preventDefault();
@@ -1209,22 +1118,18 @@ export const AttendancePayrollModule: React.FC = () => {
 
   return (
     <div className="space-y-6 font-sans text-slate-100 relative">
-      {/* Top Banner Subtitles */}
       <div className="text-xs text-slate-400">
         Track attendance, salary payouts, and advance ledgers
       </div>
 
-      {/* Top Control Bar matching image_a8efc6 / Screenshot */}
       <div className="p-3.5 rounded-2xl bg-[#0c1427] border border-[#182643] flex flex-wrap items-center justify-between gap-3 text-xs">
         <div className="flex flex-wrap items-center gap-3">
-          {/* Month Navigator */}
           <div className="flex items-center bg-[#070c18] border border-[#1e293b] rounded-xl px-2.5 py-1.5 font-bold text-slate-200">
             <ChevronLeft onClick={() => {}} className="w-4 h-4 cursor-pointer hover:text-white" />
             <span className="px-3 text-white">{selectedMonth}</span>
             <ChevronRight onClick={() => {}} className="w-4 h-4 cursor-pointer hover:text-white" />
           </div>
 
-          {/* Segmented View Switcher */}
           <div className="flex items-center bg-[#070c18] border border-[#1e293b] p-1 rounded-xl gap-1">
             <button
               onClick={() => setActiveTab('GRID')}
@@ -1262,7 +1167,6 @@ export const AttendancePayrollModule: React.FC = () => {
           </div>
         </div>
 
-        {/* Global Action / Filter Buttons */}
         <div className="flex items-center gap-2">
           {activeTab === 'GRID' && (
             <select
@@ -1309,7 +1213,6 @@ export const AttendancePayrollModule: React.FC = () => {
         </div>
       </div>
 
-      {/* VIEW 1: ATTENDANCE GRID (with popover menu matching reference Screenshot 189) */}
       {activeTab === 'GRID' && (
         <div className="bg-[#0B1220] border border-[#1E293B] rounded-3xl overflow-visible shadow-2xl relative">
           <div className="overflow-x-auto pb-10">
@@ -1362,7 +1265,6 @@ export const AttendancePayrollModule: React.FC = () => {
                             {status}
                           </button>
 
-                          {/* Popover Menu matching reference design */}
                           {isPopoverOpen && (
                             <div className="fixed sm:absolute z-50 mt-1 left-1/2 -translate-x-1/2 sm:left-auto sm:translate-x-0 w-44 bg-[#0d1322] border border-[#2b3a58] rounded-2xl shadow-2xl p-1.5 space-y-1 text-left text-xs">
                               <button
@@ -1421,7 +1323,6 @@ export const AttendancePayrollModule: React.FC = () => {
         </div>
       )}
 
-      {/* VIEW 2: DAILY LABOUR HEADCOUNT & PRESENT/ABSENT LOG */}
       {activeTab === 'LABOUR_HEADCOUNT' && (
         <div className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -1521,7 +1422,6 @@ export const AttendancePayrollModule: React.FC = () => {
         </div>
       )}
 
-      {/* VIEW 3: PAYROLL SUMMARY (Matching image_a8efc6 layout) */}
       {activeTab === 'PAYROLL' && (
         <div className="space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
@@ -1655,7 +1555,6 @@ export const AttendancePayrollModule: React.FC = () => {
         </div>
       )}
 
-      {/* VIEW 4: EMPLOYEES REGISTER (Matching image_a8ef88 layout) */}
       {activeTab === 'REGISTER' && (
         <div className="bg-[#0B1220] border border-[#1E293B] rounded-3xl overflow-hidden shadow-2xl">
           <table className="w-full text-left text-xs border-collapse">
@@ -1707,7 +1606,6 @@ export const AttendancePayrollModule: React.FC = () => {
         </div>
       )}
 
-      {/* DRAWER: EMPLOYEE FINANCIAL & FILE ACTIONS */}
       {drawerEmployee && (
         <div className="fixed inset-0 z-50 flex justify-end bg-black/60 backdrop-blur-xs animate-in fade-in">
           <div className="w-full max-w-sm bg-[#0e1626] border-l border-[#1E293B] h-full p-6 space-y-6 overflow-y-auto text-slate-100">
@@ -1815,7 +1713,6 @@ export const AttendancePayrollModule: React.FC = () => {
         </div>
       )}
 
-      {/* MODAL: ADD / EDIT EMPLOYEE MATCHING reference image_a8eca5 */}
       {isAddModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in">
           <div className="bg-[#121927] border border-[#1E293B] rounded-3xl w-full max-w-md p-6 shadow-2xl space-y-4 max-h-[92vh] overflow-y-auto text-slate-100">
@@ -2053,15 +1950,13 @@ export const AttendancePayrollModule: React.FC = () => {
 
               <div>
                 <label className="block text-slate-300 font-bold mb-1">Attach Attendance Slip / File Name</label>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="text"
-                    placeholder="e.g. site_muster_challan_sep20.pdf"
-                    value={attachedFileName}
-                    onChange={(e) => setAttachedFileName(e.target.value)}
-                    className="w-full px-3.5 py-2 bg-[#162032] border border-[#1E293B] rounded-xl text-white outline-none font-mono"
-                  />
-                </div>
+                <input
+                  type="text"
+                  placeholder="e.g. site_muster_challan_sep20.pdf"
+                  value={attachedFileName}
+                  onChange={(e) => setAttachedFileName(e.target.value)}
+                  className="w-full px-3.5 py-2 bg-[#162032] border border-[#1E293B] rounded-xl text-white outline-none font-mono"
+                />
               </div>
 
               <div>
@@ -2099,83 +1994,6 @@ export const AttendancePayrollModule: React.FC = () => {
 };
 
 // ==========================================
-// Header Component
-// ==========================================
-interface HeaderProps {
-  activeTab: string;
-  setActiveTab: (tab: string) => void;
-  onToggleSidebar?: () => void;
-}
-
-export const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
-  const { selectedSiteId, setSelectedSiteId, siteSheets = [], logout } = useERP() as any;
-  const [isSiteOpen, setIsSiteOpen] = useState(false);
-  
-  const safeSiteSheets = Array.isArray(siteSheets) ? siteSheets : [];
-  const currentSiteSheet = safeSiteSheets.find((s: any) => s?.siteId === selectedSiteId || s?.id === selectedSiteId) || safeSiteSheets[0];
-
-  return (
-    <header className="h-14 bg-[#080C14] border-b border-[#1E293B] flex items-center justify-between px-3 sm:px-4 text-xs select-none font-sans z-40 relative">
-      <div className="flex items-center gap-2 sm:gap-3">
-        <button
-          type="button"
-          onClick={() => onToggleSidebar && onToggleSidebar()}
-          className="p-2 lg:hidden rounded-xl bg-[#121927] hover:bg-[#162032] border border-[#1E293B] text-slate-300 hover:text-white transition-colors cursor-pointer"
-        >
-          <Menu className="w-5 h-5" />
-        </button>
-
-        <div className="relative">
-          <button
-            onClick={() => setIsSiteOpen(!isSiteOpen)}
-            className="flex items-center gap-1.5 sm:gap-2 px-2.5 py-1.5 bg-[#121927] hover:bg-[#162032] border border-[#1E293B] rounded-xl text-white font-bold text-xs cursor-pointer"
-          >
-            <Building2 className="w-4 h-4 text-blue-400 shrink-0" />
-            <span className="font-mono text-blue-400 truncate max-w-[120px] sm:max-w-[200px]">
-              {currentSiteSheet?.siteName || currentSiteSheet?.name || 'Selected Site'}
-            </span>
-            <ChevronDown className="w-3.5 h-3.5 text-[#94A3B8] shrink-0" />
-          </button>
-
-          {isSiteOpen && safeSiteSheets.length > 0 && (
-            <div className="absolute left-0 mt-2 w-64 bg-[#121927] border border-[#1E293B] rounded-2xl shadow-2xl py-1.5 z-50">
-              {safeSiteSheets.map((s: any) => (
-                <button
-                  key={s.siteId || s.id}
-                  onClick={() => {
-                    setSelectedSiteId(s.siteId || s.id);
-                    setIsSiteOpen(false);
-                  }}
-                  className="w-full px-3 py-2 text-left text-xs hover:bg-[#162032] text-white flex justify-between"
-                >
-                  <span>{s.siteName || s.name}</span>
-                  {(s.siteId || s.id) === selectedSiteId && <Check className="w-3.5 h-3.5 text-blue-400" />}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-
-      <div className="flex items-center gap-2">
-        <InstallAppButton />
-        <ThemeToggle />
-        <button
-          type="button"
-          onClick={() => {
-            if (window.confirm('Are you sure you want to log out?')) logout();
-          }}
-          className="px-2.5 py-1.5 rounded-xl bg-[#121927] hover:bg-rose-950/40 border border-[#1E293B] text-slate-400 hover:text-rose-400 transition-colors cursor-pointer flex items-center gap-1.5"
-        >
-          <LogOut className="w-4 h-4" />
-          <span className="hidden sm:inline text-[11px] font-semibold">Logout</span>
-        </button>
-      </div>
-    </header>
-  );
-};
-
-// ==========================================
 // Sidebar Component
 // ==========================================
 interface SidebarProps {
@@ -2195,7 +2013,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   isAdminUser = false,
   onClose
 }) => {
-  const { currentUser, logout } = useERP() as any;
+  const { logout } = useERP() as any;
   const isBuilding = projectType === 'BUILDING';
 
   const [liveAlertCount, setLiveAlertCount] = useState<number>(0);
@@ -2365,7 +2183,6 @@ export const AppContent: React.FC = () => {
     siteSheets = [],
     currentUser,
     userRole,
-    appDomain,
     setAppDomain
   } = useERP() as any;
 
@@ -2435,11 +2252,32 @@ export const AppContent: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[#080C14] text-slate-100 flex flex-col font-sans">
-      <Header
-        activeTab={activeTab}
-        setActiveTab={setActiveTab}
-        onToggleSidebar={() => setMobileSidebarOpen(true)}
-      />
+      <header className="h-14 bg-[#080C14] border-b border-[#1E293B] flex items-center justify-between px-3 sm:px-4 text-xs select-none font-sans z-45 relative">
+        <div className="flex items-center gap-2 sm:gap-3">
+          <button
+            type="button"
+            onClick={() => setMobileSidebarOpen(true)}
+            className="p-2 lg:hidden rounded-xl bg-[#121927] hover:bg-[#162032] border border-[#1E293B] text-slate-300 hover:text-white transition-colors cursor-pointer"
+          >
+            <Menu className="w-5 h-5" />
+          </button>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <InstallAppButton />
+          <ThemeToggle />
+          <button
+            type="button"
+            onClick={() => {
+              if (window.confirm('Are you sure you want to log out?')) logout();
+            }}
+            className="px-2.5 py-1.5 rounded-xl bg-[#121927] hover:bg-rose-950/40 border border-[#1E293B] text-slate-400 hover:text-rose-400 transition-colors cursor-pointer flex items-center gap-1.5"
+          >
+            <LogOut className="w-4 h-4" />
+            <span className="hidden sm:inline text-[11px] font-semibold">Logout</span>
+          </button>
+        </div>
+      </header>
 
       <div className="flex flex-1 relative h-[calc(100vh-56px)] overflow-hidden">
         <div className="hidden lg:block h-full shrink-0 w-64">
@@ -2460,6 +2298,34 @@ export const AppContent: React.FC = () => {
             }
           />
         </div>
+
+        {mobileSidebarOpen && (
+          <div className="fixed inset-0 z-50 lg:hidden flex">
+            <div
+              className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm"
+              onClick={() => setMobileSidebarOpen(false)}
+            />
+            <div className="relative flex-1 max-w-[260px] w-full bg-[#0D111D] h-full flex flex-col z-50 shadow-2xl">
+              <Sidebar
+                activeTab={activeTab}
+                setActiveTab={setActiveTab}
+                projectType={activeDomain}
+                isAdminUser={isAdmin}
+                onSwitchDomain={
+                  isAdmin
+                    ? () => {
+                        const next = activeDomain === 'ROAD' ? 'BUILDING' : 'ROAD';
+                        setProjectType(next);
+                        if (setAppDomain) setAppDomain(next);
+                        sessionStorage.setItem('CONSTRUCTION_PRO_DOMAIN_SESSION', next);
+                      }
+                    : undefined
+                }
+                onClose={() => setMobileSidebarOpen(false)}
+              />
+            </div>
+          </div>
+        )}
 
         <main className="flex-1 w-full min-w-0 p-6 overflow-y-auto max-h-[calc(100vh-56px)]">
           <div className="max-w-7xl mx-auto pb-12 w-full">
