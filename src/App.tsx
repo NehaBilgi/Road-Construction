@@ -932,6 +932,22 @@ export const BuildingMaterialCategoriesModule: React.FC = () => {
 // ==========================================
 // Road Material Categories & Rates Module
 // ==========================================
+export interface RoadMaterialCategory {
+  id: string;
+  name: string;
+  description: string;
+  standardRate: number;
+  unit: string;
+}
+
+const INITIAL_ROAD_CATEGORIES: RoadMaterialCategory[] = [
+  { id: 'RCAT-01', name: 'Bituminous Macadam (BM)', description: 'Dense bituminous macadam binder course', standardRate: 5000, unit: 'Brass' },
+  { id: 'RCAT-02', name: 'Wet Mix Macadam (WMM)', description: 'Crushed stone aggregate base/sub-base layer', standardRate: 4500, unit: 'Brass' },
+  { id: 'RCAT-03', name: 'Granular Sub-Base (GSB)', description: 'Coarse graded granular material sub-base', standardRate: 4200, unit: 'Brass' },
+  { id: 'RCAT-04', name: 'Dense Bituminous Macadam (DBM)', description: 'Structural layer in flexible pavements', standardRate: 5500, unit: 'Brass' },
+  { id: 'RCAT-05', name: 'Bituminous Concrete (BC)', description: 'High quality wearing course finish', standardRate: 6000, unit: 'Brass' }
+];
+
 export const RoadMaterialCategoriesModule: React.FC = () => {
   const { currentUser, userRole } = useERP() as any;
   const isAdmin = String(currentUser?.role || userRole || '').toLowerCase().includes('admin');
