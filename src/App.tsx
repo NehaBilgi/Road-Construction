@@ -13,6 +13,7 @@ import { DieselFuelManagementModule } from './components/diesel/DieselFuelManage
 import { SiteCostExpensesModule } from './components/costing/SiteCostExpensesModule';
 import { RoadYieldCalculatorModule } from './components/calculator/RoadYieldCalculatorModule';
 import { MachineryFleetModule } from './components/machinery/MachineryFleetModule';
+import { ProductsMasterModule } from './components/building/ProductsMasterModule';
 import StockTransactionsModule from './components/building/StockTransactionsModule';
 import { InstallAppButton } from './components/InstallAppButton';
 import { ThemeToggle } from './components/ThemeToggle';
@@ -726,6 +727,8 @@ export const AppContent: React.FC = () => {
             {(activeTab === 'road-sites' || activeTab === 'sites') && (
               <RoadSitesManagerModule projectType={activeDomain} onNavigateTab={setActiveTab} />
             )}
+            
+            {/* ROAD Construction Tabs */}
             {activeDomain === 'ROAD' && (
               <>
                 {activeTab === 'haulage-trips' && <MaterialHaulageTripsModule />}
@@ -738,11 +741,22 @@ export const AppContent: React.FC = () => {
                 {activeTab === 'users' && <UserManagementModule />}
               </>
             )}
+
+            {/* BUILDING Construction Tabs */}
             {activeDomain === 'BUILDING' && (
               <>
+                {activeTab === 'products' && <ProductsMasterModule />}
                 {activeTab === 'transactions' && <StockTransactionsModule />}
                 {activeTab === 'categories' && <RoadMaterialCategoriesModule />}
                 {activeTab === 'users' && <UserManagementModule />}
+
+                {/* Scaffolding for other pending analysis/config tabs */}
+                {activeTab === 'reports' && <GenericView title="Reports" subtitle="Building material consumption & stock audits" icon={FileText} />}
+                {activeTab === 'alerts' && <GenericView title="Alerts" subtitle="Low inventory & critical reorder notifications" icon={Bell} />}
+                {activeTab === 'reorder-suggestions' && <GenericView title="Reorder Suggestions" subtitle="Automated purchase order recommendations" icon={ShoppingCart} />}
+                {activeTab === 'equipment-register' && <GenericView title="Equipment Register" subtitle="Centering plates, props, and batching plant logs" icon={Cpu} />}
+                {activeTab === 'attendance-salary' && <GenericView title="Attendance & Salary" subtitle="Site labor muster roll and payroll disbursements" icon={CalendarCheck} />}
+                {activeTab === 'yearly-archive' && <GenericView title="Yearly Archive" subtitle="Annual building records & financial closings" icon={Archive} />}
               </>
             )}
           </div>
