@@ -1,6 +1,3 @@
-Here is the integrated, production-ready `App.tsx` file incorporating your complete enterprise multi-domain architecture, the **Structural RCC Design Suite** (`RCCCalculators`), and the exact `UserManagementModule` component.
-
-```tsx
 import React, { useState, useEffect, useMemo, Component, ErrorInfo, ReactNode } from 'react';
 import { ERPProvider, useERP } from './context/ERPContext';
 import { RoadERPProvider } from './context/RoadERPContext';
@@ -1201,5 +1198,3 @@ export const App: React.FC = () => {
 };
 
 export default App;
-
-```
