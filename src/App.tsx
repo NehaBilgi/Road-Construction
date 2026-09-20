@@ -24,7 +24,7 @@ import {
   LogOut, Milestone, Users, Package, ArrowLeftRight, FileText,
   Bell, CalendarCheck, Tag, Archive, Building2,
   X, Plus, Edit2, Trash2, Menu, ChevronDown, Check, CreditCard,
-  ChevronLeft, ChevronRight, FileSpreadsheet, Paperclip, Upload, RotateCcw, AlertTriangle
+  ChevronLeft, ChevronRight, FileSpreadsheet, Paperclip, Upload, RotateCcw, AlertTriangle, Printer
 } from 'lucide-react';
 
 // ==========================================
