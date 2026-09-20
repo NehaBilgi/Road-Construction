@@ -324,7 +324,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 };
 
 // ==========================================
-// Road Material Categories & Rates Module
+// Road Material Categories & Rates Module (Road Domain)
 // ==========================================
 export interface RoadMaterialCategory {
   id: string;
@@ -564,6 +564,281 @@ export const RoadMaterialCategoriesModule: React.FC = () => {
 };
 
 // ==========================================
+// Building Material Categories & Rates Module (Building Domain - Isolated)
+// ==========================================
+export interface BuildingCategoryItem {
+  id: string;
+  name: string;
+  classification: string;
+  description: string;
+  standardRate: number;
+  unit: string;
+}
+
+const STORAGE_BUILDING_CATS_KEY = 'CONSTRUCTION_PRO_BUILDING_CATEGORIES_ISOLATED_V1';
+
+const INITIAL_BUILDING_CATEGORIES: BuildingCategoryItem[] = [
+  { id: 'BCAT-01', name: 'Cement & Binding Bags', classification: 'Civil & Structural', description: 'OPC 53 Grade, PPC, and white cement bags', standardRate: 385, unit: 'Bags' },
+  { id: 'BCAT-02', name: 'Structural Steel (TMT Rebars)', classification: 'Civil & Structural', description: 'Fe550D TMT bars (8mm to 25mm) and GI binding wire', standardRate: 56000, unit: 'Ton' },
+  { id: 'BCAT-03', name: 'Aggregates & M-Sand', classification: 'Civil & Structural', description: 'Double-washed M-Sand, Plaster P-Sand, 20mm granite metal', standardRate: 1450, unit: 'Ton' },
+  { id: 'BCAT-04', name: 'Brick & Masonry Blocks', classification: 'Masonry & Walls', description: 'Autoclaved aerated concrete (AAC) blocks and red clay bricks', standardRate: 65, unit: 'Nos' },
+  { id: 'BCAT-05', name: 'Formwork & Shuttering', classification: 'Hardware & Centering', description: 'Film-faced plywood (12mm) and adjustable steel jack props', standardRate: 1850, unit: 'Nos' },
+  { id: 'BCAT-06', name: 'Plumbing & Drainage', classification: 'MEP Services', description: 'CPVC hot/cold pressure pipes and UPVC drainage fittings', standardRate: 420, unit: 'Nos' },
+  { id: 'BCAT-07', name: 'Electrical & Conduiting', classification: 'MEP Services', description: 'Rigid PVC electrical conduits (25mm) and FR copper wiring', standardRate: 85, unit: 'Nos' },
+  { id: 'BCAT-08', name: 'Waterproofing & Chemicals', classification: 'Finishing & Chemicals', description: 'Integral waterproofing compounds, tile adhesives, and grouts', standardRate: 650, unit: 'Bags' }
+];
+
+export const BuildingMaterialCategoriesModule: React.FC = () => {
+  const { currentUser, userRole } = useERP() as any;
+  const isAdmin = String(currentUser?.role || userRole || '').toLowerCase().includes('admin');
+
+  const [categories, setCategories] = useState<BuildingCategoryItem[]>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_BUILDING_CATS_KEY);
+      return saved ? JSON.parse(saved) : INITIAL_BUILDING_CATEGORIES;
+    } catch {
+      return INITIAL_BUILDING_CATEGORIES;
+    }
+  });
+
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+
+  const [name, setName] = useState('');
+  const [classification, setClassification] = useState('Civil & Structural');
+  const [description, setDescription] = useState('');
+  const [standardRate, setStandardRate] = useState<number | ''>(500);
+  const [unit, setUnit] = useState('Nos');
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_BUILDING_CATS_KEY, JSON.stringify(categories));
+  }, [categories]);
+
+  const handleOpenAdd = () => {
+    setEditingId(null);
+    setName('');
+    setClassification('Civil & Structural');
+    setDescription('');
+    setStandardRate(500);
+    setUnit('Nos');
+    setIsModalOpen(true);
+  };
+
+  const handleSave = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name.trim()) return;
+
+    const payload: BuildingCategoryItem = {
+      id: editingId || `BCAT-${Date.now().toString().slice(-4)}`,
+      name: name.trim(),
+      classification,
+      description: description.trim() || 'Building material specification',
+      standardRate: Number(standardRate) || 0,
+      unit
+    };
+
+    if (editingId) {
+      setCategories(categories.map((c) => (c.id === editingId ? payload : c)));
+    } else {
+      setCategories([payload, ...categories]);
+    }
+    setIsModalOpen(false);
+  };
+
+  const handleDelete = (id: string) => {
+    if (!isAdmin) return;
+    if (window.confirm('Delete this building category?')) {
+      setCategories(categories.filter((c) => c.id !== id));
+    }
+  };
+
+  return (
+    <div className="space-y-6 font-sans text-slate-100">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-black text-white tracking-tight flex items-center gap-2">
+            <Tag className="w-6 h-6 text-blue-400" />
+            <span>Building Material Categories & Rates</span>
+          </h1>
+          <p className="text-xs text-slate-400 mt-0.5">
+            Manage classification taxonomy, benchmark rates, and specifications for building sites[cite: 1, 11].
+          </p>
+        </div>
+
+        <button
+          onClick={handleOpenAdd}
+          className="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-black flex items-center gap-1.5 transition-all shadow-lg shadow-blue-600/30 cursor-pointer w-fit"
+        >
+          <Plus className="w-4 h-4" />
+          <span>+ Add Building Category</span>
+        </button>
+      </div>
+
+      <div className="bg-[#0B1220] border border-[#1E293B] rounded-3xl overflow-hidden shadow-2xl">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs border-collapse">
+            <thead>
+              <tr className="border-b border-[#1E293B] text-[10px] font-extrabold uppercase tracking-wider text-slate-400 bg-[#080d19]/80">
+                <th className="py-3.5 px-6">ID</th>
+                <th className="py-3.5 px-6">CATEGORY NAME</th>
+                <th className="py-3.5 px-6">CLASSIFICATION</th>
+                <th className="py-3.5 px-6">SPECIFICATION / DETAILS</th>
+                <th className="py-3.5 px-6 text-right">BENCHMARK RATE</th>
+                <th className="py-3.5 px-6 text-right">ACTIONS</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[#1E293B]/60 text-slate-200">
+              {categories.map((cat) => (
+                <tr key={cat.id} className="hover:bg-[#121c33]/50 transition-colors">
+                  <td className="py-4 px-6 font-mono font-bold text-slate-400">{cat.id}</td>
+                  <td className="py-4 px-6 font-bold text-white text-xs whitespace-nowrap">{cat.name}</td>
+                  <td className="py-4 px-6 whitespace-nowrap">
+                    <span className="px-2.5 py-1 rounded-full text-[10px] font-semibold bg-slate-800 text-blue-300 border border-slate-700">
+                      {cat.classification}
+                    </span>
+                  </td>
+                  <td className="py-4 px-6 text-slate-300 min-w-[200px]">{cat.description}</td>
+                  <td className="py-4 px-6 text-right font-mono font-black text-emerald-400 text-sm whitespace-nowrap">
+                    ₹{cat.standardRate.toLocaleString('en-IN')}{' '}
+                    <span className="text-[10px] text-slate-400 font-normal">/ {cat.unit}</span>
+                  </td>
+                  <td className="py-4 px-6 text-right">
+                    <div className="flex items-center justify-end gap-2">
+                      <button
+                        onClick={() => {
+                          setEditingId(cat.id);
+                          setName(cat.name);
+                          setClassification(cat.classification);
+                          setDescription(cat.description);
+                          setStandardRate(cat.standardRate);
+                          setUnit(cat.unit);
+                          setIsModalOpen(true);
+                        }}
+                        className="p-1.5 rounded-lg text-slate-400 hover:text-blue-400 hover:bg-blue-950/40 cursor-pointer"
+                      >
+                        <Edit2 className="w-3.5 h-3.5" />
+                      </button>
+                      {isAdmin && (
+                        <button
+                          onClick={() => handleDelete(cat.id)}
+                          className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-950/40 cursor-pointer"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {isModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-[#121927] border border-[#1E293B] rounded-3xl w-full max-w-md p-6 shadow-2xl space-y-4 text-slate-100 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-[#1E293B] pb-3">
+              <h3 className="text-base font-bold text-white">
+                {editingId ? 'Edit Building Category' : 'Add Building Category'}
+              </h3>
+              <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-white p-1 cursor-pointer">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSave} className="space-y-3.5 text-xs">
+              <div>
+                <label className="block text-slate-300 font-bold mb-1">Category Name *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Cement & Binding Bags"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="w-full px-3.5 py-2.5 bg-[#162032] border border-[#1E293B] rounded-xl text-white outline-none focus:border-blue-500 font-medium"
+                />
+              </div>
+
+              <div>
+                <label className="block text-slate-300 font-bold mb-1">Classification *</label>
+                <select
+                  value={classification}
+                  onChange={(e) => setClassification(e.target.value)}
+                  className="w-full px-3.5 py-2.5 bg-[#162032] border border-[#1E293B] rounded-xl text-white outline-none focus:border-blue-500 cursor-pointer"
+                >
+                  <option value="Civil & Structural">Civil & Structural (Steel, Cement, Sand)</option>
+                  <option value="Masonry & Walls">Masonry & Walls (AAC Blocks, Bricks)</option>
+                  <option value="MEP Services">MEP Services (Plumbing, Conduits)</option>
+                  <option value="Hardware & Centering">Hardware & Centering (Props, Formwork)</option>
+                  <option value="Finishing & Chemicals">Finishing & Chemicals (Waterproofing, Tiles)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-slate-300 font-bold mb-1">Description / Specification</label>
+                <textarea
+                  rows={2}
+                  placeholder="Standard grades and item inclusions..."
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  className="w-full px-3.5 py-2.5 bg-[#162032] border border-[#1E293B] rounded-xl text-white outline-none resize-none"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-slate-300 font-bold mb-1">Benchmark Rate (₹) *</label>
+                  <input
+                    type="number"
+                    min="0"
+                    required
+                    value={standardRate}
+                    onChange={(e) => setStandardRate(e.target.value === '' ? '' : Number(e.target.value))}
+                    className="w-full px-3.5 py-2.5 bg-[#162032] border border-[#1E293B] rounded-xl text-emerald-400 font-mono font-bold outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-300 font-bold mb-1">Unit *</label>
+                  <select
+                    value={unit}
+                    onChange={(e) => setUnit(e.target.value)}
+                    className="w-full px-3.5 py-2.5 bg-[#162032] border border-[#1E293B] rounded-xl text-white outline-none cursor-pointer"
+                  >
+                    <option value="Nos">Nos</option>
+                    <option value="Bags">Bags</option>
+                    <option value="Ton">Ton</option>
+                    <option value="Kg">Kg</option>
+                    <option value="Litre">Litre</option>
+                    <option value="Meter">Meter</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-3 border-t border-[#1E293B]">
+                <button
+                  type="button"
+                  onClick={() => setIsModalOpen(false)}
+                  className="px-4 py-2 rounded-xl text-slate-400 hover:text-white cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-black shadow-lg shadow-blue-600/30 cursor-pointer"
+                >
+                  {editingId ? 'Update Category' : 'Save Category'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ==========================================
 // Main Application Router
 // ==========================================
 export const AppContent: React.FC = () => {
@@ -671,7 +946,7 @@ export const AppContent: React.FC = () => {
 
       <div className="flex flex-1 relative h-[calc(100vh-56px)] overflow-hidden">
         
-        {/* Desktop Sidebar (Switch button strictly visible ONLY to Admins) */}
+        {/* Desktop Sidebar */}
         <div className="hidden lg:block h-full shrink-0 w-64">
           <Sidebar
             activeTab={activeTab}
@@ -742,12 +1017,12 @@ export const AppContent: React.FC = () => {
               </>
             )}
 
-            {/* BUILDING Construction Tabs */}
+            {/* BUILDING Construction Tabs (Isolated) */}
             {activeDomain === 'BUILDING' && (
               <>
                 {activeTab === 'products' && <ProductsMasterModule />}
                 {activeTab === 'transactions' && <StockTransactionsModule />}
-                {activeTab === 'categories' && <RoadMaterialCategoriesModule />}
+                {activeTab === 'categories' && <BuildingMaterialCategoriesModule />}
                 {activeTab === 'users' && <UserManagementModule />}
 
                 {/* Scaffolding for other pending analysis/config tabs */}
