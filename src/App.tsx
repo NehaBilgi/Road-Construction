@@ -386,7 +386,7 @@ export const BuildingMaterialCategoriesModule: React.FC = () => {
       alert('Only Admin has permission to delete categories.');
       return;
     }
-    if (window.confirm(`Are you sure you want to delete category "${catName}"?`)) {
+    if (window.confirm(`Are you sure you want to delete "${catName}"?`)) {
       setCategories((prev) => prev.filter((c) => c.id !== id));
     }
   };
@@ -420,7 +420,6 @@ export const BuildingMaterialCategoriesModule: React.FC = () => {
 
   return (
     <div className="space-y-6 font-sans text-slate-100">
-      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-black text-white tracking-tight flex items-center gap-2.5">
@@ -441,7 +440,6 @@ export const BuildingMaterialCategoriesModule: React.FC = () => {
         </button>
       </div>
 
-      {/* Categories Cards List */}
       <div className="bg-[#0B1220] border border-[#1E293B] rounded-3xl p-5 shadow-2xl space-y-3">
         {categories.length === 0 ? (
           <div className="py-12 text-center text-slate-500 text-xs">
@@ -468,7 +466,6 @@ export const BuildingMaterialCategoriesModule: React.FC = () => {
                   <span className="text-slate-400 text-xs font-normal">/ {c.unit}</span>
                 </span>
 
-                {/* Edit & Delete Actions */}
                 <div className="flex items-center gap-1.5">
                   <button
                     onClick={() => handleOpenEdit(c)}
@@ -494,7 +491,6 @@ export const BuildingMaterialCategoriesModule: React.FC = () => {
         )}
       </div>
 
-      {/* Add / Edit Category Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-in fade-in">
           <div className="bg-[#0b1120] border border-[#1e293b] rounded-2xl w-full max-w-md p-6 shadow-2xl space-y-4 text-slate-100">
@@ -587,12 +583,281 @@ export const BuildingMaterialCategoriesModule: React.FC = () => {
 };
 
 // ==========================================
-// Road Material Categories Module
+// Road Material Categories & Rates Module (Add, Edit, Delete)
 // ==========================================
+export interface RoadMaterialCategory {
+  id: string;
+  name: string;
+  description: string;
+  standardRate: number;
+  unit: string;
+}
+
+const INITIAL_ROAD_CATEGORIES: RoadMaterialCategory[] = [
+  { id: 'RCAT-01', name: 'Bituminous Macadam (BM)', description: 'Dense bituminous macadam binder course', standardRate: 5000, unit: 'Brass' },
+  { id: 'RCAT-02', name: 'Wet Mix Macadam (WMM)', description: 'Crushed stone aggregate base/sub-base layer', standardRate: 4500, unit: 'Brass' },
+  { id: 'RCAT-03', name: 'Granular Sub-Base (GSB)', description: 'Coarse graded granular material sub-base', standardRate: 4200, unit: 'Brass' },
+  { id: 'RCAT-04', name: 'Dense Bituminous Macadam (DBM)', description: 'Structural layer in flexible pavements', standardRate: 5500, unit: 'Brass' },
+  { id: 'RCAT-05', name: 'Bituminous Concrete (BC)', description: 'High quality wearing course finish', standardRate: 6000, unit: 'Brass' }
+];
+
 export const RoadMaterialCategoriesModule: React.FC = () => {
+  const { currentUser, userRole } = useERP() as any;
+  const isAdmin = String(currentUser?.role || userRole || '').toLowerCase().includes('admin');
+
+  const [categories, setCategories] = useState<RoadMaterialCategory[]>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_ROAD_CATS_KEY);
+      return saved ? JSON.parse(saved) : INITIAL_ROAD_CATEGORIES;
+    } catch {
+      return INITIAL_ROAD_CATEGORIES;
+    }
+  });
+
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
+  const [standardRate, setStandardRate] = useState<number | ''>(5000);
+  const [unit, setUnit] = useState('Brass');
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_ROAD_CATS_KEY, JSON.stringify(categories));
+  }, [categories]);
+
+  const handleOpenAdd = () => {
+    setEditingId(null);
+    setName('');
+    setDescription('');
+    setStandardRate(5000);
+    setUnit('Brass');
+    setIsModalOpen(true);
+  };
+
+  const handleOpenEdit = (item: RoadMaterialCategory) => {
+    setEditingId(item.id);
+    setName(item.name);
+    setDescription(item.description || '');
+    setStandardRate(item.standardRate);
+    setUnit(item.unit);
+    setIsModalOpen(true);
+  };
+
+  const handleDelete = (id: string, catName: string) => {
+    if (!isAdmin) {
+      alert('Only Admin has permission to delete categories.');
+      return;
+    }
+    if (window.confirm(`Are you sure you want to delete "${catName}"?`)) {
+      setCategories((prev) => prev.filter((c) => c.id !== id));
+    }
+  };
+
+  const handleSave = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name.trim()) return;
+
+    const rateNum = Number(standardRate) || 0;
+
+    if (editingId) {
+      setCategories((prev) =>
+        prev.map((c) =>
+          c.id === editingId
+            ? { ...c, name: name.trim(), description: description.trim(), standardRate: rateNum, unit }
+            : c
+        )
+      );
+    } else {
+      const newCategory: RoadMaterialCategory = {
+        id: `RCAT-${Date.now().toString().slice(-4)}`,
+        name: name.trim(),
+        description: description.trim() || 'Road construction material specification',
+        standardRate: rateNum,
+        unit
+      };
+      setCategories((prev) => [...prev, newCategory]);
+    }
+
+    setIsModalOpen(false);
+  };
+
   return (
     <div className="space-y-6 font-sans text-slate-100">
-      <h1 className="text-2xl font-black text-white">Road Material Categories & Rates</h1>
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-black text-white tracking-tight flex items-center gap-2.5">
+            <Tag className="w-6 h-6 text-amber-400" />
+            <span>Road Material Categories & Rates</span>
+          </h1>
+          <p className="text-xs text-slate-400 mt-0.5">
+            Manage standard road aggregate and mix names, specifications, and benchmark rates[cite: 5].
+          </p>
+        </div>
+
+        <button
+          onClick={handleOpenAdd}
+          className="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-black flex items-center gap-1.5 transition-all shadow-lg shadow-blue-600/30 cursor-pointer w-fit"
+        >
+          <Plus className="w-4 h-4" />
+          <span>+ Add Material Category</span>
+        </button>
+      </div>
+
+      {/* Categories Cards List */}
+      <div className="bg-[#0B1220] border border-[#1E293B] rounded-3xl p-5 shadow-2xl space-y-3">
+        {categories.length === 0 ? (
+          <div className="py-12 text-center text-slate-500 text-xs">
+            No road material categories added yet. Click "+ Add Material Category" to get started.
+          </div>
+        ) : (
+          categories.map((c) => (
+            <div
+              key={c.id}
+              className="p-4 rounded-2xl bg-[#080d19] border border-[#1E293B] hover:border-slate-700 flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-all"
+            >
+              <div className="space-y-1">
+                <div className="flex items-center gap-3">
+                  <span className="text-xs sm:text-sm font-bold text-white tracking-wide">
+                    {c.name}
+                  </span>
+                  <span className="font-mono text-[10px] text-slate-500">
+                    ({c.id})
+                  </span>
+                </div>
+                {c.description && (
+                  <p className="text-[11px] text-slate-400">{c.description}</p>
+                )}
+              </div>
+
+              <div className="flex items-center justify-between sm:justify-end gap-4 border-t sm:border-t-0 border-[#1e293b]/60 pt-2 sm:pt-0">
+                <span className="font-mono font-bold text-emerald-400 text-sm">
+                  ₹{Number(c.standardRate || 0).toLocaleString('en-IN')}{' '}
+                  <span className="text-slate-400 text-xs font-normal">/ {c.unit}</span>
+                </span>
+
+                <div className="flex items-center gap-1.5">
+                  <button
+                    onClick={() => handleOpenEdit(c)}
+                    className="p-2 rounded-xl bg-[#121927] hover:bg-blue-600/20 text-slate-400 hover:text-blue-400 border border-[#1E293B] hover:border-blue-500/40 transition-colors cursor-pointer"
+                    title="Edit Rate & Name"
+                  >
+                    <Edit2 className="w-3.5 h-3.5" />
+                  </button>
+
+                  {isAdmin && (
+                    <button
+                      onClick={() => handleDelete(c.id, c.name)}
+                      className="p-2 rounded-xl bg-[#121927] hover:bg-rose-600/20 text-slate-400 hover:text-rose-400 border border-[#1E293B] hover:border-rose-500/40 transition-colors cursor-pointer"
+                      title="Delete Category"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* Modal */}
+      {isModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-[#0b1120] border border-[#1e293b] rounded-2xl w-full max-w-md p-6 shadow-2xl space-y-4 text-slate-100">
+            <div className="flex items-center justify-between border-b border-[#1e293b] pb-3">
+              <h2 className="text-lg font-bold text-white tracking-tight">
+                {editingId ? 'Edit Road Category' : 'Add Road Material Category'}
+              </h2>
+              <button
+                onClick={() => setIsModalOpen(false)}
+                className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSave} className="space-y-4 text-xs">
+              <div>
+                <label className="block text-slate-300 font-semibold mb-1.5">
+                  Material Name <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Bituminous Macadam (BM)"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="w-full px-3.5 py-2.5 bg-[#131b2e] border border-[#1e293b] rounded-xl text-white outline-none focus:border-blue-500 placeholder-slate-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-slate-300 font-semibold mb-1.5">
+                  Description / Specification
+                </label>
+                <textarea
+                  rows={2}
+                  placeholder="e.g. Binder layer mix specification..."
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  className="w-full px-3.5 py-2.5 bg-[#131b2e] border border-[#1e293b] rounded-xl text-white outline-none focus:border-blue-500 placeholder-slate-500 resize-none"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1.5">
+                    Benchmark Rate (₹) <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    required
+                    placeholder="0"
+                    value={standardRate}
+                    onChange={(e) => setStandardRate(e.target.value === '' ? '' : Number(e.target.value))}
+                    className="w-full px-3.5 py-2.5 bg-[#131b2e] border border-[#1e293b] rounded-xl text-emerald-400 font-mono font-bold outline-none focus:border-blue-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1.5">
+                    Unit <span className="text-rose-500">*</span>
+                  </label>
+                  <select
+                    value={unit}
+                    onChange={(e) => setUnit(e.target.value)}
+                    className="w-full px-3.5 py-2.5 bg-[#131b2e] border border-[#1e293b] rounded-xl text-white outline-none focus:border-blue-500 cursor-pointer"
+                  >
+                    <option value="Brass">Brass</option>
+                    <option value="Ton">Ton</option>
+                    <option value="Cu.M">Cu.M</option>
+                    <option value="Load">Load</option>
+                    <option value="Nos">Nos</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex justify-end items-center gap-2 pt-3 border-t border-[#1e293b]">
+                <button
+                  type="button"
+                  onClick={() => setIsModalOpen(false)}
+                  className="px-4 py-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold transition-all shadow-lg shadow-blue-600/30 cursor-pointer"
+                >
+                  {editingId ? 'Update Category' : 'Save Category'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -967,6 +1232,7 @@ export const AppContent: React.FC = () => {
               <RoadSitesManagerModule projectType={activeDomain} onNavigateTab={setActiveTab} />
             )}
 
+            {/* ROAD Construction Tabs */}
             {activeDomain === 'ROAD' && (
               <>
                 {activeTab === 'haulage-trips' && <MaterialHaulageTripsModule />}
