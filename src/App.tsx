@@ -291,7 +291,7 @@ export const BuildingAlertsModule: React.FC<{ onNavigateTab: (tabId: string) => 
         </div>
         <button
           onClick={() => onNavigateTab('products')}
-          className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold"
+          className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold cursor-pointer"
         >
           View Products
         </button>
@@ -311,7 +311,7 @@ export const BuildingAlertsModule: React.FC<{ onNavigateTab: (tabId: string) => 
               </div>
               <button
                 onClick={() => onNavigateTab('products')}
-                className="px-3 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-bold"
+                className="px-3 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-bold cursor-pointer"
               >
                 Restock
               </button>
@@ -324,38 +324,264 @@ export const BuildingAlertsModule: React.FC<{ onNavigateTab: (tabId: string) => 
 };
 
 // ==========================================
-// Building Material Categories Module
+// Building Material Categories Module (Add, Edit, Delete)
 // ==========================================
+export interface BuildingCategoryItem {
+  id: string;
+  name: string;
+  standardRate: number;
+  unit: string;
+}
+
 export const BuildingMaterialCategoriesModule: React.FC = () => {
-  const [categories] = useState(() => {
+  const { currentUser, userRole } = useERP() as any;
+  const isAdmin = String(currentUser?.role || userRole || '').toLowerCase().includes('admin');
+
+  const [categories, setCategories] = useState<BuildingCategoryItem[]>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_BUILDING_CATS_KEY);
       return saved ? JSON.parse(saved) : [
         { id: 'BCAT-01', name: 'Cement & Binding Bags', standardRate: 385, unit: 'Bags' },
         { id: 'BCAT-02', name: 'Structural Steel (TMT Rebars)', standardRate: 56000, unit: 'Ton' },
-        { id: 'BCAT-03', name: 'Aggregates & M-Sand', standardRate: 1450, unit: 'Ton' }
+        { id: 'BCAT-03', name: 'Aggregates & M-Sand', standardRate: 1450, unit: 'Ton' },
+        { id: 'BCAT-04', name: 'Brick & Masonry Blocks', standardRate: 65, unit: 'Nos' },
+        { id: 'BCAT-05', name: 'Formwork & Shuttering', standardRate: 1850, unit: 'Nos' },
+        { id: 'BCAT-06', name: 'Plumbing & Drainage', standardRate: 420, unit: 'Nos' },
+        { id: 'BCAT-07', name: 'Electrical & Conduiting', standardRate: 85, unit: 'Nos' },
+        { id: 'BCAT-08', name: 'Waterproofing & Chemicals', standardRate: 650, unit: 'Bags' }
       ];
     } catch {
       return [];
     }
   });
 
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [name, setName] = useState('');
+  const [standardRate, setStandardRate] = useState<number | ''>(100);
+  const [unit, setUnit] = useState('Nos');
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_BUILDING_CATS_KEY, JSON.stringify(categories));
+  }, [categories]);
+
+  const handleOpenAdd = () => {
+    setEditingId(null);
+    setName('');
+    setStandardRate(100);
+    setUnit('Nos');
+    setIsModalOpen(true);
+  };
+
+  const handleOpenEdit = (item: BuildingCategoryItem) => {
+    setEditingId(item.id);
+    setName(item.name);
+    setStandardRate(item.standardRate);
+    setUnit(item.unit);
+    setIsModalOpen(true);
+  };
+
+  const handleDelete = (id: string, catName: string) => {
+    if (!isAdmin) {
+      alert('Only Admin has permission to delete categories.');
+      return;
+    }
+    if (window.confirm(`Are you sure you want to delete category "${catName}"?`)) {
+      setCategories((prev) => prev.filter((c) => c.id !== id));
+    }
+  };
+
+  const handleSave = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name.trim()) return;
+
+    const rateNum = Number(standardRate) || 0;
+
+    if (editingId) {
+      setCategories((prev) =>
+        prev.map((c) =>
+          c.id === editingId
+            ? { ...c, name: name.trim(), standardRate: rateNum, unit }
+            : c
+        )
+      );
+    } else {
+      const newCategory: BuildingCategoryItem = {
+        id: `BCAT-${Date.now().toString().slice(-4)}`,
+        name: name.trim(),
+        standardRate: rateNum,
+        unit
+      };
+      setCategories((prev) => [...prev, newCategory]);
+    }
+
+    setIsModalOpen(false);
+  };
+
   return (
     <div className="space-y-6 font-sans text-slate-100">
-      <h1 className="text-2xl font-black text-white flex items-center gap-2">
-        <Tag className="w-6 h-6 text-blue-400" />
-        <span>Building Material Categories & Rates</span>
-      </h1>
-      <div className="bg-[#0B1220] border border-[#1E293B] rounded-3xl overflow-hidden shadow-2xl p-4">
-        <div className="space-y-2">
-          {categories.map((c: any) => (
-            <div key={c.id} className="p-3 bg-[#121927] rounded-xl flex justify-between text-xs">
-              <span className="font-bold text-white">{c.name}</span>
-              <span className="font-mono text-emerald-400">₹{c.standardRate} / {c.unit}</span>
-            </div>
-          ))}
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-black text-white tracking-tight flex items-center gap-2.5">
+            <Tag className="w-6 h-6 text-blue-400" />
+            <span>Building Material Categories & Rates</span>
+          </h1>
+          <p className="text-xs text-slate-400 mt-0.5">
+            Manage category benchmark costs, measurement units, and catalog types[cite: 1, 11].
+          </p>
         </div>
+
+        <button
+          onClick={handleOpenAdd}
+          className="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-black flex items-center gap-1.5 transition-all shadow-lg shadow-blue-600/30 cursor-pointer w-fit"
+        >
+          <Plus className="w-4 h-4" />
+          <span>+ Add Material Category</span>
+        </button>
       </div>
+
+      {/* Categories Cards List */}
+      <div className="bg-[#0B1220] border border-[#1E293B] rounded-3xl p-5 shadow-2xl space-y-3">
+        {categories.length === 0 ? (
+          <div className="py-12 text-center text-slate-500 text-xs">
+            No categories added yet. Click "+ Add Material Category" to get started.
+          </div>
+        ) : (
+          categories.map((c) => (
+            <div
+              key={c.id}
+              className="p-4 rounded-2xl bg-[#080d19] border border-[#1E293B] hover:border-slate-700 flex items-center justify-between transition-all group"
+            >
+              <div className="flex items-center gap-3">
+                <span className="text-xs sm:text-sm font-bold text-white tracking-wide">
+                  {c.name}
+                </span>
+                <span className="font-mono text-[10px] text-slate-500">
+                  ({c.id})
+                </span>
+              </div>
+
+              <div className="flex items-center gap-4">
+                <span className="font-mono font-bold text-emerald-400 text-sm">
+                  ₹{Number(c.standardRate || 0).toLocaleString('en-IN')}{' '}
+                  <span className="text-slate-400 text-xs font-normal">/ {c.unit}</span>
+                </span>
+
+                {/* Edit & Delete Actions */}
+                <div className="flex items-center gap-1.5">
+                  <button
+                    onClick={() => handleOpenEdit(c)}
+                    className="p-2 rounded-xl bg-[#121927] hover:bg-blue-600/20 text-slate-400 hover:text-blue-400 border border-[#1E293B] hover:border-blue-500/40 transition-colors cursor-pointer"
+                    title="Edit Rate & Name"
+                  >
+                    <Edit2 className="w-3.5 h-3.5" />
+                  </button>
+
+                  {isAdmin && (
+                    <button
+                      onClick={() => handleDelete(c.id, c.name)}
+                      className="p-2 rounded-xl bg-[#121927] hover:bg-rose-600/20 text-slate-400 hover:text-rose-400 border border-[#1E293B] hover:border-rose-500/40 transition-colors cursor-pointer"
+                      title="Delete Category"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* Add / Edit Category Modal */}
+      {isModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-[#0b1120] border border-[#1e293b] rounded-2xl w-full max-w-md p-6 shadow-2xl space-y-4 text-slate-100">
+            <div className="flex items-center justify-between border-b border-[#1e293b] pb-3">
+              <h2 className="text-lg font-bold text-white tracking-tight">
+                {editingId ? 'Edit Category & Rate' : 'Add Material Category'}
+              </h2>
+              <button
+                onClick={() => setIsModalOpen(false)}
+                className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSave} className="space-y-4 text-xs">
+              <div>
+                <label className="block text-slate-300 font-semibold mb-1.5">
+                  Category Name <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Ready-Mix Concrete M25"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="w-full px-3.5 py-2.5 bg-[#131b2e] border border-[#1e293b] rounded-xl text-white outline-none focus:border-blue-500 placeholder-slate-500"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1.5">
+                    Benchmark Rate (₹) <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    required
+                    placeholder="0"
+                    value={standardRate}
+                    onChange={(e) => setStandardRate(e.target.value === '' ? '' : Number(e.target.value))}
+                    className="w-full px-3.5 py-2.5 bg-[#131b2e] border border-[#1e293b] rounded-xl text-emerald-400 font-mono font-bold outline-none focus:border-blue-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1.5">
+                    Unit <span className="text-rose-500">*</span>
+                  </label>
+                  <select
+                    value={unit}
+                    onChange={(e) => setUnit(e.target.value)}
+                    className="w-full px-3.5 py-2.5 bg-[#131b2e] border border-[#1e293b] rounded-xl text-white outline-none focus:border-blue-500 cursor-pointer"
+                  >
+                    <option value="Nos">Nos</option>
+                    <option value="Bags">Bags</option>
+                    <option value="Ton">Ton</option>
+                    <option value="Kg">Kg</option>
+                    <option value="Litre">Litre</option>
+                    <option value="Brass">Brass</option>
+                    <option value="Meter">Meter</option>
+                    <option value="Cu.M">Cu.M</option>
+                    <option value="Sq.Ft">Sq.Ft</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex justify-end items-center gap-2 pt-3 border-t border-[#1e293b]">
+                <button
+                  type="button"
+                  onClick={() => setIsModalOpen(false)}
+                  className="px-4 py-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold transition-all shadow-lg shadow-blue-600/30 cursor-pointer"
+                >
+                  {editingId ? 'Update Rate' : 'Save Category'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -471,7 +697,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const { currentUser, logout } = useERP() as any;
   const isBuilding = projectType === 'BUILDING';
 
-  // Dynamic alert count from live local storage
   const [liveAlertCount, setLiveAlertCount] = useState<number>(0);
 
   useEffect(() => {
@@ -506,7 +731,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { id: 'transactions', label: 'Transactions', icon: ArrowLeftRight }
   ];
 
-  // Reorder Suggestions and Equipment Register removed from here
   const buildingAnalysisItems = [
     { id: 'reports', label: 'Reports', icon: FileText },
     { 
@@ -685,7 +909,6 @@ export const AppContent: React.FC = () => {
     );
   }
 
-  // Safe check before site selection
   if (!hasSelectedSite || !selectedSiteId || safeSiteSheets.length === 0) {
     return (
       <SiteSelectionPage
