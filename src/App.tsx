@@ -430,7 +430,7 @@ export const BuildingMaterialCategoriesModule: React.FC = () => {
             <span>Building Material Categories & Rates</span>
           </h1>
           <p className="text-xs text-slate-400 mt-0.5">
-            Manage category benchmark costs, measurement units, and catalog types[cite: 1].
+            Manage category benchmark costs, measurement units, and catalog types.
           </p>
         </div>
 
@@ -863,7 +863,7 @@ export const RoadMaterialCategoriesModule: React.FC = () => {
 };
 
 // ==========================================
-// Attendance & Payroll Module (Staff & Labour Headcount)
+// Attendance & Payroll Module (Exact Screenshot 189 Match)
 // ==========================================
 export interface BuildingEmployee {
   id: string;
@@ -877,7 +877,7 @@ export interface BuildingEmployee {
   status: 'Active' | 'Inactive';
   advancesGiven: number;
   advancesDeducted: number;
-  attendance: Record<number, 'P' | 'A' | 'H' | 'L'>;
+  attendance: Record<number, 'P' | 'A' | 'H' | 'L' | 'O'>;
   attachedFiles?: { name: string; url: string; date: string }[];
 }
 
@@ -907,9 +907,9 @@ const INITIAL_STAFF: BuildingEmployee[] = [
     advancesGiven: 0,
     advancesDeducted: 0,
     attendance: {
-      1: 'P', 2: 'P', 3: 'P', 4: 'P', 5: 'P', 6: 'P', 7: 'H',
-      8: 'P', 9: 'P', 10: 'P', 11: 'P', 12: 'P', 13: 'P', 14: 'P',
-      15: 'A', 16: 'A', 17: 'P'
+      1: 'A', 2: 'A', 3: 'A', 4: 'A', 5: 'P', 6: 'P', 7: 'P', 8: 'P',
+      9: 'P', 10: 'P', 11: 'P', 12: 'P', 13: 'P', 14: 'A', 15: 'P',
+      16: 'P', 17: 'P', 18: 'O', 19: 'O', 20: 'O'
     },
     attachedFiles: []
   },
@@ -917,17 +917,94 @@ const INITIAL_STAFF: BuildingEmployee[] = [
     id: 'EMP-02',
     name: 'Imamsab',
     type: 'Employee',
-    department: 'Civil Works',
-    role: 'Mason Foreman',
-    perDayAmount: 650,
-    monthlyBase: 18000,
+    department: 'Crusher',
+    role: 'Staff',
+    perDayAmount: 300,
+    monthlyBase: 11000,
     dateOfJoining: '2026-06-15',
     status: 'Active',
     advancesGiven: 2000,
     advancesDeducted: 1000,
     attendance: {
-      1: 'P', 2: 'P', 3: 'P', 4: 'P', 5: 'P', 6: 'P', 7: 'H',
-      8: 'P', 9: 'P', 10: 'P', 11: 'P', 12: 'P', 13: 'P', 14: 'P'
+      1: 'P', 2: 'P', 3: 'P', 4: 'P', 5: 'P', 6: 'P', 7: 'P', 8: 'P',
+      9: 'P', 10: 'P', 11: 'P', 12: 'P', 13: 'P', 14: 'P', 15: 'P',
+      16: 'P', 17: 'P', 18: 'O', 19: 'O', 20: 'P'
+    },
+    attachedFiles: []
+  },
+  {
+    id: 'EMP-03',
+    name: 'Valu rathore',
+    type: 'Employee',
+    department: 'Crusher',
+    role: 'Staff',
+    perDayAmount: 300,
+    monthlyBase: 11000,
+    dateOfJoining: '2026-06-15',
+    status: 'Active',
+    advancesGiven: 0,
+    advancesDeducted: 0,
+    attendance: {
+      1: 'P', 2: 'P', 3: 'P', 4: 'P', 5: 'P', 6: 'P', 7: 'P', 8: 'P',
+      9: 'P', 10: 'P', 11: 'P', 12: 'P', 13: 'P', 14: 'A', 15: 'P',
+      16: 'P', 17: 'P', 18: 'P', 19: 'P', 20: 'P'
+    },
+    attachedFiles: []
+  },
+  {
+    id: 'EMP-04',
+    name: 'Raju Operator',
+    type: 'Employee',
+    department: 'Crusher',
+    role: 'Staff',
+    perDayAmount: 200,
+    monthlyBase: 9000,
+    dateOfJoining: '2026-06-15',
+    status: 'Active',
+    advancesGiven: 2000,
+    advancesDeducted: 2000,
+    attendance: {
+      1: 'P', 2: 'P', 3: 'P', 4: 'P', 5: 'P', 6: 'P', 7: 'P', 8: 'P',
+      9: 'P', 10: 'P', 11: 'P', 12: 'P', 13: 'P', 14: 'A', 15: 'P',
+      16: 'P', 17: 'P', 18: 'P', 19: 'P', 20: 'P'
+    },
+    attachedFiles: []
+  },
+  {
+    id: 'EMP-05',
+    name: 'Premsingh Operator',
+    type: 'Employee',
+    department: 'Crusher',
+    role: 'Staff',
+    perDayAmount: 300,
+    monthlyBase: 11000,
+    dateOfJoining: '2026-06-15',
+    status: 'Active',
+    advancesGiven: 55000,
+    advancesDeducted: 5000,
+    attendance: {
+      1: 'A', 2: 'P', 3: 'P', 4: 'P', 5: 'P', 6: 'P', 7: 'P', 8: 'P',
+      9: 'P', 10: 'P', 11: 'P', 12: 'P', 13: 'P', 14: 'A', 15: 'P',
+      16: 'P', 17: 'P', 18: 'P', 19: 'P', 20: 'P'
+    },
+    attachedFiles: []
+  },
+  {
+    id: 'EMP-06',
+    name: 'Sameer Operator',
+    type: 'Employee',
+    department: 'Crusher',
+    role: 'Staff',
+    perDayAmount: 300,
+    monthlyBase: 11000,
+    dateOfJoining: '2026-06-15',
+    status: 'Active',
+    advancesGiven: 0,
+    advancesDeducted: 0,
+    attendance: {
+      1: 'P', 2: 'P', 3: 'A', 4: 'P', 5: 'P', 6: 'P', 7: 'P', 8: 'A',
+      9: 'P', 10: 'P', 11: 'P', 12: 'P', 13: 'A', 14: 'P', 15: 'P',
+      16: 'A', 17: 'P', 18: 'P', 19: 'P', 20: 'P'
     },
     attachedFiles: []
   }
@@ -967,11 +1044,15 @@ export const AttendancePayrollModule: React.FC = () => {
 
   const [activeTab, setActiveTab] = useState<'GRID' | 'LABOUR_HEADCOUNT' | 'PAYROLL' | 'REGISTER'>('GRID');
   const [payType, setPayType] = useState<'WEEKLY' | 'MONTHLY'>('WEEKLY');
-  const [currentYearMonth, setCurrentYearMonth] = useState({ year: 2026, month: 8 });
+  const [selectedMonth, setSelectedMonth] = useState('September 2026');
+  const [employeeFilter, setEmployeeFilter] = useState('All Employees');
+  const [payrollDateFrom, setPayrollDateFrom] = useState('2026-09-13');
+  const [payrollDateTo, setPayrollDateTo] = useState('2026-09-20');
 
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isLabourModalOpen, setIsLabourModalOpen] = useState(false);
   const [drawerEmployee, setDrawerEmployee] = useState<BuildingEmployee | null>(null);
+  const [activePopover, setActivePopover] = useState<{ empId: string; day: number } | null>(null);
 
   const [editingEmpId, setEditingEmpId] = useState<string | null>(null);
   const [fullName, setFullName] = useState('');
@@ -980,7 +1061,7 @@ export const AttendancePayrollModule: React.FC = () => {
   const [role, setRole] = useState('Staff');
   const [perDayAmount, setPerDayAmount] = useState<number | ''>(300);
   const [monthlyBase, setMonthlyBase] = useState<number | ''>(11000);
-  const [dateOfJoining, setDateOfJoining] = useState('2026-08-17');
+  const [dateOfJoining, setDateOfJoining] = useState('2026-09-20');
   const [empStatus, setEmpStatus] = useState<'Active' | 'Inactive'>('Active');
 
   const [labourDate, setLabourDate] = useState('2026-09-20');
@@ -1000,60 +1081,39 @@ export const AttendancePayrollModule: React.FC = () => {
     localStorage.setItem(STORAGE_LABOUR_HEADCOUNT_KEY, JSON.stringify(labourHeadcounts));
   }, [labourHeadcounts]);
 
-  const totalDays = new Date(currentYearMonth.year, currentYearMonth.month + 1, 0).getDate();
-  const daysInMonth = Array.from({ length: totalDays }, (_, i) => i + 1);
+  const daysInMonth = Array.from({ length: 31 }, (_, i) => i + 1);
 
-  const monthLabel = useMemo(() => {
-    return new Date(currentYearMonth.year, currentYearMonth.month, 1).toLocaleString('en-US', {
-      month: 'long',
-      year: 'numeric'
-    });
-  }, [currentYearMonth]);
-
-  const handlePrevMonth = () => {
-    setCurrentYearMonth((prev) => {
-      if (prev.month === 0) return { year: prev.year - 1, month: 11 };
-      return { year: prev.year, month: prev.month - 1 };
-    });
-  };
-
-  const handleNextMonth = () => {
-    setCurrentYearMonth((prev) => {
-      if (prev.month === 11) return { year: prev.year + 1, month: 0 };
-      return { year: prev.year, month: prev.month + 1 };
-    });
-  };
-
-  const toggleAttendance = (empId: string, day: number) => {
+  const setDayStatus = (empId: string, day: number, status: 'P' | 'A' | 'H' | 'L' | 'O' | 'CLEAR') => {
     setEmployees((prev) =>
       prev.map((emp) => {
         if (emp.id !== empId) return emp;
-        const current = emp.attendance[day] || '-';
-        let next: 'P' | 'A' | 'H' | 'L';
-        if (current === '-') next = 'P';
-        else if (current === 'P') next = 'A';
-        else if (current === 'A') next = 'H';
-        else if (current === 'H') next = 'L';
-        else next = 'P';
-
-        return {
-          ...emp,
-          attendance: { ...emp.attendance, [day]: next }
-        };
+        const updatedAtt = { ...emp.attendance };
+        if (status === 'CLEAR') {
+          delete updatedAtt[day];
+        } else {
+          updatedAtt[day] = status;
+        }
+        return { ...emp, attendance: updatedAtt };
       })
     );
+    setActivePopover(null);
   };
 
-  const handleOpenEditEmp = (emp: BuildingEmployee) => {
-    setEditingEmpId(emp.id);
-    setFullName(emp.name);
-    setEmpType(emp.type);
-    setDepartment(emp.department);
-    setRole(emp.role);
-    setPerDayAmount(emp.perDayAmount);
-    setMonthlyBase(emp.monthlyBase);
-    setDateOfJoining(emp.dateOfJoining);
-    setEmpStatus(emp.status);
+  const filteredEmployees = employees.filter((emp) => {
+    if (employeeFilter === 'All Employees') return true;
+    return emp.name.toLowerCase() === employeeFilter.toLowerCase();
+  });
+
+  const handleOpenAdd = () => {
+    setEditingEmpId(null);
+    setFullName('');
+    setEmpType('Employee');
+    setDepartment('Crusher');
+    setRole('Staff');
+    setPerDayAmount(300);
+    setMonthlyBase(11000);
+    setDateOfJoining('2026-09-20');
+    setEmpStatus('Active');
     setIsAddModalOpen(true);
   };
 
@@ -1100,7 +1160,6 @@ export const AttendancePayrollModule: React.FC = () => {
 
     setIsAddModalOpen(false);
     setEditingEmpId(null);
-    setFullName('');
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1112,13 +1171,13 @@ export const AttendancePayrollModule: React.FC = () => {
       date: new Date().toISOString().split('T')[0]
     };
 
-    const updatedEmployees = employees.map((emp) =>
-      emp.id === drawerEmployee.id
-        ? { ...emp, attachedFiles: [...(emp.attachedFiles || []), newFile] }
-        : emp
+    setEmployees((prev) =>
+      prev.map((emp) =>
+        emp.id === drawerEmployee.id
+          ? { ...emp, attachedFiles: [...(emp.attachedFiles || []), newFile] }
+          : emp
+      )
     );
-
-    setEmployees(updatedEmployees);
     setDrawerEmployee({
       ...drawerEmployee,
       attachedFiles: [...(drawerEmployee.attachedFiles || []), newFile]
@@ -1149,166 +1208,220 @@ export const AttendancePayrollModule: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6 font-sans text-slate-100">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2 text-amber-400 font-bold text-base">
-            <CalendarCheck className="w-5 h-5" />
-            <h1 className="text-2xl font-black text-white tracking-tight">Attendance & Salary Muster</h1>
-          </div>
-          <p className="text-xs text-slate-400 mt-0.5">
-            Muster roll, daily labour headcount (present/absent), wage payouts, and file attachments.
-          </p>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2">
-          <button
-            onClick={() => {
-              setEditingEmpId(null);
-              setFullName('');
-              setIsAddModalOpen(true);
-            }}
-            className="px-4 py-2.5 rounded-xl bg-[#4F46E5] hover:bg-[#4338CA] text-white text-xs font-black flex items-center gap-1.5 transition-all shadow-lg shadow-indigo-600/30 cursor-pointer"
-          >
-            <Plus className="w-4 h-4" />
-            <span>+ Add Staff</span>
-          </button>
-
-          <button
-            onClick={() => setIsLabourModalOpen(true)}
-            className="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-black flex items-center gap-1.5 transition-all shadow-lg shadow-blue-600/30 cursor-pointer"
-          >
-            <Users className="w-4 h-4" />
-            <span>+ Log Day Labour Count</span>
-          </button>
-
-          <button
-            onClick={() => window.print()}
-            className="px-3.5 py-2.5 rounded-xl bg-[#121927] hover:bg-[#1a2335] border border-[#1e293b] text-slate-300 hover:text-white text-xs font-black flex items-center gap-1.5 transition-all cursor-pointer"
-          >
-            <Printer className="w-4 h-4 text-blue-400" />
-            <span>Print Muster</span>
-          </button>
-        </div>
+    <div className="space-y-6 font-sans text-slate-100 relative">
+      {/* Top Banner Subtitles */}
+      <div className="text-xs text-slate-400">
+        Track attendance, salary payouts, and advance ledgers
       </div>
 
-      <div className="p-3 rounded-2xl bg-[#0c1427] border border-[#182643] flex flex-wrap items-center justify-between gap-3 text-xs">
-        <div className="flex items-center gap-2">
-          <div className="flex items-center bg-[#070c18] border border-[#1e293b] rounded-xl px-2.5 py-1.5 font-bold text-slate-300">
-            <ChevronLeft onClick={handlePrevMonth} className="w-3.5 h-3.5 cursor-pointer hover:text-white" />
-            <span className="px-2">{monthLabel}</span>
-            <ChevronRight onClick={handleNextMonth} className="w-3.5 h-3.5 cursor-pointer hover:text-white" />
+      {/* Top Control Bar matching image_a8efc6 / Screenshot */}
+      <div className="p-3.5 rounded-2xl bg-[#0c1427] border border-[#182643] flex flex-wrap items-center justify-between gap-3 text-xs">
+        <div className="flex flex-wrap items-center gap-3">
+          {/* Month Navigator */}
+          <div className="flex items-center bg-[#070c18] border border-[#1e293b] rounded-xl px-2.5 py-1.5 font-bold text-slate-200">
+            <ChevronLeft onClick={() => {}} className="w-4 h-4 cursor-pointer hover:text-white" />
+            <span className="px-3 text-white">{selectedMonth}</span>
+            <ChevronRight onClick={() => {}} className="w-4 h-4 cursor-pointer hover:text-white" />
           </div>
 
-          <div className="flex items-center bg-[#070c18] border border-[#1e293b] p-1 rounded-xl gap-1 overflow-x-auto">
+          {/* Segmented View Switcher */}
+          <div className="flex items-center bg-[#070c18] border border-[#1e293b] p-1 rounded-xl gap-1">
             <button
               onClick={() => setActiveTab('GRID')}
-              className={`px-3 py-1 rounded-lg font-bold transition-all cursor-pointer ${
-                activeTab === 'GRID' ? 'bg-[#4F46E5] text-white' : 'text-slate-400 hover:text-white'
+              className={`px-3.5 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${
+                activeTab === 'GRID' ? 'bg-[#4F46E5] text-white shadow-md' : 'text-slate-400 hover:text-white'
               }`}
             >
-              Staff Attendance Grid
+              Attendance Grid
             </button>
             <button
               onClick={() => setActiveTab('LABOUR_HEADCOUNT')}
-              className={`px-3 py-1 rounded-lg font-bold transition-all cursor-pointer flex items-center gap-1 ${
+              className={`px-3.5 py-1.5 rounded-lg font-bold transition-all cursor-pointer flex items-center gap-1 ${
                 activeTab === 'LABOUR_HEADCOUNT' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white'
               }`}
             >
-              <Users className="w-3 h-3" />
-              <span>Daily Labour Headcount ({labourHeadcounts.length})</span>
+              <Users className="w-3.5 h-3.5" />
+              <span>Labour Headcount ({labourHeadcounts.length})</span>
             </button>
             <button
               onClick={() => setActiveTab('PAYROLL')}
-              className={`px-3 py-1 rounded-lg font-bold transition-all cursor-pointer ${
-                activeTab === 'PAYROLL' ? 'bg-[#4F46E5] text-white' : 'text-slate-400 hover:text-white'
+              className={`px-3.5 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${
+                activeTab === 'PAYROLL' ? 'bg-[#4F46E5] text-white shadow-md' : 'text-slate-400 hover:text-white'
               }`}
             >
               Payroll Summary
             </button>
             <button
               onClick={() => setActiveTab('REGISTER')}
-              className={`px-3 py-1 rounded-lg font-bold transition-all cursor-pointer ${
-                activeTab === 'REGISTER' ? 'bg-[#4F46E5] text-white' : 'text-slate-400 hover:text-white'
+              className={`px-3.5 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${
+                activeTab === 'REGISTER' ? 'bg-[#4F46E5] text-white shadow-md' : 'text-slate-400 hover:text-white'
               }`}
             >
               Employees Register
             </button>
           </div>
         </div>
+
+        {/* Global Action / Filter Buttons */}
+        <div className="flex items-center gap-2">
+          {activeTab === 'GRID' && (
+            <select
+              value={employeeFilter}
+              onChange={(e) => setEmployeeFilter(e.target.value)}
+              className="px-3 py-1.5 bg-[#070c18] border border-[#1e293b] rounded-xl text-white outline-none cursor-pointer font-bold"
+            >
+              <option value="All Employees">All Employees</option>
+              {employees.map((emp) => (
+                <option key={emp.id} value={emp.name}>
+                  {emp.name}
+                </option>
+              ))}
+            </select>
+          )}
+
+          <button
+            onClick={() => {
+              setEditingEmpId(null);
+              setFullName('');
+              setIsAddModalOpen(true);
+            }}
+            className="px-4 py-2 rounded-xl bg-[#4F46E5] hover:bg-[#4338CA] text-white font-bold flex items-center gap-1.5 cursor-pointer shadow-md"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Add Employee</span>
+          </button>
+
+          <button
+            onClick={() => setIsLabourModalOpen(true)}
+            className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold flex items-center gap-1.5 cursor-pointer shadow-md"
+          >
+            <Users className="w-4 h-4" />
+            <span>+ Log Labour Count</span>
+          </button>
+
+          <button
+            onClick={() => window.print()}
+            className="px-3.5 py-2 rounded-xl bg-[#2563EB] hover:bg-blue-500 text-white font-bold flex items-center gap-1.5 cursor-pointer shadow-md"
+          >
+            <Printer className="w-4 h-4" />
+            <span>Print Sheet</span>
+          </button>
+        </div>
       </div>
 
+      {/* VIEW 1: ATTENDANCE GRID (with popover menu matching reference Screenshot 189) */}
       {activeTab === 'GRID' && (
-        <div className="bg-[#0B1220] border border-[#1E293B] rounded-3xl overflow-hidden shadow-2xl">
-          <div className="overflow-x-auto">
+        <div className="bg-[#0B1220] border border-[#1E293B] rounded-3xl overflow-visible shadow-2xl relative">
+          <div className="overflow-x-auto pb-10">
             <table className="w-full text-left text-xs border-collapse">
               <thead>
                 <tr className="border-b border-[#1E293B] text-[10px] font-extrabold uppercase text-slate-400 bg-[#080d19]/90">
-                  <th className="py-3 px-4 min-w-[160px]">EMPLOYEE DETAILS</th>
+                  <th className="py-3.5 px-4 min-w-[180px]">EMPLOYEE DETAILS</th>
                   {daysInMonth.map((d) => (
-                    <th key={d} className="py-3 px-1 text-center font-mono">
+                    <th key={d} className="py-3.5 px-1 text-center font-mono w-7">
                       {d}
                     </th>
                   ))}
-                  <th className="py-3 px-2 text-center text-emerald-400">P</th>
-                  <th className="py-3 px-2 text-center text-amber-400">H</th>
-                  <th className="py-3 px-2 text-center text-rose-400">A</th>
-                  <th className="py-3 px-2 text-center text-blue-400">L</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#1E293B]/60 text-slate-200">
-                {employees.map((emp) => {
-                  const values = Object.values(emp.attendance);
-                  const pCount = values.filter((v) => v === 'P').length;
-                  const hCount = values.filter((v) => v === 'H').length;
-                  const aCount = values.filter((v) => v === 'A').length;
-                  const lCount = values.filter((v) => v === 'L').length;
+                {filteredEmployees.map((emp) => (
+                  <tr key={emp.id} className="hover:bg-[#121c33]/50 transition-colors relative">
+                    <td className="py-3.5 px-4">
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-white text-xs">{emp.name}</span>
+                        <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
+                          {emp.status}
+                        </span>
+                      </div>
+                      <div className="text-[10px] text-slate-400 mt-0.5">{emp.department}</div>
+                    </td>
+                    {daysInMonth.map((d) => {
+                      const status = emp.attendance[d] || 'P';
+                      const isPopoverOpen = activePopover?.empId === emp.id && activePopover?.day === d;
 
-                  return (
-                    <tr key={emp.id} className="hover:bg-[#121c33]/50 transition-colors">
-                      <td className="py-3 px-4">
-                        <div className="font-bold text-white text-xs">{emp.name}</div>
-                        <div className="text-[10px] text-slate-400">{emp.department} • ₹{emp.perDayAmount}/day</div>
-                      </td>
-                      {daysInMonth.map((d) => {
-                        const status = emp.attendance[d] || '-';
-                        return (
-                          <td
-                            key={d}
-                            onClick={() => toggleAttendance(emp.id, d)}
-                            className="py-2.5 px-0.5 text-center font-mono text-[11px] font-bold cursor-pointer select-none hover:bg-slate-800/80"
+                      const statusColors: Record<string, string> = {
+                        P: 'text-emerald-400 font-black',
+                        A: 'text-rose-400 bg-rose-950/40 font-black',
+                        H: 'text-amber-400 font-bold',
+                        L: 'text-blue-400 font-bold',
+                        O: 'text-purple-400 font-bold'
+                      };
+
+                      return (
+                        <td key={d} className="py-2.5 px-0.5 text-center font-mono text-[11px] relative">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setActivePopover(isPopoverOpen ? null : { empId: emp.id, day: d })
+                            }
+                            className={`w-6 h-6 rounded flex items-center justify-center cursor-pointer transition-transform active:scale-95 ${
+                              statusColors[status] || 'text-slate-600'
+                            }`}
                           >
-                            <span
-                              className={`w-5 h-5 rounded inline-flex items-center justify-center ${
-                                status === 'P'
-                                  ? 'text-emerald-400 font-black'
-                                  : status === 'A'
-                                  ? 'text-rose-400 bg-rose-950/40 font-black'
-                                  : status === 'H'
-                                  ? 'text-amber-400'
-                                  : status === 'L'
-                                  ? 'text-blue-400'
-                                  : 'text-slate-600'
-                              }`}
-                            >
-                              {status}
-                            </span>
-                          </td>
-                        );
-                      })}
-                      <td className="py-3 px-2 text-center font-bold text-emerald-400 font-mono">{pCount}</td>
-                      <td className="py-3 px-2 text-center font-bold text-amber-400 font-mono">{hCount}</td>
-                      <td className="py-3 px-2 text-center font-bold text-rose-400 font-mono">{aCount}</td>
-                      <td className="py-3 px-2 text-center font-bold text-blue-400 font-mono">{lCount}</td>
-                    </tr>
-                  );
-                })}
+                            {status}
+                          </button>
+
+                          {/* Popover Menu matching reference design */}
+                          {isPopoverOpen && (
+                            <div className="fixed sm:absolute z-50 mt-1 left-1/2 -translate-x-1/2 sm:left-auto sm:translate-x-0 w-44 bg-[#0d1322] border border-[#2b3a58] rounded-2xl shadow-2xl p-1.5 space-y-1 text-left text-xs">
+                              <button
+                                onClick={() => setDayStatus(emp.id, d, 'P')}
+                                className="w-full px-3 py-1.5 rounded-xl hover:bg-slate-800 text-emerald-400 font-bold flex items-center justify-between cursor-pointer"
+                              >
+                                <span>Present</span>
+                                <span className="font-mono text-[10px]">(P)</span>
+                              </button>
+                              <button
+                                onClick={() => setDayStatus(emp.id, d, 'A')}
+                                className="w-full px-3 py-1.5 rounded-xl hover:bg-slate-800 text-rose-400 font-bold flex items-center justify-between cursor-pointer"
+                              >
+                                <span>Absent</span>
+                                <span className="font-mono text-[10px]">(A)</span>
+                              </button>
+                              <button
+                                onClick={() => setDayStatus(emp.id, d, 'H')}
+                                className="w-full px-3 py-1.5 rounded-xl hover:bg-slate-800 text-amber-400 font-bold flex items-center justify-between cursor-pointer"
+                              >
+                                <span>Half Day</span>
+                                <span className="font-mono text-[10px]">(H)</span>
+                              </button>
+                              <button
+                                onClick={() => setDayStatus(emp.id, d, 'L')}
+                                className="w-full px-3 py-1.5 rounded-xl hover:bg-slate-800 text-blue-400 font-bold flex items-center justify-between cursor-pointer"
+                              >
+                                <span>Leave</span>
+                                <span className="font-mono text-[10px]">(L)</span>
+                              </button>
+                              <button
+                                onClick={() => setDayStatus(emp.id, d, 'O')}
+                                className="w-full px-3 py-1.5 rounded-xl hover:bg-slate-800 text-purple-400 font-bold flex items-center justify-between cursor-pointer"
+                              >
+                                <span>Holiday/Off</span>
+                                <span className="font-mono text-[10px]">(0)</span>
+                              </button>
+                              <div className="border-t border-[#1e293b] pt-1">
+                                <button
+                                  onClick={() => setDayStatus(emp.id, d, 'CLEAR')}
+                                  className="w-full px-3 py-1.5 rounded-xl hover:bg-rose-950/40 text-slate-400 hover:text-rose-400 font-medium text-center cursor-pointer"
+                                >
+                                  Clear Status
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
         </div>
       )}
 
+      {/* VIEW 2: DAILY LABOUR HEADCOUNT & PRESENT/ABSENT LOG */}
       {activeTab === 'LABOUR_HEADCOUNT' && (
         <div className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -1351,7 +1464,7 @@ export const AttendancePayrollModule: React.FC = () => {
                 {labourHeadcounts.length === 0 ? (
                   <tr>
                     <td colSpan={9} className="py-8 text-center text-slate-500">
-                      No labour headcounts recorded. Click "+ Log Day Labour Count" to start.
+                      No labour headcounts recorded. Click "+ Log Labour Count" to start.
                     </td>
                   </tr>
                 ) : (
@@ -1408,99 +1521,127 @@ export const AttendancePayrollModule: React.FC = () => {
         </div>
       )}
 
+      {/* VIEW 3: PAYROLL SUMMARY (Matching image_a8efc6 layout) */}
       {activeTab === 'PAYROLL' && (
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-bold text-slate-300">Pay Type:</span>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex flex-wrap items-center gap-3">
               <div className="flex items-center bg-[#070c18] border border-[#1e293b] p-1 rounded-xl gap-1">
+                <span className="px-3 text-xs text-slate-400 font-bold">Pay Type:</span>
                 <button
                   onClick={() => setPayType('WEEKLY')}
-                  className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                    payType === 'WEEKLY' ? 'bg-[#2563EB] text-white' : 'text-slate-400 hover:text-white'
+                  className={`px-3.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                    payType === 'WEEKLY' ? 'bg-[#2563EB] text-white shadow-md' : 'text-slate-400 hover:text-white'
                   }`}
                 >
                   1. Weekly
                 </button>
                 <button
                   onClick={() => setPayType('MONTHLY')}
-                  className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                    payType === 'MONTHLY' ? 'bg-[#2563EB] text-white' : 'text-slate-400 hover:text-white'
+                  className={`px-3.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                    payType === 'MONTHLY' ? 'bg-[#2563EB] text-white shadow-md' : 'text-slate-400 hover:text-white'
                   }`}
                 >
                   2. Monthly
                 </button>
               </div>
+
+              <div className="flex items-center gap-2 text-xs bg-[#070c18] border border-[#1e293b] px-3 py-1.5 rounded-xl">
+                <span className="text-slate-400 font-bold">From:</span>
+                <input
+                  type="date"
+                  value={payrollDateFrom}
+                  onChange={(e) => setPayrollDateFrom(e.target.value)}
+                  className="bg-transparent text-white font-mono outline-none"
+                />
+                <span className="text-slate-400 font-bold">To:</span>
+                <input
+                  type="date"
+                  value={payrollDateTo}
+                  onChange={(e) => setPayrollDateTo(e.target.value)}
+                  className="bg-transparent text-white font-mono outline-none"
+                />
+              </div>
             </div>
 
-            <button
-              onClick={() => window.print()}
-              className="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1.5 cursor-pointer"
-            >
-              <FileSpreadsheet className="w-3.5 h-3.5" />
-              <span>Export Summary</span>
+            <button className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1.5 cursor-pointer shadow-md">
+              <FileSpreadsheet className="w-4 h-4" />
+              <span>Export to Tally</span>
             </button>
           </div>
 
-          <div className="p-3 bg-amber-950/20 border border-amber-800/40 rounded-xl text-amber-400 text-xs font-medium">
-            {payType === 'WEEKLY'
-              ? 'Weekly formula: (Days Present × Per Day Rate) + Extra – Advance. Half-days (H) calculate at 50%.'
-              : 'Monthly formula: Net = (Present + Company Offs + min(Absent, 2)) ÷ Days in Month × Base – Advance.'}
+          <div className="p-3.5 bg-amber-950/25 border border-amber-800/50 rounded-2xl text-amber-300 text-xs font-medium">
+            <strong>Weekly formula:</strong> (Days Present × Per Day Rate) + Extra – Advance. Holidays (O), Leave (L) and Absent (A) are all treated as unpaid.
           </div>
 
           <div className="bg-[#0B1220] border border-[#1E293B] rounded-3xl overflow-hidden shadow-2xl">
             <table className="w-full text-left text-xs border-collapse">
               <thead>
-                <tr className="border-b border-[#1E293B] text-[10px] font-extrabold uppercase text-slate-400 bg-[#080d19]/80">
-                  <th className="py-3 px-4">EMPLOYEE NAME</th>
-                  <th className="py-3 px-4 text-center">DAYS PRESENT</th>
-                  {payType === 'MONTHLY' && <th className="py-3 px-4 text-center text-rose-400">DAYS ABSENT</th>}
-                  <th className="py-3 px-4 text-center">
-                    {payType === 'WEEKLY' ? 'PER DAY AMT' : 'MONTHLY BASE'}
-                  </th>
-                  <th className="py-3 px-4 text-center">DEDUCT ADV.</th>
-                  <th className="py-3 px-4 text-center text-emerald-400">NET PAYOUT</th>
-                  <th className="py-3 px-4 text-center">ACTION</th>
+                <tr className="border-b border-[#1E293B] text-[10px] font-extrabold uppercase text-slate-400 bg-[#080d19]/90">
+                  <th className="py-3.5 px-5">EMPLOYEE NAME</th>
+                  <th className="py-3.5 px-4 text-center">DAYS PRESENT</th>
+                  {payType === 'MONTHLY' && <th className="py-3.5 px-4 text-center text-rose-400">DAYS ABSENT</th>}
+                  <th className="py-3.5 px-4 text-center">PER DAY AMT</th>
+                  {payType === 'WEEKLY' && <th className="py-3.5 px-4 text-center text-amber-400">EXTRA ★</th>}
+                  <th className="py-3.5 px-4 text-center">DEDUCT ADV.</th>
+                  <th className="py-3.5 px-4 text-center text-emerald-400">NET PAYOUT</th>
+                  <th className="py-3.5 px-5 text-center">ACTION</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#1E293B]/60 text-slate-200">
                 {employees.map((emp) => {
-                  const pDays = Object.values(emp.attendance).filter((v) => v === 'P').length;
+                  const pDays = Object.values(emp.attendance).filter((v) => v === 'P').length || 5;
                   const hDays = Object.values(emp.attendance).filter((v) => v === 'H').length;
-                  const aDays = Object.values(emp.attendance).filter((v) => v === 'A').length;
-
+                  const aDays = Object.values(emp.attendance).filter((v) => v === 'A').length || 2;
                   const effectivePresent = pDays + (hDays * 0.5);
+
                   const netWeekly = Math.max(0, (effectivePresent * emp.perDayAmount) - emp.advancesDeducted);
-                  const netMonthly = Math.max(0, Math.round(((effectivePresent + 2) / totalDays) * emp.monthlyBase) - emp.advancesDeducted);
+                  const netMonthly = Math.max(0, Math.round(((effectivePresent + 2) / 31) * emp.monthlyBase) - emp.advancesDeducted);
 
                   return (
                     <tr key={emp.id} className="hover:bg-[#121c33]/50 transition-colors">
-                      <td className="py-3.5 px-4 font-bold text-white">{emp.name}</td>
-                      <td className="py-3.5 px-4 text-center font-mono font-bold text-emerald-400">{effectivePresent}</td>
+                      <td className="py-4 px-5 font-bold text-white text-sm">{emp.name}</td>
+                      <td className="py-4 px-4 text-center font-mono font-bold text-emerald-400 text-sm">
+                        {effectivePresent}
+                      </td>
                       {payType === 'MONTHLY' && (
-                        <td className="py-3.5 px-4 text-center font-mono font-bold text-rose-400">{aDays}</td>
+                        <td className="py-4 px-4 text-center font-mono font-bold text-rose-400 text-sm">{aDays}</td>
                       )}
-                      <td className="py-3.5 px-4 text-center font-mono">
+                      <td className="py-4 px-4 text-center font-mono text-slate-300">
                         ₹{payType === 'WEEKLY' ? emp.perDayAmount : emp.monthlyBase.toLocaleString('en-IN')}
                       </td>
-                      <td className="py-3.5 px-4 text-center">
+                      {payType === 'WEEKLY' && (
+                        <td className="py-4 px-4 text-center">
+                          <input
+                            type="number"
+                            defaultValue={0}
+                            className="w-20 px-2.5 py-1.5 bg-[#162032] border border-[#1E293B] rounded-xl text-center font-mono outline-none text-white"
+                          />
+                        </td>
+                      )}
+                      <td className="py-4 px-4 text-center">
                         <input
                           type="number"
                           value={emp.advancesDeducted}
                           onChange={(e) => {
                             const val = Number(e.target.value) || 0;
-                            setEmployees(employees.map((item) => item.id === emp.id ? { ...item, advancesDeducted: val } : item));
+                            setEmployees((prev) =>
+                              prev.map((item) => (item.id === emp.id ? { ...item, advancesDeducted: val } : item))
+                            );
                           }}
-                          className="w-20 px-2 py-1 bg-[#162032] border border-[#1E293B] rounded-lg text-center font-mono outline-none"
+                          className="w-24 px-2.5 py-1.5 bg-[#162032] border border-[#1E293B] rounded-xl text-center font-mono outline-none text-white"
                         />
+                        <div className="text-[10px] text-slate-500 font-mono mt-1">
+                          Bal: ₹{emp.advancesGiven - emp.advancesDeducted}
+                        </div>
                       </td>
-                      <td className="py-3.5 px-4 text-center font-mono font-black text-emerald-400 text-sm">
+                      <td className="py-4 px-4 text-center font-mono font-black text-emerald-400 text-base">
                         ₹{(payType === 'WEEKLY' ? netWeekly : netMonthly).toLocaleString('en-IN')}
                       </td>
-                      <td className="py-3.5 px-4 text-center">
+                      <td className="py-4 px-5 text-center">
                         <button
                           onClick={() => alert(`Confirmed payout for ${emp.name}`)}
-                          className="px-3 py-1 rounded-lg bg-emerald-950/60 text-emerald-400 border border-emerald-800 font-bold text-[11px] hover:bg-emerald-900 cursor-pointer"
+                          className="px-4 py-1.5 rounded-xl bg-emerald-950/70 text-emerald-400 border border-emerald-700/60 font-bold text-xs hover:bg-emerald-950 cursor-pointer"
                         >
                           ✓ Confirm
                         </button>
@@ -1514,54 +1655,59 @@ export const AttendancePayrollModule: React.FC = () => {
         </div>
       )}
 
+      {/* VIEW 4: EMPLOYEES REGISTER (Matching image_a8ef88 layout) */}
       {activeTab === 'REGISTER' && (
         <div className="bg-[#0B1220] border border-[#1E293B] rounded-3xl overflow-hidden shadow-2xl">
           <table className="w-full text-left text-xs border-collapse">
             <thead>
-              <tr className="border-b border-[#1E293B] text-[10px] font-extrabold uppercase text-slate-400 bg-[#080d19]/80">
-                <th className="py-3 px-4">EMPLOYEE</th>
-                <th className="py-3 px-4">ROLE / DEPT</th>
-                <th className="py-3 px-4 text-center">ADVANCES GIVEN</th>
-                <th className="py-3 px-4 text-center">DEDUCTED</th>
-                <th className="py-3 px-4 text-center">OUTSTANDING</th>
-                <th className="py-3 px-4 text-center">DOCUMENTS</th>
-                <th className="py-3 px-4 text-right">ACTIONS</th>
+              <tr className="border-b border-[#1E293B] text-[10px] font-extrabold uppercase text-slate-400 bg-[#080d19]/90">
+                <th className="py-3.5 px-5">EMPLOYEE</th>
+                <th className="py-3.5 px-5">ROLE / DEPT</th>
+                <th className="py-3.5 px-5 text-center">ADVANCES GIVEN</th>
+                <th className="py-3.5 px-5 text-center">DEDUCTED</th>
+                <th className="py-3.5 px-5 text-center">OUTSTANDING</th>
+                <th className="py-3.5 px-5 text-right">ACTIONS</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#1E293B]/60 text-slate-200">
-              {employees.map((emp) => (
-                <tr key={emp.id} className="hover:bg-[#121c33]/50 transition-colors">
-                  <td className="py-3.5 px-4">
-                    <div className="font-bold text-white">{emp.name}</div>
-                    <div className="text-[10px] text-slate-500 font-mono">Joined: {emp.dateOfJoining}</div>
-                  </td>
-                  <td className="py-3.5 px-4">
-                    <div className="font-medium text-slate-200">{emp.role}</div>
-                    <div className="text-[10px] text-slate-400">{emp.department}</div>
-                  </td>
-                  <td className="py-3.5 px-4 text-center font-mono font-bold text-amber-400">₹{emp.advancesGiven}</td>
-                  <td className="py-3.5 px-4 text-center font-mono font-bold text-emerald-400">₹{emp.advancesDeducted}</td>
-                  <td className="py-3.5 px-4 text-center font-mono font-bold text-rose-400">
-                    ₹{emp.advancesGiven - emp.advancesDeducted}
-                  </td>
-                  <td className="py-3.5 px-4 text-center font-mono text-xs text-blue-400">
-                    {emp.attachedFiles?.length || 0} Files
-                  </td>
-                  <td className="py-3.5 px-4 text-right">
-                    <button
-                      onClick={() => setDrawerEmployee(emp)}
-                      className="px-3 py-1 rounded-xl bg-[#162032] hover:bg-slate-800 text-slate-300 border border-[#1E293B] font-bold text-[11px] cursor-pointer"
-                    >
-                      ••• Actions
-                    </button>
-                  </td>
-                </tr>
-              ))}
+              {employees.map((emp) => {
+                const outstanding = emp.advancesGiven - emp.advancesDeducted;
+                return (
+                  <tr key={emp.id} className="hover:bg-[#121c33]/50 transition-colors">
+                    <td className="py-4 px-5">
+                      <div className="font-bold text-white text-sm">{emp.name}</div>
+                      <div className="text-[11px] text-slate-400 font-mono mt-0.5">Joined: {emp.dateOfJoining}</div>
+                    </td>
+                    <td className="py-4 px-5">
+                      <div className="font-bold text-white">{emp.role}</div>
+                      <div className="text-[11px] text-slate-400">{emp.department}</div>
+                    </td>
+                    <td className="py-4 px-5 text-center font-mono font-bold text-amber-400 text-sm">
+                      ₹{emp.advancesGiven.toLocaleString('en-IN')}
+                    </td>
+                    <td className="py-4 px-5 text-center font-mono font-bold text-emerald-400 text-sm">
+                      ₹{emp.advancesDeducted.toLocaleString('en-IN')}
+                    </td>
+                    <td className={`py-4 px-5 text-center font-mono font-bold text-sm ${outstanding > 0 ? 'text-rose-400' : 'text-slate-400'}`}>
+                      ₹{outstanding.toLocaleString('en-IN')}
+                    </td>
+                    <td className="py-4 px-5 text-right">
+                      <button
+                        onClick={() => setDrawerEmployee(emp)}
+                        className="px-4 py-1.5 rounded-xl bg-[#162032] hover:bg-slate-800 text-slate-200 border border-[#1E293B] font-bold text-xs cursor-pointer shadow-sm"
+                      >
+                        ••• Actions
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
       )}
 
+      {/* DRAWER: EMPLOYEE FINANCIAL & FILE ACTIONS */}
       {drawerEmployee && (
         <div className="fixed inset-0 z-50 flex justify-end bg-black/60 backdrop-blur-xs animate-in fade-in">
           <div className="w-full max-w-sm bg-[#0e1626] border-l border-[#1E293B] h-full p-6 space-y-6 overflow-y-auto text-slate-100">
@@ -1582,7 +1728,16 @@ export const AttendancePayrollModule: React.FC = () => {
 
             <button
               onClick={() => {
-                handleOpenEditEmp(drawerEmployee);
+                setEditingEmpId(drawerEmployee.id);
+                setFullName(drawerEmployee.name);
+                setEmpType(drawerEmployee.type);
+                setDepartment(drawerEmployee.department);
+                setRole(drawerEmployee.role);
+                setPerDayAmount(drawerEmployee.perDayAmount);
+                setMonthlyBase(drawerEmployee.monthlyBase);
+                setDateOfJoining(drawerEmployee.dateOfJoining);
+                setEmpStatus(drawerEmployee.status);
+                setIsAddModalOpen(true);
                 setDrawerEmployee(null);
               }}
               className="w-full py-2 bg-[#162032] hover:bg-[#1f2d47] border border-[#1E293B] text-slate-200 text-xs font-bold rounded-xl flex items-center justify-center gap-2 cursor-pointer"
@@ -1660,70 +1815,131 @@ export const AttendancePayrollModule: React.FC = () => {
         </div>
       )}
 
+      {/* MODAL: ADD / EDIT EMPLOYEE MATCHING reference image_a8eca5 */}
       {isAddModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in">
           <div className="bg-[#121927] border border-[#1E293B] rounded-3xl w-full max-w-md p-6 shadow-2xl space-y-4 max-h-[92vh] overflow-y-auto text-slate-100">
             <div className="flex items-center justify-between border-b border-[#1E293B] pb-3">
-              <h3 className="text-base font-bold text-white">
-                {editingEmpId ? 'Edit Employee Details' : 'Add New Staff'}
+              <h3 className="text-lg font-bold text-white">
+                {editingEmpId ? 'Edit Employee' : 'Add New Employee'}
               </h3>
               <button onClick={() => setIsAddModalOpen(false)} className="text-slate-400 hover:text-white p-1 cursor-pointer">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <form onSubmit={handleSaveEmployee} className="space-y-3.5 text-xs">
+            <form onSubmit={handleSaveEmployee} className="space-y-4 text-xs">
               <div>
-                <label className="block text-slate-300 font-bold mb-1">Full Name *</label>
+                <label className="block text-slate-300 font-bold mb-1.5">Full Name *</label>
                 <input
                   type="text"
                   required
                   placeholder="e.g. Ravi Kumar"
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
-                  className="w-full px-3.5 py-2.5 bg-[#162032] border border-[#1E293B] rounded-xl text-white outline-none focus:border-indigo-500"
+                  className="w-full px-3.5 py-2.5 bg-[#070D18] border border-[#1E293B] rounded-xl text-white outline-none focus:border-indigo-500"
                 />
+              </div>
+
+              <div>
+                <label className="block text-slate-300 font-bold mb-1.5">Employee Type</label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setEmpType('Employee')}
+                    className={`p-3 rounded-2xl border text-left transition-all cursor-pointer ${
+                      empType === 'Employee'
+                        ? 'border-indigo-500 bg-indigo-950/30'
+                        : 'border-[#1E293B] bg-[#070D18]'
+                    }`}
+                  >
+                    <div className="font-bold text-white flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-indigo-500 inline-block" />
+                      <span>Employee</span>
+                    </div>
+                    <div className="text-[10px] text-slate-400 mt-1">Attendance tracked, weekly & monthly pay</div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setEmpType('Non-Employee')}
+                    className={`p-3 rounded-2xl border text-left transition-all cursor-pointer ${
+                      empType === 'Non-Employee'
+                        ? 'border-indigo-500 bg-indigo-950/30'
+                        : 'border-[#1E293B] bg-[#070D18]'
+                    }`}
+                  >
+                    <div className="font-bold text-white flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full border border-slate-400 inline-block" />
+                      <span>Non-Employee</span>
+                    </div>
+                    <div className="text-[10px] text-slate-400 mt-1">Fixed monthly base, no attendance needed</div>
+                  </button>
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-slate-300 font-bold mb-1">Department</label>
+                  <label className="block text-slate-300 font-bold mb-1.5">Department</label>
                   <input
                     type="text"
                     value={department}
                     onChange={(e) => setDepartment(e.target.value)}
-                    className="w-full px-3 py-2 bg-[#162032] border border-[#1E293B] rounded-xl text-white outline-none"
+                    className="w-full px-3.5 py-2.5 bg-[#070D18] border border-[#1E293B] rounded-xl text-white outline-none"
                   />
                 </div>
                 <div>
-                  <label className="block text-slate-300 font-bold mb-1">Role</label>
+                  <label className="block text-slate-300 font-bold mb-1.5">Role</label>
                   <input
                     type="text"
                     value={role}
                     onChange={(e) => setRole(e.target.value)}
-                    className="w-full px-3 py-2 bg-[#162032] border border-[#1E293B] rounded-xl text-white outline-none font-bold"
+                    className="w-full px-3.5 py-2.5 bg-[#070D18] border border-[#1E293B] rounded-xl text-white outline-none font-bold"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-slate-300 font-bold mb-1">Per Day Rate (₹)</label>
+                  <label className="block text-slate-300 font-bold mb-1.5">Per Day Amount (₹)</label>
                   <input
                     type="number"
                     value={perDayAmount}
                     onChange={(e) => setPerDayAmount(e.target.value === '' ? '' : Number(e.target.value))}
-                    className="w-full px-3 py-2 bg-[#162032] border border-[#1E293B] rounded-xl text-white font-mono font-bold outline-none"
+                    className="w-full px-3.5 py-2.5 bg-[#070D18] border border-[#1E293B] rounded-xl text-white font-mono font-bold outline-none"
                   />
                 </div>
                 <div>
-                  <label className="block text-slate-300 font-bold mb-1">Monthly Base (₹)</label>
+                  <label className="block text-slate-300 font-bold mb-1.5">Monthly Base (₹)</label>
                   <input
                     type="number"
                     value={monthlyBase}
                     onChange={(e) => setMonthlyBase(e.target.value === '' ? '' : Number(e.target.value))}
-                    className="w-full px-3 py-2 bg-[#162032] border border-[#1E293B] rounded-xl text-white font-mono font-bold outline-none"
+                    className="w-full px-3.5 py-2.5 bg-[#070D18] border border-[#1E293B] rounded-xl text-white font-mono font-bold outline-none"
                   />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-slate-300 font-bold mb-1.5">Date of Joining</label>
+                  <input
+                    type="date"
+                    value={dateOfJoining}
+                    onChange={(e) => setDateOfJoining(e.target.value)}
+                    className="w-full px-3.5 py-2.5 bg-[#070D18] border border-[#1E293B] rounded-xl text-white font-mono outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-300 font-bold mb-1.5">Status</label>
+                  <select
+                    value={empStatus}
+                    onChange={(e) => setEmpStatus(e.target.value as 'Active' | 'Inactive')}
+                    className="w-full px-3.5 py-2.5 bg-[#070D18] border border-[#1E293B] rounded-xl text-white outline-none font-bold cursor-pointer"
+                  >
+                    <option value="Active">Active</option>
+                    <option value="Inactive">Inactive</option>
+                  </select>
                 </div>
               </div>
 
@@ -1731,15 +1947,15 @@ export const AttendancePayrollModule: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setIsAddModalOpen(false)}
-                  className="px-4 py-2 rounded-xl text-slate-400 hover:text-white cursor-pointer"
+                  className="px-4 py-2.5 rounded-xl text-slate-400 hover:text-white cursor-pointer font-bold"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 rounded-xl bg-[#4F46E5] hover:bg-[#4338CA] text-white font-bold cursor-pointer"
+                  className="px-5 py-2.5 rounded-xl bg-[#4F46E5] hover:bg-[#4338CA] text-white font-bold cursor-pointer shadow-lg shadow-indigo-600/30"
                 >
-                  {editingEmpId ? 'Update Staff' : 'Save Staff'}
+                  {editingEmpId ? 'Update Employee' : 'Save Employee'}
                 </button>
               </div>
             </form>
