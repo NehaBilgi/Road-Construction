@@ -24,8 +24,17 @@ import {
   LogOut, Milestone, Users, Package, ArrowLeftRight, FileText,
   Bell, ShoppingCart, Cpu, CalendarCheck, Tag, Archive, Building2,
   X, Plus, Edit2, Trash2, Menu, ChevronDown, Check, CreditCard,
-  Download, Search, ArrowDownLeft, ArrowUpRight, Layers
+  Download, Search, ArrowDownLeft, ArrowUpRight, Layers, AlertCircle,
+  AlertTriangle, TrendingDown, CheckCircle2, ArrowRight
 } from 'lucide-react';
+
+// ==========================================
+// Storage Keys
+// ==========================================
+const STORAGE_BUILDING_PRODUCTS_KEY = 'CONSTRUCTION_PRO_BUILDING_PRODUCTS_NO_NAME_V1';
+const STORAGE_BUILDING_TX_KEY = 'CONSTRUCTION_PRO_BUILDING_TRANSACTIONS_V1';
+const STORAGE_BUILDING_CATS_KEY = 'CONSTRUCTION_PRO_BUILDING_CATEGORIES_ISOLATED_V1';
+const STORAGE_ROAD_CATS_KEY = 'CONSTRUCTION_PRO_ROAD_CATEGORIES_V1';
 
 // ==========================================
 // Generic Scaffold View for Remaining Tabs
@@ -52,15 +61,9 @@ const GenericView: React.FC<{
 );
 
 // ==========================================
-// Building Consumption & Stock Audit Report
-// (Directly connected to Products & Transactions)
+// Building Reports Module (Linked to Products & Tx)
 // ==========================================
-const STORAGE_BUILDING_PRODUCTS_KEY = 'CONSTRUCTION_PRO_BUILDING_PRODUCTS_NO_NAME_V1';
-const STORAGE_BUILDING_TX_KEY = 'CONSTRUCTION_PRO_BUILDING_TRANSACTIONS_V1';
-
 export const BuildingReportsModule: React.FC = () => {
-  const { selectedSiteId, siteSheets = [] } = useERP() as any;
-
   const [products, setProducts] = useState<any[]>([]);
   const [transactions, setTransactions] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -201,7 +204,6 @@ export const BuildingReportsModule: React.FC = () => {
         </button>
       </div>
 
-      {/* Date Range & Search Bar */}
       <div className="p-4 rounded-2xl bg-[#0b1120] border border-[#1e293b] grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
         <div>
           <label className="block text-slate-400 font-bold mb-1 text-[11px]">Audit Start Date</label>
@@ -236,7 +238,6 @@ export const BuildingReportsModule: React.FC = () => {
         </div>
       </div>
 
-      {/* 4 Financial Audit Metric Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="p-5 rounded-2xl bg-[#0b1120] border border-[#1e293b] shadow-xl">
           <div className="flex items-center justify-between">
@@ -291,7 +292,6 @@ export const BuildingReportsModule: React.FC = () => {
         </div>
       </div>
 
-      {/* Main Stock Reconciliation Table */}
       <div className="bg-[#0B1220] border border-[#1E293B] rounded-3xl overflow-hidden shadow-2xl">
         <div className="p-4 border-b border-[#1E293B] flex items-center justify-between">
           <div>
@@ -351,7 +351,6 @@ export const BuildingReportsModule: React.FC = () => {
         </div>
       </div>
 
-      {/* Consumption by Department / Section */}
       <div className="bg-[#0B1220] border border-[#1E293B] rounded-3xl p-5 shadow-2xl space-y-4">
         <h2 className="text-sm font-bold text-white flex items-center gap-2">
           <Building2 className="w-4 h-4 text-emerald-400" />
@@ -386,520 +385,279 @@ export const BuildingReportsModule: React.FC = () => {
 };
 
 // ==========================================
-// Header Component with Mobile Menu Toggle
+// Building Alerts Module (Linked to Products & Tx)
 // ==========================================
-interface HeaderProps {
-  activeTab: string;
-  setActiveTab: (tab: string) => void;
-  onToggleSidebar?: () => void;
-}
+export const BuildingAlertsModule: React.FC<{ onNavigateTab: (tabId: string) => void }> = ({ onNavigateTab }) => {
+  const [products, setProducts] = useState<any[]>([]);
+  const [transactions, setTransactions] = useState<any[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [severityFilter, setSeverityFilter] = useState<'ALL' | 'OUT_OF_STOCK' | 'CRITICAL' | 'RAPID_DRAIN'>('ALL');
 
-export const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
-  const { selectedSiteId, setSelectedSiteId, siteSheets = [], logout } = useERP() as any;
-  const [isSiteOpen, setIsSiteOpen] = useState(false);
-  const currentSiteSheet = siteSheets.find((s: any) => s.siteId === selectedSiteId) || siteSheets[0];
-
-  return (
-    <header className="h-14 bg-[#080C14] border-b border-[#1E293B] flex items-center justify-between px-3 sm:px-4 text-xs select-none font-sans z-40 relative">
-      <div className="flex items-center gap-2 sm:gap-3">
-        <button
-          type="button"
-          onClick={() => onToggleSidebar && onToggleSidebar()}
-          className="p-2 lg:hidden rounded-xl bg-[#121927] hover:bg-[#162032] border border-[#1E293B] text-slate-300 hover:text-white transition-colors cursor-pointer"
-          title="Toggle Navigation"
-        >
-          <Menu className="w-5 h-5" />
-        </button>
-
-        <div className="relative">
-          <button
-            onClick={() => setIsSiteOpen(!isSiteOpen)}
-            className="flex items-center gap-1.5 sm:gap-2 px-2.5 py-1.5 bg-[#121927] hover:bg-[#162032] border border-[#1E293B] rounded-xl text-white font-bold text-xs transition-colors cursor-pointer"
-          >
-            <Building2 className="w-4 h-4 text-blue-400 shrink-0" />
-            <span className="font-mono text-blue-400 truncate max-w-[120px] sm:max-w-[200px]">
-              {currentSiteSheet ? currentSiteSheet.siteName : 'Select Site'}
-            </span>
-            <ChevronDown className="w-3.5 h-3.5 text-[#94A3B8] shrink-0" />
-          </button>
-
-          {isSiteOpen && (
-            <div className="absolute left-0 mt-2 w-[280px] sm:w-80 bg-[#121927] border border-[#1E293B] rounded-2xl shadow-2xl py-1.5 z-50">
-              <div className="px-3.5 py-2 text-[10px] font-extrabold uppercase tracking-wider text-[#94A3B8] border-b border-[#1E293B] flex items-center justify-between">
-                <span>Active Sites</span>
-                <span className="text-blue-400 font-mono">{siteSheets.length} Sites</span>
-              </div>
-              <div className="max-h-60 overflow-y-auto">
-                {siteSheets.map((s: any) => (
-                  <div
-                    key={s.siteId}
-                    className={`w-full px-3.5 py-2.5 text-xs flex items-center justify-between hover:bg-[#162032] transition-colors ${
-                      selectedSiteId === s.siteId ? 'bg-[#162032]/60' : ''
-                    }`}
-                  >
-                    <button
-                      onClick={() => {
-                        setSelectedSiteId(s.siteId);
-                        setIsSiteOpen(false);
-                      }}
-                      className="flex-1 text-left cursor-pointer truncate"
-                    >
-                      <div className={`font-semibold truncate ${selectedSiteId === s.siteId ? 'text-blue-400 font-bold' : 'text-white'}`}>
-                        {s.siteName}
-                      </div>
-                    </button>
-                    {selectedSiteId === s.siteId && <Check className="w-3.5 h-3.5 text-blue-400 shrink-0" />}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-
-      <div className="flex items-center gap-2">
-        <InstallAppButton />
-        <ThemeToggle />
-        <button
-          type="button"
-          onClick={() => {
-            if (window.confirm('Are you sure you want to log out?')) {
-              logout();
-            }
-          }}
-          title="Sign out"
-          className="px-2.5 py-1.5 rounded-xl bg-[#121927] hover:bg-rose-950/40 border border-[#1E293B] text-slate-400 hover:text-rose-400 transition-colors cursor-pointer flex items-center gap-1.5"
-        >
-          <LogOut className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
-          <span className="hidden sm:inline text-[11px] font-semibold">Logout</span>
-        </button>
-      </div>
-    </header>
-  );
-};
-
-// ==========================================
-// Sidebar Component
-// ==========================================
-interface SidebarProps {
-  activeTab: string;
-  setActiveTab: (tab: string) => void;
-  projectType?: 'ROAD' | 'BUILDING';
-  onSwitchDomain?: () => void;
-  isAdminUser?: boolean;
-  onClose?: () => void;
-}
-
-interface NavItem {
-  id: string;
-  label: string;
-  icon: React.ComponentType<{ className?: string }>;
-  badge?: string | number;
-  badgeStyle?: string;
-}
-
-export const Sidebar: React.FC<SidebarProps> = ({
-  activeTab,
-  setActiveTab,
-  projectType = 'ROAD',
-  onSwitchDomain,
-  isAdminUser = false,
-  onClose
-}) => {
-  const { currentUser, logout } = useERP() as any;
-  const isBuilding = projectType === 'BUILDING';
-
-  const roadOperationsItems: NavItem[] = [
-    { id: 'dashboard', label: 'Site Overview', icon: LayoutDashboard },
-    { id: 'road-sites', label: 'Ongoing Site', icon: Milestone, badge: 'Sites', badgeStyle: 'bg-blue-900/40 text-blue-300 border border-blue-500/40' },
-    { id: 'haulage-trips', label: 'Trips', icon: Truck, badge: 'Trips', badgeStyle: 'bg-[#064E3B] text-[#34D399] border border-[#065F46]' },
-    { id: 'vendor-advances', label: 'Vendor Advance', icon: CreditCard, badge: 'Advance', badgeStyle: 'bg-amber-950/80 text-amber-400 border border-amber-800/60' },
-    { id: 'diesel', label: 'Diesel', icon: Fuel, badge: 'Diesel', badgeStyle: 'bg-amber-950/60 text-amber-300 border border-amber-800' },
-    { id: 'site-expenses', label: 'Site Expense', icon: DollarSign, badge: 'Petty Cash', badgeStyle: 'bg-[#162032] text-blue-400 border border-[#1E293B]' }
-  ];
-
-  const roadEngineeringItems: NavItem[] = [
-    { id: 'yield_calculator', label: 'Road Trip Calculator', icon: Calculator, badge: 'MoRTH', badgeStyle: 'bg-blue-900/60 text-blue-300 border border-blue-500/40 font-mono' },
-    { id: 'machinery_fleet', label: 'Machinery', icon: HardHat }
-  ];
-
-  const roadConfigItems: NavItem[] = [
-    { id: 'categories', label: 'Categories', icon: Tag, badge: 'Rates', badgeStyle: 'bg-emerald-950/60 text-emerald-300 border border-emerald-800' },
-    { id: 'users', label: 'User Management', icon: Users, badge: 'RBAC', badgeStyle: 'bg-indigo-900/40 text-indigo-300 border border-indigo-500/40' }
-  ];
-
-  const buildingCoreItems: NavItem[] = [
-    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { id: 'road-sites', label: 'Ongoing Site', icon: Milestone, badge: 'Sites', badgeStyle: 'bg-emerald-950 text-emerald-400 border border-emerald-800' },
-    { id: 'products', label: 'Products', icon: Package },
-    { id: 'transactions', label: 'Transactions', icon: ArrowLeftRight }
-  ];
-
-  const buildingAnalysisItems: NavItem[] = [
-    { id: 'reports', label: 'Reports', icon: FileText },
-    { id: 'alerts', label: 'Alerts', icon: Bell, badge: 3, badgeStyle: 'bg-rose-600 text-white rounded-full w-4 h-4 flex items-center justify-center text-[10px] font-black' },
-    { id: 'reorder-suggestions', label: 'Reorder Suggestions', icon: ShoppingCart },
-    { id: 'equipment-register', label: 'Equipment Register', icon: Cpu },
-    { id: 'attendance-salary', label: 'Attendance & Salary', icon: CalendarCheck }
-  ];
-
-  const buildingConfigItems: NavItem[] = [
-    { id: 'categories', label: 'Categories', icon: Tag },
-    { id: 'users', label: 'User Management', icon: Users },
-    { id: 'yearly-archive', label: 'Yearly Archive', icon: Archive }
-  ];
-
-  const renderNavGroup = (title: string | null, items: NavItem[]) => (
-    <div className="space-y-1">
-      {title && (
-        <div className="px-3 text-[10px] font-extrabold uppercase tracking-widest text-[#94A3B8] mb-1">
-          {title}
-        </div>
-      )}
-      <nav className="space-y-0.5">
-        {items.map((item) => {
-          const Icon = item.icon;
-          const isActive = activeTab === item.id;
-
-          return (
-            <button
-              key={item.id}
-              onClick={() => {
-                setActiveTab(item.id);
-                if (onClose) onClose();
-              }}
-              className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                isActive ? 'bg-[#2563EB] text-white shadow-lg shadow-blue-600/30' : 'text-[#94A3B8] hover:bg-[#162032] hover:text-white'
-              }`}
-            >
-              <div className="flex items-center gap-2.5">
-                <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-white' : 'text-[#94A3B8]'}`} />
-                <span>{item.label}</span>
-              </div>
-              {item.badge !== undefined && (
-                <span className={item.badgeStyle || `text-[9px] px-1.5 py-0.5 rounded font-black ${isActive ? 'bg-white/20 text-white' : 'bg-blue-900/40 text-blue-300 border border-blue-500/40'}`}>
-                  {item.badge}
-                </span>
-              )}
-            </button>
-          );
-        })}
-      </nav>
-    </div>
-  );
-
-  return (
-    <aside className="w-full h-full bg-[#0D111D] border-r border-[#1E293B] flex flex-col justify-between shrink-0 overflow-y-auto select-none font-sans z-30 scrollbar-thin scrollbar-thumb-[#1E293B]">
-      <div className="p-3.5 space-y-5">
-        <div className="p-3 bg-[#121927] border border-[#1E293B] rounded-2xl flex items-center justify-between shadow-sm relative">
-          <div className="flex items-center gap-2.5 overflow-hidden pr-8">
-            <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-white font-black shrink-0 shadow-md ${isBuilding ? 'bg-gradient-to-br from-emerald-600 to-teal-700' : 'bg-gradient-to-br from-blue-600 to-indigo-700'}`}>
-              {isBuilding ? <Building2 className="w-4 h-4" /> : <HardHat className="w-4 h-4" />}
-            </div>
-            <div className="truncate">
-              <div className="text-xs font-black text-white uppercase tracking-wider truncate">CONSTRUCTION PRO</div>
-              <div className="text-[10px] text-blue-400 font-mono truncate">
-                {isBuilding ? 'Building Construction ERP' : 'Road Construction ERP'}
-              </div>
-            </div>
-          </div>
-
-          {onClose && (
-            <button onClick={onClose} className="absolute right-3 lg:hidden p-1.5 rounded-xl bg-slate-800 text-slate-300 hover:text-white cursor-pointer">
-              <X className="w-4 h-4" />
-            </button>
-          )}
-        </div>
-
-        {isBuilding ? (
-          <>
-            {renderNavGroup(null, buildingCoreItems)}
-            {renderNavGroup('ANALYSIS', buildingAnalysisItems)}
-            {renderNavGroup('CONFIGURATION', buildingConfigItems)}
-          </>
-        ) : (
-          <>
-            {renderNavGroup('SITE OPERATIONS', roadOperationsItems)}
-            {renderNavGroup('ENGINEERING', roadEngineeringItems)}
-            {renderNavGroup('CONFIGURATION', roadConfigItems)}
-          </>
-        )}
-      </div>
-
-      <div className="p-3 border-t border-[#1E293B] bg-[#080C14] space-y-2 sticky bottom-0 z-10">
-        {isAdminUser && onSwitchDomain && (
-          <button
-            onClick={() => {
-              onSwitchDomain();
-              if (onClose) onClose();
-            }}
-            className="w-full py-2 px-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 rounded-xl text-xs font-bold text-white flex items-center justify-center gap-1.5 transition-all shadow-md shadow-blue-600/30 cursor-pointer"
-          >
-            <span>Switch to {isBuilding ? 'Road Construction' : 'Building Construction'}</span>
-          </button>
-        )}
-
-        <div className="p-2 rounded-xl bg-[#121927] border border-[#1E293B] flex items-center justify-between">
-          <div className="flex items-center gap-2.5 overflow-hidden">
-            <div className="w-8 h-8 rounded-full bg-blue-600/20 border border-blue-500/30 flex items-center justify-center font-bold text-xs text-blue-400 shrink-0">
-              {currentUser?.fullName?.charAt(0).toUpperCase() || currentUser?.name?.charAt(0).toUpperCase() || 'U'}
-            </div>
-            <div className="truncate">
-              <div className="text-xs font-bold text-white truncate">{currentUser?.fullName || currentUser?.name || 'User'}</div>
-              <div className="text-[10px] text-[#94A3B8] truncate">{currentUser?.role || 'SUPER_ADMIN'}</div>
-            </div>
-          </div>
-          <button onClick={logout} title="Logout" className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-[#162032] transition-colors cursor-pointer">
-            <LogOut className="w-4 h-4" />
-          </button>
-        </div>
-      </div>
-    </aside>
-  );
-};
-
-// ==========================================
-// Road Material Categories & Rates Module (Road Domain)
-// ==========================================
-export interface RoadMaterialCategory {
-  id: string;
-  name: string;
-  description: string;
-  standardRate: number;
-  unit: string;
-}
-
-const STORAGE_ROAD_CATS_KEY = 'CONSTRUCTION_PRO_ROAD_CATEGORIES_V1';
-
-const INITIAL_ROAD_CATEGORIES: RoadMaterialCategory[] = [
-  { id: 'RCAT-01', name: 'Bituminous Macadam (BM)', description: 'Dense bituminous macadam binder course', standardRate: 5000, unit: 'Brass' },
-  { id: 'RCAT-02', name: 'Wet Mix Macadam (WMM)', description: 'Crushed stone aggregate base/sub-base layer', standardRate: 4500, unit: 'Brass' },
-  { id: 'RCAT-03', name: 'Granular Sub-Base (GSB)', description: 'Coarse graded granular material sub-base', standardRate: 4200, unit: 'Brass' },
-  { id: 'RCAT-04', name: 'Dense Bituminous Macadam (DBM)', description: 'Structural layer in flexible pavements', standardRate: 5500, unit: 'Brass' },
-  { id: 'RCAT-05', name: 'Bituminous Concrete (BC)', description: 'High quality wearing course finish', standardRate: 6000, unit: 'Brass' }
-];
-
-export const RoadMaterialCategoriesModule: React.FC = () => {
-  const { currentUser, userRole } = useERP() as any;
-  const isAdmin = String(currentUser?.role || userRole || '').toLowerCase().includes('admin');
-
-  const [categories, setCategories] = useState<RoadMaterialCategory[]>(() => {
+  const loadData = () => {
     try {
-      const saved = localStorage.getItem(STORAGE_ROAD_CATS_KEY);
-      return saved ? JSON.parse(saved) : INITIAL_ROAD_CATEGORIES;
-    } catch {
-      return INITIAL_ROAD_CATEGORIES;
-    }
-  });
+      const prodRaw = localStorage.getItem(STORAGE_BUILDING_PRODUCTS_KEY);
+      if (prodRaw) setProducts(JSON.parse(prodRaw));
 
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
-
-  const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
-  const [standardRate, setStandardRate] = useState<number | ''>(5000);
-  const [unit, setUnit] = useState('Brass');
+      const txRaw = localStorage.getItem(STORAGE_BUILDING_TX_KEY);
+      if (txRaw) setTransactions(JSON.parse(txRaw));
+    } catch {}
+  };
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_ROAD_CATS_KEY, JSON.stringify(categories));
-  }, [categories]);
-
-  const handleOpenAdd = () => {
-    setEditingId(null);
-    setName('');
-    setDescription('');
-    setStandardRate(5000);
-    setUnit('Brass');
-    setIsModalOpen(true);
-  };
-
-  const handleSave = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!name.trim()) return;
-
-    const payload: RoadMaterialCategory = {
-      id: editingId || `RCAT-${Date.now().toString().slice(-4)}`,
-      name: name.trim(),
-      description: description.trim() || 'Road construction material specification',
-      standardRate: Number(standardRate) || 0,
-      unit
+    loadData();
+    const handleSync = () => loadData();
+    window.addEventListener('storage', handleSync);
+    window.addEventListener('focus', handleSync);
+    return () => {
+      window.removeEventListener('storage', handleSync);
+      window.removeEventListener('focus', handleSync);
     };
+  }, []);
 
-    if (editingId) {
-      setCategories(categories.map((c) => (c.id === editingId ? payload : c)));
-    } else {
-      setCategories([payload, ...categories]);
-    }
-    setIsModalOpen(false);
-  };
+  const activeAlerts = useMemo(() => {
+    const list: any[] = [];
 
-  const handleDelete = (id: string) => {
-    if (!isAdmin) return;
-    if (window.confirm('Are you sure you want to delete this road material category?')) {
-      setCategories(categories.filter((c) => c.id !== id));
-    }
-  };
+    products.forEach((p) => {
+      const current = Number(p.currentStock || 0);
+      const unitCost = Number(p.unitCost || 0);
+
+      const recentOutward = transactions
+        .filter((t) => (t.productId === p.id || t.productName === p.category) && t.type === 'STOCK_OUT')
+        .reduce((sum, t) => sum + Number(t.quantity || 0), 0);
+
+      if (current === 0) {
+        list.push({
+          id: `ALT-OOS-${p.id}`,
+          productId: p.id,
+          title: p.category,
+          unit: p.unit,
+          currentStock: current,
+          severity: 'OUT_OF_STOCK',
+          badgeText: 'Depleted (0 Balance)',
+          badgeColor: 'bg-rose-500/10 text-rose-400 border-rose-500/30',
+          message: `Zero stock remaining on site. Ongoing casting and site operations are at immediate halt risk.`,
+          unitCost
+        });
+      } else if (current <= 20) {
+        list.push({
+          id: `ALT-LOW-${p.id}`,
+          productId: p.id,
+          title: p.category,
+          unit: p.unit,
+          currentStock: current,
+          severity: 'CRITICAL',
+          badgeText: 'Critical Buffer',
+          badgeColor: 'bg-amber-500/10 text-amber-400 border-amber-500/30',
+          message: `Only ${current} ${p.unit} remaining in central yard. Minimum buffer threshold breached.`,
+          unitCost
+        });
+      } else if (recentOutward > current) {
+        list.push({
+          id: `ALT-DRAIN-${p.id}`,
+          productId: p.id,
+          title: p.category,
+          unit: p.unit,
+          currentStock: current,
+          severity: 'RAPID_DRAIN',
+          badgeText: 'High Consumption Rate',
+          badgeColor: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/30',
+          message: `${recentOutward} ${p.unit} consumed recently, exceeding current remaining balance (${current} ${p.unit}).`,
+          unitCost
+        });
+      }
+    });
+
+    return list;
+  }, [products, transactions]);
+
+  const filteredAlerts = useMemo(() => {
+    return activeAlerts.filter((alt) => {
+      const matchSeverity = severityFilter === 'ALL' || alt.severity === severityFilter;
+      const matchSearch =
+        alt.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        alt.message.toLowerCase().includes(searchQuery.toLowerCase());
+      return matchSeverity && matchSearch;
+    });
+  }, [activeAlerts, severityFilter, searchQuery]);
+
+  const oosCount = activeAlerts.filter((a) => a.severity === 'OUT_OF_STOCK').length;
+  const criticalCount = activeAlerts.filter((a) => a.severity === 'CRITICAL').length;
+  const rapidDrainCount = activeAlerts.filter((a) => a.severity === 'RAPID_DRAIN').length;
 
   return (
     <div className="space-y-6 font-sans text-slate-100">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-black text-white tracking-tight">Road Material Categories & Rates</h1>
+          <div className="flex items-center gap-2 mb-1">
+            <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping" />
+            <span className="text-[10px] font-black uppercase tracking-widest text-rose-400">
+              Live Stock Watchdog
+            </span>
+          </div>
+          <h1 className="text-2xl font-black text-white tracking-tight flex items-center gap-2.5">
+            <Bell className="w-6 h-6 text-rose-500" />
+            <span>Inventory Alerts & Stock Notifications</span>
+          </h1>
           <p className="text-xs text-slate-400 mt-0.5">
-            Manage standard road aggregate and mix names, specifications, and benchmark rates.
+            Real-time threshold telemetry tracking stockouts, critical safety buffers, and rapid consumption rates[cite: 13].
           </p>
         </div>
 
         <button
-          onClick={handleOpenAdd}
+          onClick={() => onNavigateTab('products')}
           className="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-black flex items-center gap-1.5 transition-all shadow-lg shadow-blue-600/30 cursor-pointer w-fit"
         >
-          <Plus className="w-4 h-4" />
-          <span>+ Add Material Category</span>
+          <Package className="w-4 h-4" />
+          <span>Go to Products Master</span>
         </button>
       </div>
 
-      <div className="bg-[#0B1220] border border-[#1E293B] rounded-3xl overflow-hidden shadow-2xl">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs border-collapse">
-            <thead>
-              <tr className="border-b border-[#1E293B] text-[10px] font-extrabold uppercase tracking-wider text-slate-400 bg-[#080d19]/80">
-                <th className="py-3.5 px-6">ID</th>
-                <th className="py-3.5 px-6">MATERIAL NAME</th>
-                <th className="py-3.5 px-6">SPECIFICATION / DESCRIPTION</th>
-                <th className="py-3.5 px-6 text-right">BENCHMARK RATE</th>
-                <th className="py-3.5 px-6 text-right">ACTIONS</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[#1E293B]/60 text-slate-200">
-              {categories.map((cat) => (
-                <tr key={cat.id} className="hover:bg-[#121c33]/50 transition-colors">
-                  <td className="py-4 px-6 font-mono font-bold text-slate-400">{cat.id}</td>
-                  <td className="py-4 px-6 font-bold text-white text-xs whitespace-nowrap">{cat.name}</td>
-                  <td className="py-4 px-6 text-slate-300 min-w-[200px]">{cat.description}</td>
-                  <td className="py-4 px-6 text-right font-mono font-black text-emerald-400 text-sm whitespace-nowrap">
-                    ₹{cat.standardRate.toLocaleString()} <span className="text-[10px] text-slate-400 font-normal">/ {cat.unit}</span>
-                  </td>
-                  <td className="py-4 px-6 text-right">
-                    <div className="flex items-center justify-end gap-2">
-                      <button
-                        onClick={() => {
-                          setEditingId(cat.id);
-                          setName(cat.name);
-                          setDescription(cat.description);
-                          setStandardRate(cat.standardRate);
-                          setUnit(cat.unit);
-                          setIsModalOpen(true);
-                        }}
-                        className="p-1.5 rounded-lg text-slate-400 hover:text-blue-400 hover:bg-blue-950/40 cursor-pointer"
-                      >
-                        <Edit2 className="w-3.5 h-3.5" />
-                      </button>
-                      {isAdmin && (
-                        <button
-                          onClick={() => handleDelete(cat.id)}
-                          className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-950/40 cursor-pointer"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div 
+          onClick={() => setSeverityFilter('OUT_OF_STOCK')}
+          className={`p-5 rounded-2xl bg-[#0b1120] border transition-all cursor-pointer shadow-xl ${severityFilter === 'OUT_OF_STOCK' ? 'border-rose-500' : 'border-[#1e293b] hover:border-slate-700'}`}
+        >
+          <div className="flex items-center justify-between">
+            <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Out of Stock (0 Bal)</div>
+            <div className="w-8 h-8 rounded-lg bg-rose-500/10 text-rose-400 flex items-center justify-center border border-rose-500/20">
+              <AlertCircle className="w-4 h-4" />
+            </div>
+          </div>
+          <div className="text-3xl font-black text-rose-400 font-mono mt-2 tracking-tight">
+            {oosCount}
+          </div>
+          <div className="text-[10px] text-slate-500 mt-1">Halt risk materials</div>
+        </div>
+
+        <div 
+          onClick={() => setSeverityFilter('CRITICAL')}
+          className={`p-5 rounded-2xl bg-[#0b1120] border transition-all cursor-pointer shadow-xl ${severityFilter === 'CRITICAL' ? 'border-amber-500' : 'border-[#1e293b] hover:border-slate-700'}`}
+        >
+          <div className="flex items-center justify-between">
+            <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Critical Low Stock (≤ 20)</div>
+            <div className="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-400 flex items-center justify-center border border-amber-500/20">
+              <AlertTriangle className="w-4 h-4" />
+            </div>
+          </div>
+          <div className="text-3xl font-black text-amber-400 font-mono mt-2 tracking-tight">
+            {criticalCount}
+          </div>
+          <div className="text-[10px] text-slate-500 mt-1">Approaching depletion</div>
+        </div>
+
+        <div 
+          onClick={() => setSeverityFilter('RAPID_DRAIN')}
+          className={`p-5 rounded-2xl bg-[#0b1120] border transition-all cursor-pointer shadow-xl ${severityFilter === 'RAPID_DRAIN' ? 'border-cyan-500' : 'border-[#1e293b] hover:border-slate-700'}`}
+        >
+          <div className="flex items-center justify-between">
+            <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">High Consumption Rate</div>
+            <div className="w-8 h-8 rounded-lg bg-cyan-500/10 text-cyan-400 flex items-center justify-center border border-cyan-500/20">
+              <TrendingDown className="w-4 h-4" />
+            </div>
+          </div>
+          <div className="text-3xl font-black text-cyan-400 font-mono mt-2 tracking-tight">
+            {rapidDrainCount}
+          </div>
+          <div className="text-[10px] text-slate-500 mt-1">Outward &gt; current yard stock</div>
         </div>
       </div>
 
-      {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-[#121927] border border-[#1E293B] rounded-3xl w-full max-w-md p-6 shadow-2xl space-y-4 text-slate-100 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between border-b border-[#1E293B] pb-3">
-              <h3 className="text-base font-bold text-white">
-                {editingId ? 'Edit Material Category' : 'Add Road Material Category'}
-              </h3>
-              <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-white p-1 cursor-pointer">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <form onSubmit={handleSave} className="space-y-3.5 text-xs">
-              <div>
-                <label className="block text-slate-300 font-bold mb-1">Material Name *</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Bituminous Macadam (BM)"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="w-full px-3.5 py-2.5 bg-[#162032] border border-[#1E293B] rounded-xl text-white outline-none focus:border-blue-500 font-medium"
-                />
-              </div>
-
-              <div>
-                <label className="block text-slate-300 font-bold mb-1">Description / Specification</label>
-                <textarea
-                  rows={2}
-                  placeholder="Brief description..."
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  className="w-full px-3.5 py-2.5 bg-[#162032] border border-[#1E293B] rounded-xl text-white outline-none resize-none"
-                />
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-slate-300 font-bold mb-1">Standard Rate (₹) *</label>
-                  <input
-                    type="number"
-                    min="0"
-                    required
-                    value={standardRate}
-                    onChange={(e) => setStandardRate(e.target.value === '' ? '' : Number(e.target.value))}
-                    className="w-full px-3.5 py-2.5 bg-[#162032] border border-[#1E293B] rounded-xl text-emerald-400 font-mono font-bold outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-slate-300 font-bold mb-1">Unit *</label>
-                  <select
-                    value={unit}
-                    onChange={(e) => setUnit(e.target.value)}
-                    className="w-full px-3.5 py-2.5 bg-[#162032] border border-[#1E293B] rounded-xl text-white outline-none cursor-pointer"
-                  >
-                    <option value="Brass">Brass</option>
-                    <option value="Ton">Ton</option>
-                    <option value="Cu.M">Cu.M</option>
-                    <option value="Load">Load</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="flex justify-end gap-2 pt-3 border-t border-[#1E293B]">
-                <button
-                  type="button"
-                  onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 rounded-xl text-slate-400 hover:text-white cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-black shadow-lg shadow-blue-600/30 cursor-pointer"
-                >
-                  {editingId ? 'Update Category' : 'Save Category'}
-                </button>
-              </div>
-            </form>
-          </div>
+      <div className="p-4 rounded-2xl bg-[#0b1120] border border-[#1e293b] flex flex-col sm:flex-row gap-3 items-center justify-between text-xs">
+        <div className="flex items-center gap-2 w-full sm:w-auto overflow-x-auto pb-1 sm:pb-0">
+          <button
+            onClick={() => setSeverityFilter('ALL')}
+            className={`px-3 py-1.5 rounded-xl font-bold cursor-pointer transition-all ${severityFilter === 'ALL' ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30' : 'bg-[#131b2e] text-slate-400 hover:text-white border border-[#1e293b]'}`}
+          >
+            All Alerts ({activeAlerts.length})
+          </button>
+          <button
+            onClick={() => setSeverityFilter('OUT_OF_STOCK')}
+            className={`px-3 py-1.5 rounded-xl font-bold cursor-pointer transition-all ${severityFilter === 'OUT_OF_STOCK' ? 'bg-rose-600 text-white shadow-md shadow-rose-600/30' : 'bg-[#131b2e] text-slate-400 hover:text-white border border-[#1e293b]'}`}
+          >
+            Depleted ({oosCount})
+          </button>
+          <button
+            onClick={() => setSeverityFilter('CRITICAL')}
+            className={`px-3 py-1.5 rounded-xl font-bold cursor-pointer transition-all ${severityFilter === 'CRITICAL' ? 'bg-amber-600 text-white shadow-md shadow-amber-600/30' : 'bg-[#131b2e] text-slate-400 hover:text-white border border-[#1e293b]'}`}
+          >
+            Critical Low ({criticalCount})
+          </button>
+          <button
+            onClick={() => setSeverityFilter('RAPID_DRAIN')}
+            className={`px-3 py-1.5 rounded-xl font-bold cursor-pointer transition-all ${severityFilter === 'RAPID_DRAIN' ? 'bg-cyan-600 text-white shadow-md shadow-cyan-600/30' : 'bg-[#131b2e] text-slate-400 hover:text-white border border-[#1e293b]'}`}
+          >
+            Rapid Drain ({rapidDrainCount})
+          </button>
         </div>
-      )}
+
+        <div className="relative w-full sm:w-72">
+          <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-slate-500" />
+          <input
+            type="text"
+            placeholder="Search affected material..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-9 pr-3 py-2 bg-[#131b2e] border border-[#1e293b] rounded-xl text-white outline-none focus:border-blue-500 placeholder-slate-500 text-xs"
+          />
+        </div>
+      </div>
+
+      <div className="space-y-3">
+        {filteredAlerts.length === 0 ? (
+          <div className="p-12 rounded-3xl bg-[#0b1120] border border-[#1e293b] text-center text-slate-400 space-y-3 shadow-xl">
+            <div className="w-12 h-12 rounded-full bg-emerald-500/10 text-emerald-400 flex items-center justify-center mx-auto">
+              <CheckCircle2 className="w-6 h-6" />
+            </div>
+            <div className="text-sm font-bold text-white">All building inventory buffers healthy</div>
+            <p className="text-xs text-slate-500 max-w-md mx-auto">
+              No stockouts or critical inventory depletion detected matching your current filter.
+            </p>
+          </div>
+        ) : (
+          filteredAlerts.map((alert) => (
+            <div
+              key={alert.id}
+              className="p-4 sm:p-5 rounded-2xl bg-[#0b1120] border border-[#1e293b] hover:border-slate-700 transition-all shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+            >
+              <div className="space-y-1.5 flex-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className={`text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full border ${alert.badgeColor}`}>
+                    {alert.badgeText}
+                  </span>
+                  <span className="font-mono text-[10px] text-slate-500">{alert.productId}</span>
+                  <h3 className="text-sm font-black text-white">{alert.title}</h3>
+                </div>
+                <p className="text-xs text-slate-400 leading-relaxed">
+                  {alert.message}
+                </p>
+              </div>
+
+              <div className="flex items-center gap-4 shrink-0 justify-between sm:justify-end border-t sm:border-t-0 border-[#1e293b] pt-3 sm:pt-0">
+                <div className="text-right">
+                  <div className="text-[10px] text-slate-500 uppercase font-bold">Yard Stock</div>
+                  <div className="font-mono font-black text-base text-white">
+                    {alert.currentStock} <span className="text-xs font-normal text-slate-400">{alert.unit}</span>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => onNavigateTab('products')}
+                  className="px-3.5 py-2 rounded-xl bg-[#131b2e] hover:bg-blue-600 text-slate-300 hover:text-white border border-[#1e293b] hover:border-blue-500 text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"
+                >
+                  <span>Restock</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
     </div>
   );
 };
 
 // ==========================================
-// Building Material Categories & Rates Module (Building Domain - Isolated)
+// Building Material Categories & Rates Module
 // ==========================================
 export interface BuildingCategoryItem {
   id: string;
@@ -909,8 +667,6 @@ export interface BuildingCategoryItem {
   standardRate: number;
   unit: string;
 }
-
-const STORAGE_BUILDING_CATS_KEY = 'CONSTRUCTION_PRO_BUILDING_CATEGORIES_ISOLATED_V1';
 
 const INITIAL_BUILDING_CATEGORIES: BuildingCategoryItem[] = [
   { id: 'BCAT-01', name: 'Cement & Binding Bags', classification: 'Civil & Structural', description: 'OPC 53 Grade, PPC, and white cement bags', standardRate: 385, unit: 'Bags' },
@@ -1174,6 +930,458 @@ export const BuildingMaterialCategoriesModule: React.FC = () => {
 };
 
 // ==========================================
+// Road Material Categories & Rates Module
+// ==========================================
+export interface RoadMaterialCategory {
+  id: string;
+  name: string;
+  description: string;
+  standardRate: number;
+  unit: string;
+}
+
+const INITIAL_ROAD_CATEGORIES: RoadMaterialCategory[] = [
+  { id: 'RCAT-01', name: 'Bituminous Macadam (BM)', description: 'Dense bituminous macadam binder course', standardRate: 5000, unit: 'Brass' },
+  { id: 'RCAT-02', name: 'Wet Mix Macadam (WMM)', description: 'Crushed stone aggregate base/sub-base layer', standardRate: 4500, unit: 'Brass' },
+  { id: 'RCAT-03', name: 'Granular Sub-Base (GSB)', description: 'Coarse graded granular material sub-base', standardRate: 4200, unit: 'Brass' },
+  { id: 'RCAT-04', name: 'Dense Bituminous Macadam (DBM)', description: 'Structural layer in flexible pavements', standardRate: 5500, unit: 'Brass' },
+  { id: 'RCAT-05', name: 'Bituminous Concrete (BC)', description: 'High quality wearing course finish', standardRate: 6000, unit: 'Brass' }
+];
+
+export const RoadMaterialCategoriesModule: React.FC = () => {
+  const { currentUser, userRole } = useERP() as any;
+  const isAdmin = String(currentUser?.role || userRole || '').toLowerCase().includes('admin');
+
+  const [categories, setCategories] = useState<RoadMaterialCategory[]>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_ROAD_CATS_KEY);
+      return saved ? JSON.parse(saved) : INITIAL_ROAD_CATEGORIES;
+    } catch {
+      return INITIAL_ROAD_CATEGORIES;
+    }
+  });
+
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+
+  const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
+  const [standardRate, setStandardRate] = useState<number | ''>(5000);
+  const [unit, setUnit] = useState('Brass');
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_ROAD_CATS_KEY, JSON.stringify(categories));
+  }, [categories]);
+
+  const handleOpenAdd = () => {
+    setEditingId(null);
+    setName('');
+    setDescription('');
+    setStandardRate(5000);
+    setUnit('Brass');
+    setIsModalOpen(true);
+  };
+
+  const handleSave = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name.trim()) return;
+
+    const payload: RoadMaterialCategory = {
+      id: editingId || `RCAT-${Date.now().toString().slice(-4)}`,
+      name: name.trim(),
+      description: description.trim() || 'Road construction material specification',
+      standardRate: Number(standardRate) || 0,
+      unit
+    };
+
+    if (editingId) {
+      setCategories(categories.map((c) => (c.id === editingId ? payload : c)));
+    } else {
+      setCategories([payload, ...categories]);
+    }
+    setIsModalOpen(false);
+  };
+
+  const handleDelete = (id: string) => {
+    if (!isAdmin) return;
+    if (window.confirm('Are you sure you want to delete this road material category?')) {
+      setCategories(categories.filter((c) => c.id !== id));
+    }
+  };
+
+  return (
+    <div className="space-y-6 font-sans text-slate-100">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-black text-white tracking-tight">Road Material Categories & Rates</h1>
+          <p className="text-xs text-slate-400 mt-0.5">
+            Manage standard road aggregate and mix names, specifications, and benchmark rates.
+          </p>
+        </div>
+
+        <button
+          onClick={handleOpenAdd}
+          className="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-black flex items-center gap-1.5 transition-all shadow-lg shadow-blue-600/30 cursor-pointer w-fit"
+        >
+          <Plus className="w-4 h-4" />
+          <span>+ Add Material Category</span>
+        </button>
+      </div>
+
+      <div className="bg-[#0B1220] border border-[#1E293B] rounded-3xl overflow-hidden shadow-2xl">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs border-collapse">
+            <thead>
+              <tr className="border-b border-[#1E293B] text-[10px] font-extrabold uppercase tracking-wider text-slate-400 bg-[#080d19]/80">
+                <th className="py-3.5 px-6">ID</th>
+                <th className="py-3.5 px-6">MATERIAL NAME</th>
+                <th className="py-3.5 px-6">SPECIFICATION / DESCRIPTION</th>
+                <th className="py-3.5 px-6 text-right">BENCHMARK RATE</th>
+                <th className="py-3.5 px-6 text-right">ACTIONS</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[#1E293B]/60 text-slate-200">
+              {categories.map((cat) => (
+                <tr key={cat.id} className="hover:bg-[#121c33]/50 transition-colors">
+                  <td className="py-4 px-6 font-mono font-bold text-slate-400">{cat.id}</td>
+                  <td className="py-4 px-6 font-bold text-white text-xs whitespace-nowrap">{cat.name}</td>
+                  <td className="py-4 px-6 text-slate-300 min-w-[200px]">{cat.description}</td>
+                  <td className="py-4 px-6 text-right font-mono font-black text-emerald-400 text-sm whitespace-nowrap">
+                    ₹{cat.standardRate.toLocaleString()} <span className="text-[10px] text-slate-400 font-normal">/ {cat.unit}</span>
+                  </td>
+                  <td className="py-4 px-6 text-right">
+                    <div className="flex items-center justify-end gap-2">
+                      <button
+                        onClick={() => {
+                          setEditingId(cat.id);
+                          setName(cat.name);
+                          setDescription(cat.description);
+                          setStandardRate(cat.standardRate);
+                          setUnit(cat.unit);
+                          setIsModalOpen(true);
+                        }}
+                        className="p-1.5 rounded-lg text-slate-400 hover:text-blue-400 hover:bg-blue-950/40 cursor-pointer"
+                      >
+                        <Edit2 className="w-3.5 h-3.5" />
+                      </button>
+                      {isAdmin && (
+                        <button
+                          onClick={() => handleDelete(cat.id)}
+                          className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-950/40 cursor-pointer"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {isModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-[#121927] border border-[#1E293B] rounded-3xl w-full max-w-md p-6 shadow-2xl space-y-4 text-slate-100 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-[#1E293B] pb-3">
+              <h3 className="text-base font-bold text-white">
+                {editingId ? 'Edit Material Category' : 'Add Road Material Category'}
+              </h3>
+              <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-white p-1 cursor-pointer">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSave} className="space-y-3.5 text-xs">
+              <div>
+                <label className="block text-slate-300 font-bold mb-1">Material Name *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Bituminous Macadam (BM)"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="w-full px-3.5 py-2.5 bg-[#162032] border border-[#1E293B] rounded-xl text-white outline-none focus:border-blue-500 font-medium"
+                />
+              </div>
+
+              <div>
+                <label className="block text-slate-300 font-bold mb-1">Description / Specification</label>
+                <textarea
+                  rows={2}
+                  placeholder="Brief description..."
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  className="w-full px-3.5 py-2.5 bg-[#162032] border border-[#1E293B] rounded-xl text-white outline-none resize-none"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-slate-300 font-bold mb-1">Standard Rate (₹) *</label>
+                  <input
+                    type="number"
+                    min="0"
+                    required
+                    value={standardRate}
+                    onChange={(e) => setStandardRate(e.target.value === '' ? '' : Number(e.target.value))}
+                    className="w-full px-3.5 py-2.5 bg-[#162032] border border-[#1E293B] rounded-xl text-emerald-400 font-mono font-bold outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-300 font-bold mb-1">Unit *</label>
+                  <select
+                    value={unit}
+                    onChange={(e) => setUnit(e.target.value)}
+                    className="w-full px-3.5 py-2.5 bg-[#162032] border border-[#1E293B] rounded-xl text-white outline-none cursor-pointer"
+                  >
+                    <option value="Brass">Brass</option>
+                    <option value="Ton">Ton</option>
+                    <option value="Cu.M">Cu.M</option>
+                    <option value="Load">Load</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-3 border-t border-[#1E293B]">
+                <button
+                  type="button"
+                  onClick={() => setIsModalOpen(false)}
+                  className="px-4 py-2 rounded-xl text-slate-400 hover:text-white cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-black shadow-lg shadow-blue-600/30 cursor-pointer"
+                >
+                  {editingId ? 'Update Category' : 'Save Category'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ==========================================
+// Sidebar Component
+// ==========================================
+interface SidebarProps {
+  activeTab: string;
+  setActiveTab: (tab: string) => void;
+  projectType?: 'ROAD' | 'BUILDING';
+  onSwitchDomain?: () => void;
+  isAdminUser?: boolean;
+  onClose?: () => void;
+}
+
+interface NavItem {
+  id: string;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  badge?: string | number;
+  badgeStyle?: string;
+}
+
+export const Sidebar: React.FC<SidebarProps> = ({
+  activeTab,
+  setActiveTab,
+  projectType = 'ROAD',
+  onSwitchDomain,
+  isAdminUser = false,
+  onClose
+}) => {
+  const { currentUser, logout } = useERP() as any;
+  const isBuilding = projectType === 'BUILDING';
+
+  // Dynamic alert count from live local storage
+  const [liveAlertCount, setLiveAlertCount] = useState<number>(0);
+
+  useEffect(() => {
+    const computeAlertCount = () => {
+      try {
+        const prodRaw = localStorage.getItem(STORAGE_BUILDING_PRODUCTS_KEY);
+        if (!prodRaw) {
+          setLiveAlertCount(0);
+          return;
+        }
+        const prods = JSON.parse(prodRaw);
+        const count = prods.filter((p: any) => Number(p.currentStock || 0) <= 20).length;
+        setLiveAlertCount(count);
+      } catch {
+        setLiveAlertCount(0);
+      }
+    };
+
+    computeAlertCount();
+    window.addEventListener('storage', computeAlertCount);
+    window.addEventListener('focus', computeAlertCount);
+    return () => {
+      window.removeEventListener('storage', computeAlertCount);
+      window.removeEventListener('focus', computeAlertCount);
+    };
+  }, []);
+
+  const roadOperationsItems: NavItem[] = [
+    { id: 'dashboard', label: 'Site Overview', icon: LayoutDashboard },
+    { id: 'road-sites', label: 'Ongoing Site', icon: Milestone, badge: 'Sites', badgeStyle: 'bg-blue-900/40 text-blue-300 border border-blue-500/40' },
+    { id: 'haulage-trips', label: 'Trips', icon: Truck, badge: 'Trips', badgeStyle: 'bg-[#064E3B] text-[#34D399] border border-[#065F46]' },
+    { id: 'vendor-advances', label: 'Vendor Advance', icon: CreditCard, badge: 'Advance', badgeStyle: 'bg-amber-950/80 text-amber-400 border border-amber-800/60' },
+    { id: 'diesel', label: 'Diesel', icon: Fuel, badge: 'Diesel', badgeStyle: 'bg-amber-950/60 text-amber-300 border border-amber-800' },
+    { id: 'site-expenses', label: 'Site Expense', icon: DollarSign, badge: 'Petty Cash', badgeStyle: 'bg-[#162032] text-blue-400 border border-[#1E293B]' }
+  ];
+
+  const roadEngineeringItems: NavItem[] = [
+    { id: 'yield_calculator', label: 'Road Trip Calculator', icon: Calculator, badge: 'MoRTH', badgeStyle: 'bg-blue-900/60 text-blue-300 border border-blue-500/40 font-mono' },
+    { id: 'machinery_fleet', label: 'Machinery', icon: HardHat }
+  ];
+
+  const roadConfigItems: NavItem[] = [
+    { id: 'categories', label: 'Categories', icon: Tag, badge: 'Rates', badgeStyle: 'bg-emerald-950/60 text-emerald-300 border border-emerald-800' },
+    { id: 'users', label: 'User Management', icon: Users, badge: 'RBAC', badgeStyle: 'bg-indigo-900/40 text-indigo-300 border border-indigo-500/40' }
+  ];
+
+  const buildingCoreItems: NavItem[] = [
+    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { id: 'road-sites', label: 'Ongoing Site', icon: Milestone, badge: 'Sites', badgeStyle: 'bg-emerald-950 text-emerald-400 border border-emerald-800' },
+    { id: 'products', label: 'Products', icon: Package },
+    { id: 'transactions', label: 'Transactions', icon: ArrowLeftRight }
+  ];
+
+  const buildingAnalysisItems: NavItem[] = [
+    { id: 'reports', label: 'Reports', icon: FileText },
+    { 
+      id: 'alerts', 
+      label: 'Alerts', 
+      icon: Bell, 
+      badge: liveAlertCount > 0 ? liveAlertCount : undefined, 
+      badgeStyle: 'bg-rose-600 text-white rounded-full w-4 h-4 flex items-center justify-center text-[10px] font-black' 
+    },
+    { id: 'reorder-suggestions', label: 'Reorder Suggestions', icon: ShoppingCart },
+    { id: 'equipment-register', label: 'Equipment Register', icon: Cpu },
+    { id: 'attendance-salary', label: 'Attendance & Salary', icon: CalendarCheck }
+  ];
+
+  const buildingConfigItems: NavItem[] = [
+    { id: 'categories', label: 'Categories', icon: Tag },
+    { id: 'users', label: 'User Management', icon: Users },
+    { id: 'yearly-archive', label: 'Yearly Archive', icon: Archive }
+  ];
+
+  const renderNavGroup = (title: string | null, items: NavItem[]) => (
+    <div className="space-y-1">
+      {title && (
+        <div className="px-3 text-[10px] font-extrabold uppercase tracking-widest text-[#94A3B8] mb-1">
+          {title}
+        </div>
+      )}
+      <nav className="space-y-0.5">
+        {items.map((item) => {
+          const Icon = item.icon;
+          const isActive = activeTab === item.id;
+
+          return (
+            <button
+              key={item.id}
+              onClick={() => {
+                setActiveTab(item.id);
+                if (onClose) onClose();
+              }}
+              className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                isActive ? 'bg-[#2563EB] text-white shadow-lg shadow-blue-600/30' : 'text-[#94A3B8] hover:bg-[#162032] hover:text-white'
+              }`}
+            >
+              <div className="flex items-center gap-2.5">
+                <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-white' : 'text-[#94A3B8]'}`} />
+                <span>{item.label}</span>
+              </div>
+              {item.badge !== undefined && (
+                <span className={item.badgeStyle || `text-[9px] px-1.5 py-0.5 rounded font-black ${isActive ? 'bg-white/20 text-white' : 'bg-blue-900/40 text-blue-300 border border-blue-500/40'}`}>
+                  {item.badge}
+                </span>
+              )}
+            </button>
+          );
+        })}
+      </nav>
+    </div>
+  );
+
+  return (
+    <aside className="w-full h-full bg-[#0D111D] border-r border-[#1E293B] flex flex-col justify-between shrink-0 overflow-y-auto select-none font-sans z-30 scrollbar-thin scrollbar-thumb-[#1E293B]">
+      <div className="p-3.5 space-y-5">
+        <div className="p-3 bg-[#121927] border border-[#1E293B] rounded-2xl flex items-center justify-between shadow-sm relative">
+          <div className="flex items-center gap-2.5 overflow-hidden pr-8">
+            <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-white font-black shrink-0 shadow-md ${isBuilding ? 'bg-gradient-to-br from-emerald-600 to-teal-700' : 'bg-gradient-to-br from-blue-600 to-indigo-700'}`}>
+              {isBuilding ? <Building2 className="w-4 h-4" /> : <HardHat className="w-4 h-4" />}
+            </div>
+            <div className="truncate">
+              <div className="text-xs font-black text-white uppercase tracking-wider truncate">CONSTRUCTION PRO</div>
+              <div className="text-[10px] text-blue-400 font-mono truncate">
+                {isBuilding ? 'Building Construction ERP' : 'Road Construction ERP'}
+              </div>
+            </div>
+          </div>
+
+          {onClose && (
+            <button onClick={onClose} className="absolute right-3 lg:hidden p-1.5 rounded-xl bg-slate-800 text-slate-300 hover:text-white cursor-pointer">
+              <X className="w-4 h-4" />
+            </button>
+          )}
+        </div>
+
+        {isBuilding ? (
+          <>
+            {renderNavGroup(null, buildingCoreItems)}
+            {renderNavGroup('ANALYSIS', buildingAnalysisItems)}
+            {renderNavGroup('CONFIGURATION', buildingConfigItems)}
+          </>
+        ) : (
+          <>
+            {renderNavGroup('SITE OPERATIONS', roadOperationsItems)}
+            {renderNavGroup('ENGINEERING', roadEngineeringItems)}
+            {renderNavGroup('CONFIGURATION', roadConfigItems)}
+          </>
+        )}
+      </div>
+
+      <div className="p-3 border-t border-[#1E293B] bg-[#080C14] space-y-2 sticky bottom-0 z-10">
+        {isAdminUser && onSwitchDomain && (
+          <button
+            onClick={() => {
+              onSwitchDomain();
+              if (onClose) onClose();
+            }}
+            className="w-full py-2 px-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 rounded-xl text-xs font-bold text-white flex items-center justify-center gap-1.5 transition-all shadow-md shadow-blue-600/30 cursor-pointer"
+          >
+            <span>Switch to {isBuilding ? 'Road Construction' : 'Building Construction'}</span>
+          </button>
+        )}
+
+        <div className="p-2 rounded-xl bg-[#121927] border border-[#1E293B] flex items-center justify-between">
+          <div className="flex items-center gap-2.5 overflow-hidden">
+            <div className="w-8 h-8 rounded-full bg-blue-600/20 border border-blue-500/30 flex items-center justify-center font-bold text-xs text-blue-400 shrink-0">
+              {currentUser?.fullName?.charAt(0).toUpperCase() || currentUser?.name?.charAt(0).toUpperCase() || 'U'}
+            </div>
+            <div className="truncate">
+              <div className="text-xs font-bold text-white truncate">{currentUser?.fullName || currentUser?.name || 'User'}</div>
+              <div className="text-[10px] text-[#94A3B8] truncate">{currentUser?.role || 'SUPER_ADMIN'}</div>
+            </div>
+          </div>
+          <button onClick={logout} title="Logout" className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-[#162032] transition-colors cursor-pointer">
+            <LogOut className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+    </aside>
+  );
+};
+
+// ==========================================
 // Main Application Router
 // ==========================================
 export const AppContent: React.FC = () => {
@@ -1359,10 +1567,10 @@ export const AppContent: React.FC = () => {
                 {activeTab === 'transactions' && <StockTransactionsModule />}
                 {activeTab === 'categories' && <BuildingMaterialCategoriesModule />}
                 {activeTab === 'reports' && <BuildingReportsModule />}
+                {activeTab === 'alerts' && <BuildingAlertsModule onNavigateTab={setActiveTab} />}
                 {activeTab === 'users' && <UserManagementModule />}
 
                 {/* Scaffolding for remaining pending tabs */}
-                {activeTab === 'alerts' && <GenericView title="Alerts" subtitle="Low inventory & critical reorder notifications" icon={Bell} />}
                 {activeTab === 'reorder-suggestions' && <GenericView title="Reorder Suggestions" subtitle="Automated purchase order recommendations" icon={ShoppingCart} />}
                 {activeTab === 'equipment-register' && <GenericView title="Equipment Register" subtitle="Centering plates, props, and batching plant logs" icon={Cpu} />}
                 {activeTab === 'attendance-salary' && <GenericView title="Attendance & Salary" subtitle="Site labor muster roll and payroll disbursements" icon={CalendarCheck} />}
