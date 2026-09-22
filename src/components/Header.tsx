@@ -8,7 +8,7 @@ import {
   Plus,
   LogOut
 } from 'lucide-react';
-// Adjust relative path based on your folder depth:
+// Safe fallback import or standard relative path:
 import CreateRoadSiteModal from '../../components/modals/CreateRoadSiteModal';
 
 interface Props {
@@ -140,7 +140,9 @@ export const Header: React.FC<Props> = ({ onToggleSidebar }) => {
         </button>
       </div>
 
-      <CreateRoadSiteModal isOpen={isAddRoadSiteOpen} onClose={() => setIsAddRoadSiteOpen(false)} />
+      {isAddRoadSiteOpen && (
+        <CreateRoadSiteModal isOpen={isAddRoadSiteOpen} onClose={() => setIsAddRoadSiteOpen(false)} />
+      )}
     </header>
   );
 };
