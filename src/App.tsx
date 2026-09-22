@@ -33,37 +33,23 @@ import {
   AlertTriangle,
   RotateCcw,
   Archive,
-  Compass,
-  FileText,
-  Bell,
-  CalendarCheck
+  Compass
 } from 'lucide-react';
 
-// ==========================================
-// Error Boundary (Prevents Blank Black Screens)
-// ==========================================
-interface ErrorBoundaryProps {
-  children: ReactNode;
-}
-interface ErrorBoundaryState {
-  hasError: boolean;
-  errorText: string;
-}
+interface ErrorBoundaryProps { children: ReactNode; }
+interface ErrorBoundaryState { hasError: boolean; errorText: string; }
 
 class AppErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
   constructor(props: ErrorBoundaryProps) {
     super(props);
     this.state = { hasError: false, errorText: '' };
   }
-
   static getDerivedStateFromError(error: Error): ErrorBoundaryState {
-    return { hasError: true, errorText: error.message || 'Unknown runtime render error' };
+    return { hasError: true, errorText: error.message || 'Unknown render error' };
   }
-
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error('AppErrorBoundary caught error:', error, errorInfo);
+    console.error('AppErrorBoundary:', error, errorInfo);
   }
-
   render() {
     if (this.state.hasError) {
       return (
@@ -102,11 +88,7 @@ class AppErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState>
   }
 }
 
-const GenericView: React.FC<{
-  title: string;
-  subtitle: string;
-  icon: React.ComponentType<{ className?: string }>;
-}> = ({ title, subtitle, icon: Icon }) => (
+const GenericView: React.FC<{ title: string; subtitle: string; icon: React.ComponentType<{ className?: string }>; }> = ({ title, subtitle, icon: Icon }) => (
   <div className="p-6 rounded-3xl bg-[#0c1427] border border-[#182643] shadow-2xl space-y-4 font-sans text-slate-100">
     <div className="flex items-center gap-3">
       <div className="w-10 h-10 rounded-2xl bg-blue-600/20 border border-blue-500/30 flex items-center justify-center text-blue-400">
@@ -123,9 +105,6 @@ const GenericView: React.FC<{
   </div>
 );
 
-// ==========================================
-// Main Application Router
-// ==========================================
 export const AppContent: React.FC = () => {
   const {
     isAuthenticated,
@@ -143,15 +122,11 @@ export const AppContent: React.FC = () => {
   const userScope = currentUser?.allowedScope || 'ROAD_ONLY';
 
   const [projectType, setProjectType] = useState<'ROAD' | 'BUILDING' | null>(() => {
-    if (!isAdmin) {
-      return userScope === 'BUILDING_ONLY' ? 'BUILDING' : 'ROAD';
-    }
-
+    if (!isAdmin) return userScope === 'BUILDING_ONLY' ? 'BUILDING' : 'ROAD';
     try {
       const saved = sessionStorage.getItem('CONSTRUCTION_PRO_DOMAIN_SESSION');
       if (saved === 'ROAD' || saved === 'BUILDING') return saved;
     } catch {}
-
     return null;
   });
 
@@ -180,9 +155,7 @@ export const AppContent: React.FC = () => {
     }
   }, [userScope, isAdmin, appDomain, projectType, setAppDomain]);
 
-  if (!isAuthenticated) {
-    return <LoginPage />;
-  }
+  if (!isAuthenticated) return <LoginPage />;
 
   if (!projectType && isAdmin) {
     return (
@@ -231,7 +204,6 @@ export const AppContent: React.FC = () => {
       />
 
       <div className="flex flex-1 relative h-[calc(100vh-56px)] overflow-hidden">
-        {/* Desktop Sidebar */}
         <div className="hidden lg:block h-full shrink-0 w-64">
           <Sidebar
             activeTab={activeTab}
@@ -251,7 +223,6 @@ export const AppContent: React.FC = () => {
           />
         </div>
 
-        {/* Mobile Sidebar */}
         {mobileSidebarOpen && (
           <div className="fixed inset-0 z-50 lg:hidden flex">
             <div 
@@ -280,15 +251,13 @@ export const AppContent: React.FC = () => {
           </div>
         )}
 
-        {/* Main Content Area */}
-        <main className="flex-1 w-full min-w-0 p-6 overflow-y-auto max-h-[calc(100vh-56px)] scrollbar-thin scrollbar-thumb-[#1E293B] scrollbar-track-transparent">
+        <main className="flex-1 w-full min-w-0 p-6 overflow-y-auto max-h-[calc(100vh-56px)] scrollbar-thin scrollbar-thumb-[#1E293B]">
           <div className="max-w-7xl mx-auto pb-12 w-full overflow-x-hidden">
             {activeTab === 'dashboard' && <SiteCentricMidnightDashboard onNavigateTab={setActiveTab} />}
             {(activeTab === 'road-sites' || activeTab === 'sites') && (
               <RoadSitesManagerModule projectType={activeDomain} onNavigateTab={setActiveTab} />
             )}
 
-            {/* ROAD Construction Routes */}
             {activeDomain === 'ROAD' && (
               <>
                 {activeTab === 'haulage-trips' && <MaterialHaulageTripsModule />}
@@ -302,7 +271,6 @@ export const AppContent: React.FC = () => {
               </>
             )}
 
-            {/* BUILDING Construction Routes */}
             {activeDomain === 'BUILDING' && (
               <>
                 {activeTab === 'products' && <ProductsMasterModule />}
