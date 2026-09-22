@@ -1,595 +1,475 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { useERP } from '../../context/ERPContext';
+import React, { useState, useEffect } from 'react';
+import { useERP } from '../context/ERPContext';
 import {
-  Users,
-  Plus,
-  Edit2,
-  Trash2,
-  CheckCircle2,
-  X,
-  UserCheck,
-  Eye,
-  EyeOff,
-  Lock,
-  Building2,
+  LayoutDashboard,
+  Truck,
+  Fuel,
+  DollarSign,
+  Calculator,
+  HardHat,
+  LogOut,
   Milestone,
-  Layers,
-  Search,
-  ShieldCheck,
-  Briefcase
+  Users,
+  Package,
+  ArrowLeftRight,
+  FileText,
+  Bell,
+  CalendarCheck,
+  Tag,
+  Archive,
+  Building2,
+  CreditCard,
+  Plus,
+  Compass,
+  X
 } from 'lucide-react';
 
-export type UserRole =
-  | 'SUPER_ADMIN'
-  | 'STORE_MANAGER'
-  | 'SITE_SUPERVISOR'
-  | 'SITE_ENGINEER'
-  | 'AUDITOR';
-
-export type AllowedModuleScope = 'ROAD_ONLY' | 'BUILDING_ONLY' | 'BOTH_ROAD_AND_BUILDING';
-
-export interface SystemUser {
-  id: string;
-  fullName: string;
-  username: string;
-  password?: string;
-  role: UserRole;
-  allowedScope: AllowedModuleScope;
-  department: string;
-  status: 'Active' | 'Inactive';
+interface Props {
+  activeTab: string;
+  setActiveTab: (tab: string) => void;
+  projectType?: 'ROAD' | 'BUILDING';
+  onSwitchDomain?: () => void;
+  onClose?: () => void;
 }
 
-const STORAGE_USERS_KEY = 'PAVETRACK_AUTHORIZED_PERSONNEL_V2';
+export interface NavItem {
+  id: string;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  badge?: string | number;
+  badgeStyle?: string;
+  isCustom?: boolean;
+}
 
-const INITIAL_USERS: SystemUser[] = [
-  {
-    id: 'usr-1',
-    fullName: 'Habibulla Bilgi',
-    username: 'admin',
-    password: 'Password@123',
-    role: 'SUPER_ADMIN',
-    allowedScope: 'BOTH_ROAD_AND_BUILDING',
-    department: 'Operations',
-    status: 'Active'
-  },
-  {
-    id: 'usr-2',
-    fullName: 'Ramesh Patil',
-    username: 'ramesh_road',
-    password: 'Password@123',
-    role: 'SITE_SUPERVISOR',
-    allowedScope: 'ROAD_ONLY',
-    department: 'Road Execution',
-    status: 'Active'
-  },
-  {
-    id: 'usr-3',
-    fullName: 'Suresh Kumar',
-    username: 'suresh_bldg',
-    password: 'Password@123',
-    role: 'STORE_MANAGER',
-    allowedScope: 'BUILDING_ONLY',
-    department: 'Building Materials',
-    status: 'Active'
-  }
-];
+const STORAGE_CUSTOM_SIDEBAR_TABS = 'CONSTRUCTION_PRO_CUSTOM_SIDEBAR_TABS_V1';
+const STORAGE_BUILDING_PRODUCTS_KEY = 'CONSTRUCTION_PRO_BUILDING_PRODUCTS_NO_NAME_V1';
 
-export const UserManagement: React.FC = () => {
-  const {
-    currentUser,
-    userRole,
-    usersList = [],
-    addManagedUser,
-    updateManagedUser,
-    deleteManagedUser
-  } = useERP() as any;
+export const Sidebar: React.FC<Props> = ({
+  activeTab,
+  setActiveTab,
+  projectType = 'ROAD',
+  onSwitchDomain,
+  onClose
+}) => {
+  const { currentUser, logout } = useERP() as any;
+  const isBuilding = projectType === 'BUILDING';
 
-  // Strict Admin Check
-  const isAdmin = useMemo(() => {
-    const directRole = String(userRole || currentUser?.role || '').trim().toUpperCase();
-    return directRole === 'SUPER_ADMIN' || directRole === 'ADMIN' || directRole.includes('ADMIN');
-  }, [userRole, currentUser]);
+  // Dynamic live inventory alert count from local storage
+  const [liveAlertsCount, setLiveAlertsCount] = useState<number>(0);
 
-  const [users, setUsers] = useState<SystemUser[]>(() => {
+  // Dynamic custom tabs added directly through sidebar UI
+  const [customTabs, setCustomTabs] = useState<NavItem[]>(() => {
     try {
-      if (typeof window !== 'undefined') {
-        const saved = localStorage.getItem(STORAGE_USERS_KEY);
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            return parsed.map((u: any) => ({
-              id: u.id || `usr-${Math.random().toString(36).substring(2, 7)}`,
-              fullName: u.fullName || u.name || 'User',
-              username: u.username || (u.email ? u.email.split('@')[0] : 'user'),
-              password: u.password || 'Password@123',
-              role: (u.role || 'SITE_SUPERVISOR') as UserRole,
-              allowedScope: (u.allowedScope || 'BOTH_ROAD_AND_BUILDING') as AllowedModuleScope,
-              department: u.department || 'Operations',
-              status: (u.status || 'Active') as 'Active' | 'Inactive'
-            }));
-          }
-        }
+      const saved = localStorage.getItem(STORAGE_CUSTOM_SIDEBAR_TABS);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return parsed.map((t: any) => ({
+          ...t,
+          icon: Compass
+        }));
       }
-      return INITIAL_USERS;
-    } catch {
-      return INITIAL_USERS;
-    }
+    } catch {}
+    return [];
   });
 
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [fullName, setFullName] = useState('');
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [role, setRole] = useState<UserRole>('SITE_SUPERVISOR');
-  const [allowedScope, setAllowedScope] = useState<AllowedModuleScope>('BOTH_ROAD_AND_BUILDING');
-  const [department, setDepartment] = useState('Operations');
+  const [isAddTabModalOpen, setIsAddTabModalOpen] = useState(false);
+  const [newTabLabel, setNewTabLabel] = useState('');
 
-  // Search & Filter
-  const [searchQuery, setSearchQuery] = useState('');
-  const [domainFilter, setDomainFilter] = useState<'ALL' | 'ROAD' | 'BUILDING'>('ALL');
-
-  // Auto-sync state to localStorage
   useEffect(() => {
-    try {
-      if (typeof window !== 'undefined') {
-        localStorage.setItem(STORAGE_USERS_KEY, JSON.stringify(users));
-        localStorage.setItem('CONSTRUCTION_PRO_ERP_STORAGE_V7_USER_ACCOUNTS', JSON.stringify(users));
+    const updateAlertCount = () => {
+      try {
+        const raw = localStorage.getItem(STORAGE_BUILDING_PRODUCTS_KEY);
+        if (!raw) return setLiveAlertsCount(0);
+        const prods = JSON.parse(raw);
+        if (Array.isArray(prods)) {
+          const count = prods.filter(
+            (p: any) => Number(p?.currentStock || 0) <= Number(p?.minThreshold || 20)
+          ).length;
+          setLiveAlertsCount(count);
+        }
+      } catch {
+        setLiveAlertsCount(0);
       }
-    } catch (err) {
-      console.error('Failed saving users to localStorage', err);
-    }
-  }, [users]);
+    };
 
-  const handleEdit = (user: SystemUser) => {
-    if (!isAdmin) {
-      alert('Access Denied: Only administrators have permission to edit users.');
-      return;
-    }
-    setEditingId(user.id);
-    setFullName(user.fullName || '');
-    setUsername(user.username || '');
-    setPassword(user.password || '');
-    setRole(user.role || 'SITE_SUPERVISOR');
-    setAllowedScope(user.allowedScope || 'BOTH_ROAD_AND_BUILDING');
-    setDepartment(user.department || 'Operations');
-  };
+    updateAlertCount();
+    window.addEventListener('storage', updateAlertCount);
+    window.addEventListener('focus', updateAlertCount);
+    return () => {
+      window.removeEventListener('storage', updateAlertCount);
+      window.removeEventListener('focus', updateAlertCount);
+    };
+  }, []);
 
-  const handleCancelEdit = () => {
-    setEditingId(null);
-    setFullName('');
-    setUsername('');
-    setPassword('');
-    setRole('SITE_SUPERVISOR');
-    setAllowedScope('BOTH_ROAD_AND_BUILDING');
-    setDepartment('Operations');
-  };
-
-  const handleDelete = (id: string, name: string) => {
-    if (!isAdmin) {
-      alert('Access Denied: Only administrators have permission to delete users.');
-      return;
-    }
-    if (typeof window !== 'undefined' && window.confirm(`Are you sure you want to permanently delete user "${name}"?`)) {
-      setUsers((prev) => prev.filter((u) => u.id !== id));
-      if (typeof deleteManagedUser === 'function') {
-        deleteManagedUser(id);
-      }
-      if (editingId === id) {
-        handleCancelEdit();
-      }
-    }
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleAddCustomTab = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!isAdmin) {
-      alert('Access Denied: Only administrators can create or edit users.');
-      return;
-    }
-    if (!fullName.trim() || !username.trim()) return;
+    if (!newTabLabel.trim()) return;
 
-    if (editingId) {
-      const updatedList = users.map((u) =>
-        u.id === editingId
-          ? {
-              ...u,
-              fullName: fullName.trim(),
-              username: username.trim().toLowerCase(),
-              password: password.trim() ? password.trim() : u.password,
-              role,
-              allowedScope,
-              department: department.trim() || 'Operations'
-            }
-          : u
+    const slug = newTabLabel.trim().toLowerCase().replace(/[^a-z0-9]/g, '-');
+    const newTab: NavItem = {
+      id: `custom-${slug}`,
+      label: newTabLabel.trim(),
+      icon: Compass,
+      isCustom: true
+    };
+
+    const updated = [...customTabs, newTab];
+    setCustomTabs(updated);
+    try {
+      localStorage.setItem(
+        STORAGE_CUSTOM_SIDEBAR_TABS,
+        JSON.stringify(updated.map((t) => ({ id: t.id, label: t.label, isCustom: true })))
       );
-      setUsers(updatedList);
-      if (typeof updateManagedUser === 'function') {
-        updateManagedUser(editingId, {
-          fullName: fullName.trim(),
-          name: fullName.trim(),
-          username: username.trim().toLowerCase(),
-          password: password.trim() || undefined,
-          role: role as any,
-          allowedScope,
-          department: department.trim() || 'Operations'
-        });
-      }
-      handleCancelEdit();
-    } else {
-      const newId = `usr-${Date.now().toString().slice(-4)}`;
-      const newUser: SystemUser = {
-        id: newId,
-        fullName: fullName.trim(),
-        username: username.trim().toLowerCase(),
-        password: password.trim() || 'Password@123',
-        role,
-        allowedScope,
-        department: department.trim() || 'Operations',
-        status: 'Active'
-      };
-      setUsers((prev) => [newUser, ...prev]);
-      if (typeof addManagedUser === 'function') {
-        addManagedUser({
-          name: fullName.trim(),
-          fullName: fullName.trim(),
-          username: username.trim().toLowerCase(),
-          password: password.trim() || 'Password@123',
-          email: `${username.trim().toLowerCase()}@erp.internal`,
-          role: role as any,
-          allowedScope,
-          department: department.trim() || 'Operations',
-          status: 'Active'
-        });
-      }
-      handleCancelEdit();
+    } catch {}
+
+    setNewTabLabel('');
+    setIsAddTabModalOpen(false);
+    setActiveTab(newTab.id);
+    if (onClose) onClose();
+  };
+
+  const handleDeleteCustomTab = (tabId: string) => {
+    const updated = customTabs.filter((t) => t.id !== tabId);
+    setCustomTabs(updated);
+    try {
+      localStorage.setItem(
+        STORAGE_CUSTOM_SIDEBAR_TABS,
+        JSON.stringify(updated.map((t) => ({ id: t.id, label: t.label, isCustom: true })))
+      );
+    } catch {}
+    if (activeTab === tabId) {
+      setActiveTab('dashboard');
     }
   };
 
-  const filteredUsers = useMemo(() => {
-    return users.filter((u) => {
-      const q = searchQuery.toLowerCase();
-      const matchesSearch =
-        u.fullName.toLowerCase().includes(q) ||
-        u.username.toLowerCase().includes(q) ||
-        u.department.toLowerCase().includes(q) ||
-        u.role.toLowerCase().includes(q);
-
-      const matchesDomain =
-        domainFilter === 'ALL' ||
-        (domainFilter === 'ROAD' && (u.allowedScope === 'ROAD_ONLY' || u.allowedScope === 'BOTH_ROAD_AND_BUILDING')) ||
-        (domainFilter === 'BUILDING' && (u.allowedScope === 'BUILDING_ONLY' || u.allowedScope === 'BOTH_ROAD_AND_BUILDING'));
-
-      return matchesSearch && matchesDomain;
-    });
-  }, [users, searchQuery, domainFilter]);
-
-  const getRoleBadgeStyle = (r: string) => {
-    switch (r) {
-      case 'SUPER_ADMIN':
-        return 'bg-blue-900/40 text-blue-400 border border-blue-500/30';
-      case 'STORE_MANAGER':
-        return 'bg-indigo-900/40 text-indigo-400 border border-indigo-500/30';
-      case 'SITE_SUPERVISOR':
-        return 'bg-sky-900/40 text-sky-400 border border-sky-500/30';
-      case 'SITE_ENGINEER':
-        return 'bg-emerald-900/40 text-emerald-400 border border-emerald-500/30';
-      case 'AUDITOR':
-        return 'bg-amber-900/40 text-amber-400 border border-amber-500/30';
-      default:
-        return 'bg-slate-800 text-slate-300 border border-slate-700';
+  // ==========================================
+  // ROAD CONSTRUCTION NAVIGATION ITEMS
+  // ==========================================
+  const roadOperationsItems: NavItem[] = [
+    { id: 'dashboard', label: 'Site Overview', icon: LayoutDashboard },
+    {
+      id: 'road-sites',
+      label: 'Ongoing Site',
+      icon: Milestone,
+      badge: 'Sites',
+      badgeStyle: 'bg-blue-900/40 text-blue-300 border border-blue-500/40'
+    },
+    {
+      id: 'haulage-trips',
+      label: 'Trips',
+      icon: Truck,
+      badge: 'Trips',
+      badgeStyle: 'bg-[#064E3B] text-[#34D399] border border-[#065F46]'
+    },
+    {
+      id: 'vendor-advances',
+      label: 'Vendor Advance',
+      icon: CreditCard,
+      badge: 'Advance',
+      badgeStyle: 'bg-amber-950/80 text-amber-400 border border-amber-800/60'
+    },
+    {
+      id: 'diesel',
+      label: 'Diesel',
+      icon: Fuel,
+      badge: 'Diesel',
+      badgeStyle: 'bg-amber-950/60 text-amber-300 border border-amber-800'
+    },
+    {
+      id: 'site-expenses',
+      label: 'Site Expense',
+      icon: DollarSign,
+      badge: 'Petty Cash',
+      badgeStyle: 'bg-[#162032] text-blue-400 border border-[#1E293B]'
     }
-  };
+  ];
 
-  const getScopeBadge = (scope: AllowedModuleScope) => {
-    switch (scope) {
-      case 'ROAD_ONLY':
-        return (
-          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-950/40 text-amber-400 border border-amber-500/30 flex items-center gap-1">
-            <Milestone className="w-3 h-3" />
-            <span>Road Only</span>
-          </span>
-        );
-      case 'BUILDING_ONLY':
-        return (
-          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-purple-950/40 text-purple-400 border border-purple-500/30 flex items-center gap-1">
-            <Building2 className="w-3 h-3" />
-            <span>Building Only</span>
-          </span>
-        );
-      case 'BOTH_ROAD_AND_BUILDING':
-      default:
-        return (
-          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-cyan-950/40 text-cyan-400 border border-cyan-500/30 flex items-center gap-1">
-            <Layers className="w-3 h-3" />
-            <span>Road & Building</span>
-          </span>
-        );
+  const roadEngineeringItems: NavItem[] = [
+    {
+      id: 'yield_calculator',
+      label: 'Road Trip Calculator',
+      icon: Calculator,
+      badge: 'MoRTH',
+      badgeStyle: 'bg-blue-900/60 text-blue-300 border border-blue-500/40 font-mono'
+    },
+    {
+      id: 'machinery_fleet',
+      label: 'Machinery',
+      icon: HardHat
     }
-  };
+  ];
+
+  const roadConfigItems: NavItem[] = [
+    {
+      id: 'categories',
+      label: 'Categories',
+      icon: Tag,
+      badge: 'Rates',
+      badgeStyle: 'bg-emerald-950/60 text-emerald-300 border border-emerald-800'
+    },
+    {
+      id: 'users',
+      label: 'User Management',
+      icon: Users,
+      badge: 'RBAC',
+      badgeStyle: 'bg-indigo-900/40 text-indigo-300 border border-indigo-500/40'
+    }
+  ];
+
+  // ==========================================
+  // BUILDING CONSTRUCTION NAVIGATION ITEMS
+  // ==========================================
+  const buildingCoreItems: NavItem[] = [
+    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    {
+      id: 'road-sites',
+      label: 'Ongoing Site',
+      icon: Milestone,
+      badge: 'Sites',
+      badgeStyle: 'bg-emerald-950 text-emerald-400 border border-emerald-800'
+    },
+    { id: 'products', label: 'Products', icon: Package },
+    { id: 'transactions', label: 'Transactions', icon: ArrowLeftRight }
+  ];
+
+  const buildingAnalysisItems: NavItem[] = [
+    { id: 'reports', label: 'Reports', icon: FileText },
+    {
+      id: 'building_calculator',
+      label: 'RCC Calculator',
+      icon: Calculator,
+      badge: 'IS 456',
+      badgeStyle: 'bg-cyan-950/60 text-cyan-300 border border-cyan-800 font-mono'
+    },
+    {
+      id: 'alerts',
+      label: 'Alerts',
+      icon: Bell,
+      badge: liveAlertsCount > 0 ? liveAlertsCount : undefined,
+      badgeStyle: 'bg-rose-600 text-white rounded-full w-4 h-4 flex items-center justify-center text-[10px] font-black'
+    },
+    { id: 'attendance-salary', label: 'Attendance & Salary', icon: CalendarCheck }
+  ];
+
+  const buildingConfigItems: NavItem[] = [
+    { id: 'categories', label: 'Categories', icon: Tag },
+    { id: 'users', label: 'User Management', icon: Users },
+    { id: 'yearly-archive', label: 'Yearly Archive', icon: Archive }
+  ];
+
+  const renderNavGroup = (title: string | null, items: NavItem[]) => (
+    <div className="space-y-1">
+      {title && (
+        <div className="px-3 text-[10px] font-extrabold uppercase tracking-widest text-[#94A3B8] mb-1">
+          {title}
+        </div>
+      )}
+      <nav className="space-y-1">
+        {items.map((item) => {
+          const Icon = item.icon;
+          const isActive = activeTab === item.id;
+
+          return (
+            <div key={item.id} className="relative group">
+              <button
+                onClick={() => {
+                  setActiveTab(item.id);
+                  if (onClose) onClose();
+                }}
+                className={`w-full flex items-center justify-between px-3 py-2.5 sm:py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer active:scale-[0.98] ${
+                  isActive
+                    ? 'bg-[#2563EB] text-white shadow-lg shadow-blue-600/30'
+                    : 'text-[#94A3B8] hover:bg-[#162032] hover:text-white'
+                }`}
+              >
+                <div className="flex items-center gap-2.5 truncate">
+                  <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-white' : 'text-[#94A3B8]'}`} />
+                  <span className="truncate">{item.label}</span>
+                </div>
+                {item.badge !== undefined && (
+                  <span
+                    className={
+                      item.badgeStyle ||
+                      `text-[9px] px-1.5 py-0.5 rounded font-black ${
+                        isActive ? 'bg-white/20 text-white' : 'bg-blue-900/40 text-blue-300 border border-blue-500/40'
+                      }`
+                    }
+                  >
+                    {item.badge}
+                  </span>
+                )}
+              </button>
+
+              {item.isCustom && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDeleteCustomTab(item.id);
+                  }}
+                  className="absolute right-2 top-2.5 p-1 text-slate-500 hover:text-rose-400 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                  title="Remove Custom Tab"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              )}
+            </div>
+          );
+        })}
+      </nav>
+    </div>
+  );
 
   return (
-    <div className="p-4 sm:p-6 space-y-6 font-sans text-slate-100 min-h-screen bg-[#070d18]">
-      {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2.5">
-            <Users className="w-6 h-6 text-sky-400" />
-            <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight">
-              User Management & Role Permissions
-            </h1>
+    <aside className="w-full h-full bg-[#0D111D] border-r border-[#1E293B] flex flex-col justify-between shrink-0 overflow-y-auto select-none font-sans z-30 scrollbar-thin scrollbar-thumb-[#1E293B]">
+      <div className="p-3.5 space-y-5">
+        <div className="p-3 bg-[#121927] border border-[#1E293B] rounded-2xl flex items-center justify-between shadow-sm relative">
+          <div className="flex items-center gap-2.5 overflow-hidden pr-8">
+            <div
+              className={`w-8 h-8 rounded-xl flex items-center justify-center text-white font-black shrink-0 shadow-md ${
+                isBuilding ? 'bg-gradient-to-br from-emerald-600 to-teal-700' : 'bg-gradient-to-br from-blue-600 to-indigo-700'
+              }`}
+            >
+              {isBuilding ? <Building2 className="w-4 h-4" /> : <HardHat className="w-4 h-4" />}
+            </div>
+            <div className="truncate">
+              <div className="text-xs font-black text-white uppercase tracking-wider truncate">CONSTRUCTION PRO</div>
+              <div className="text-[10px] text-blue-400 font-mono truncate">
+                {isBuilding ? 'Building Construction ERP' : 'Road Construction ERP'}
+              </div>
+            </div>
           </div>
-          <p className="text-xs text-slate-400 mt-1">
-            RBAC matrix for road site operators, building engineers, storekeepers, and management[cite: 1].
-          </p>
+
+          {onClose && (
+            <button
+              onClick={onClose}
+              className="absolute right-3 lg:hidden p-1.5 rounded-xl bg-slate-800 text-slate-300 hover:text-white cursor-pointer"
+              title="Close Menu"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
         </div>
 
-        {/* Domain Scope Filter Tabs */}
-        <div className="flex items-center gap-1.5 p-1 bg-[#0b1322] border border-[#1e293b] rounded-xl text-xs">
-          <button
-            type="button"
-            onClick={() => setDomainFilter('ALL')}
-            className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${
-              domainFilter === 'ALL' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-400 hover:text-white'
-            }`}
-          >
-            All Accounts ({users.length})
-          </button>
-          <button
-            type="button"
-            onClick={() => setDomainFilter('ROAD')}
-            className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer flex items-center gap-1 ${
-              domainFilter === 'ROAD' ? 'bg-amber-600 text-white shadow-md' : 'text-slate-400 hover:text-white'
-            }`}
-          >
-            <Milestone className="w-3.5 h-3.5" />
-            <span>Road Access</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setDomainFilter('BUILDING')}
-            className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer flex items-center gap-1 ${
-              domainFilter === 'BUILDING' ? 'bg-purple-600 text-white shadow-md' : 'text-slate-400 hover:text-white'
-            }`}
-          >
-            <Building2 className="w-3.5 h-3.5" />
-            <span>Building Access</span>
-          </button>
-        </div>
-      </div>
+        {isBuilding ? (
+          <div className="space-y-4">
+            {renderNavGroup(null, buildingCoreItems)}
+            {renderNavGroup('ANALYSIS', buildingAnalysisItems)}
+            {customTabs.length > 0 && renderNavGroup('CUSTOM MODULES', customTabs)}
+            {renderNavGroup('CONFIGURATION', buildingConfigItems)}
 
-      {/* 2-Column Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* Left Column: Form */}
-        <div className="lg:col-span-4 bg-[#0B1322] border border-[#1E293B] rounded-2xl p-5 shadow-xl">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-sm sm:text-base font-bold text-white flex items-center gap-2">
-              <ShieldCheck className="w-4 h-4 text-blue-400" />
-              <span>{editingId ? 'Edit User Credentials' : 'Create System User'}</span>
-            </h2>
-            {editingId && (
+            {/* Quick Add Custom Navigation Tab button */}
+            <div className="pt-1 px-1">
               <button
                 type="button"
-                onClick={handleCancelEdit}
-                className="text-xs text-slate-400 hover:text-white flex items-center gap-1 cursor-pointer"
+                onClick={() => setIsAddTabModalOpen(true)}
+                className="w-full py-2 px-3 rounded-xl border border-dashed border-[#1E293B] hover:border-blue-500/50 bg-[#070c18] hover:bg-[#121927] text-slate-400 hover:text-white text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
               >
-                <X className="w-3.5 h-3.5" />
-                <span>Cancel</span>
+                <Plus className="w-3.5 h-3.5 text-blue-400" />
+                <span>+ Add Custom Tab</span>
               </button>
-            )}
+            </div>
           </div>
+        ) : (
+          <div className="space-y-4">
+            {renderNavGroup('SITE OPERATIONS', roadOperationsItems)}
+            {renderNavGroup('ENGINEERING', roadEngineeringItems)}
+            {customTabs.length > 0 && renderNavGroup('CUSTOM MODULES', customTabs)}
+            {renderNavGroup('CONFIGURATION', roadConfigItems)}
 
-          <form onSubmit={handleSubmit} className="space-y-4 text-xs">
-            <div>
-              <label className="block text-slate-300 font-bold mb-1.5">Full Name *</label>
-              <input
-                type="text"
-                required
-                placeholder="e.g. Ramesh Patil"
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-                className="w-full px-3.5 py-2.5 bg-[#070D18] border border-[#1E293B] rounded-xl text-white outline-none focus:border-blue-500 placeholder-slate-500"
-              />
-            </div>
-
-            <div>
-              <label className="block text-slate-300 font-bold mb-1.5">Username *</label>
-              <input
-                type="text"
-                required
-                placeholder="e.g. ramesh_patil"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                className="w-full px-3.5 py-2.5 bg-[#070D18] border border-[#1E293B] rounded-xl text-white outline-none focus:border-blue-500 placeholder-slate-500 font-mono"
-              />
-            </div>
-
-            <div>
-              <label className="block text-slate-300 font-bold mb-1.5">
-                Password {editingId && <span className="font-normal text-slate-500">(leave blank to keep unchanged)</span>}
-              </label>
-              <div className="relative flex items-center">
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  required={!editingId}
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-3.5 pr-10 py-2.5 bg-[#070D18] border border-[#1E293B] rounded-xl text-white outline-none focus:border-blue-500 placeholder-slate-500 font-mono"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 text-slate-500 hover:text-slate-300 cursor-pointer"
-                >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-slate-300 font-bold mb-1.5">Access Role</label>
-              <select
-                value={role}
-                onChange={(e) => setRole(e.target.value as UserRole)}
-                className="w-full px-3.5 py-2.5 bg-[#070D18] border border-[#1E293B] rounded-xl text-white outline-none focus:border-blue-500 cursor-pointer"
+            <div className="pt-1 px-1">
+              <button
+                type="button"
+                onClick={() => setIsAddTabModalOpen(true)}
+                className="w-full py-2 px-3 rounded-xl border border-dashed border-[#1E293B] hover:border-blue-500/50 bg-[#070c18] hover:bg-[#121927] text-slate-400 hover:text-white text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
               >
-                <option value="SUPER_ADMIN">SUPER_ADMIN (Full Admin Access)</option>
-                <option value="SITE_SUPERVISOR">SITE_SUPERVISOR (Site Logs & Dispatches)</option>
-                <option value="STORE_MANAGER">STORE_MANAGER (Inventory Receipts & Issues)</option>
-                <option value="SITE_ENGINEER">SITE_ENGINEER (Yield Analysis & Progress)</option>
-                <option value="AUDITOR">AUDITOR (Read-Only Financial Audits)</option>
-              </select>
-            </div>
-
-            {/* Scope / Construction Access Permission */}
-            <div>
-              <label className="block text-slate-300 font-bold mb-1.5">Construction Domain Scope</label>
-              <select
-                value={allowedScope}
-                onChange={(e) => setAllowedScope(e.target.value as AllowedModuleScope)}
-                className="w-full px-3.5 py-2.5 bg-[#070D18] border border-sky-500/40 rounded-xl text-white outline-none focus:border-sky-400 cursor-pointer font-medium"
-              >
-                <option value="BOTH_ROAD_AND_BUILDING">Road & Building (Both Domains)</option>
-                <option value="ROAD_ONLY">Road Construction Only</option>
-                <option value="BUILDING_ONLY">Building Construction Only</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-slate-300 font-bold mb-1.5">Department</label>
-              <input
-                type="text"
-                placeholder="Operations"
-                value={department}
-                onChange={(e) => setDepartment(e.target.value)}
-                className="w-full px-3.5 py-2.5 bg-[#070D18] border border-[#1E293B] rounded-xl text-white outline-none focus:border-blue-500 placeholder-slate-500"
-              />
-            </div>
-
-            <button
-              type="submit"
-              className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-lg shadow-blue-600/30 transition-all flex items-center justify-center gap-2 cursor-pointer mt-2"
-            >
-              {editingId ? (
-                <>
-                  <CheckCircle2 className="w-4 h-4" />
-                  <span>Update User Account</span>
-                </>
-              ) : (
-                <>
-                  <Plus className="w-4 h-4" />
-                  <span>+ Create User Account</span>
-                </>
-              )}
-            </button>
-          </form>
-        </div>
-
-        {/* Right Column: Personnel Directory */}
-        <div className="lg:col-span-8 bg-[#0B1322] border border-[#1E293B] rounded-2xl p-5 shadow-xl space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#1E293B] pb-3">
-            <div>
-              <h2 className="text-sm sm:text-base font-bold text-white">
-                Authorized Personnel ({filteredUsers.length})
-              </h2>
-              <p className="text-[11px] text-slate-400">Manage security clearances and module routing privileges.</p>
-            </div>
-
-            <div className="relative w-full sm:w-64">
-              <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-slate-500" />
-              <input
-                type="text"
-                placeholder="Search user, role, department..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-3 py-1.5 bg-[#070D18] border border-[#1E293B] rounded-xl text-white outline-none focus:border-blue-500 placeholder-slate-500 text-xs"
-              />
+                <Plus className="w-3.5 h-3.5 text-blue-400" />
+                <span>+ Add Custom Tab</span>
+              </button>
             </div>
           </div>
+        )}
+      </div>
 
-          <div className="space-y-3">
-            {filteredUsers.length === 0 ? (
-              <div className="p-8 text-center text-slate-500 text-xs bg-[#070d18] rounded-xl border border-[#1e293b]">
-                No personnel accounts found matching your search or filter criteria.
-              </div>
-            ) : (
-              filteredUsers.map((user) => {
-                const displayName = user.fullName || 'User';
-                const initial = displayName.trim().charAt(0).toUpperCase() || 'U';
+      <div className="p-3 border-t border-[#1E293B] bg-[#080C14] space-y-2 sticky bottom-0 z-10 shadow-lg">
+        {onSwitchDomain && (
+          <button
+            onClick={() => {
+              onSwitchDomain();
+              if (onClose) onClose();
+            }}
+            className="w-full py-2.5 px-2 bg-[#121927] hover:bg-[#1b263b] border border-[#1E293B] rounded-xl text-xs font-bold text-slate-300 flex items-center justify-center gap-1.5 transition-colors cursor-pointer active:scale-[0.98]"
+          >
+            <span>Switch to {isBuilding ? 'Roads' : 'Buildings'}</span>
+          </button>
+        )}
 
-                return (
-                  <div
-                    key={user.id}
-                    className="p-4 rounded-2xl bg-[#070D18] border border-[#1E293B] hover:border-slate-700 flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-all shadow-sm"
-                  >
-                    {/* Left: User Details */}
-                    <div className="flex items-center gap-3.5">
-                      <div className="w-10 h-10 rounded-full bg-[#162032] border border-[#1E293B] flex items-center justify-center font-black text-white text-sm shrink-0">
-                        {initial}
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-bold text-white text-sm">{displayName}</span>
-                          <span className={`px-2 py-0.5 rounded text-[10px] font-extrabold uppercase ${getRoleBadgeStyle(user.role)}`}>
-                            {user.role}
-                          </span>
-                          {getScopeBadge(user.allowedScope || 'BOTH_ROAD_AND_BUILDING')}
-                        </div>
-                        <div className="flex items-center gap-2 mt-1 text-xs text-slate-400 font-mono">
-                          <span>@{user.username}</span>
-                          <span>•</span>
-                          <span className="flex items-center gap-1 text-[11px] text-slate-500">
-                            <Lock className="w-3 h-3 text-slate-600" />
-                            <span>••••••••</span>
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-1 text-[11px] text-slate-500 mt-0.5">
-                          <Briefcase className="w-3 h-3" />
-                          <span>Dept: {user.department || 'Operations'}</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Right: Status & Actions */}
-                    <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
-                      <div className="px-2.5 py-1 rounded-lg bg-emerald-950/40 border border-emerald-500/30 text-emerald-400 text-xs font-semibold flex items-center gap-1.5">
-                        <UserCheck className="w-3.5 h-3.5" />
-                        <span>Active</span>
-                      </div>
-
-                      {isAdmin && (
-                        <>
-                          <button
-                            type="button"
-                            onClick={() => handleEdit(user)}
-                            className="p-2 rounded-xl bg-[#131d33] hover:bg-blue-600/20 text-slate-400 hover:text-blue-400 border border-[#1E293B] hover:border-blue-500/40 transition-colors cursor-pointer"
-                            title="Edit User"
-                          >
-                            <Edit2 className="w-4 h-4" />
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() => handleDelete(user.id, displayName)}
-                            className="p-2 rounded-xl bg-[#131d33] hover:bg-rose-600/20 text-slate-400 hover:text-rose-400 border border-[#1E293B] hover:border-rose-500/40 transition-colors cursor-pointer"
-                            title="Delete User"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                );
-              })
-            )}
+        <div className="p-2 rounded-xl bg-[#121927] border border-[#1E293B] flex items-center justify-between">
+          <div className="flex items-center gap-2.5 overflow-hidden">
+            <div className="w-8 h-8 rounded-full bg-blue-600/20 border border-blue-500/30 flex items-center justify-center font-bold text-xs text-blue-400 shrink-0">
+              {currentUser?.name ? currentUser.name.charAt(0).toUpperCase() : 'H'}
+            </div>
+            <div className="truncate">
+              <div className="text-xs font-bold text-white truncate">{currentUser?.name || 'Habibulla Bilgi'}</div>
+              <div className="text-[10px] text-[#94A3B8] truncate">{currentUser?.role || 'Site Engineer & Admin'}</div>
+            </div>
           </div>
+          <button onClick={logout} title="Logout" className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-[#162032] transition-colors cursor-pointer shrink-0">
+            <LogOut className="w-4 h-4" />
+          </button>
         </div>
       </div>
-    </div>
+
+      {/* Modal: Add Custom Tab from Sidebar */}
+      {isAddTabModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-[#0b1120] border border-[#1e293b] rounded-2xl w-full max-w-sm p-5 shadow-2xl space-y-4 text-slate-100">
+            <div className="flex items-center justify-between border-b border-[#1e293b] pb-3">
+              <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                <Plus className="w-4 h-4 text-blue-400" />
+                <span>Add Module to Sidebar</span>
+              </h3>
+              <button
+                onClick={() => setIsAddTabModalOpen(false)}
+                className="text-slate-400 hover:text-white p-1 rounded-lg"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleAddCustomTab} className="space-y-3.5 text-xs">
+              <div>
+                <label className="block text-slate-300 font-bold mb-1">Module / Tab Name *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Scaffolding Logs, Subcontractor Ledger"
+                  value={newTabLabel}
+                  onChange={(e) => setNewTabLabel(e.target.value)}
+                  className="w-full px-3 py-2 bg-[#131b2e] border border-[#1e293b] rounded-xl text-white outline-none focus:border-blue-500 placeholder-slate-500"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2 border-t border-[#1e293b]">
+                <button
+                  type="button"
+                  onClick={() => setIsAddTabModalOpen(false)}
+                  className="px-3 py-1.5 rounded-lg text-slate-400 hover:text-white"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-bold"
+                >
+                  Add Tab
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </aside>
   );
 };
 
-export const UserManagementModule = UserManagement;
-export default UserManagement;
+export default Sidebar;
