@@ -5,11 +5,9 @@ import { LoginPage } from './components/auth/LoginPage';
 import { ProjectTypeSelectionPage } from './components/auth/ProjectTypeSelectionPage';
 import { SiteSelectionPage } from './components/auth/SiteSelectionPage';
 
-// Navigation & Layout Components
 import { Header } from './components/navigation/Header';
 import { Sidebar } from './components/navigation/Sidebar';
 
-// Dedicated Modules
 import { SiteCentricMidnightDashboard } from './components/dashboard/SiteCentricMidnightDashboard';
 import { RoadSitesManagerModule } from './components/sites/RoadSitesManagerModule';
 import { MaterialHaulageTripsModule } from './components/trips/MaterialHaulageTripsModule';
@@ -18,22 +16,27 @@ import { DieselFuelManagementModule } from './components/diesel/DieselFuelManage
 import { SiteCostExpensesModule } from './components/costing/SiteCostExpensesModule';
 import { RoadYieldCalculatorModule } from './components/calculator/RoadYieldCalculatorModule';
 import { MachineryFleetModule } from './components/machinery/MachineryFleetModule';
-import { RoadMaterialCategoriesModule } from './components/categories/RoadMaterialCategoriesModule';
+import StockTransactionsModule from './components/building/StockTransactionsModule';
+import { InstallAppButton } from './components/InstallAppButton';
+import { ThemeToggle } from './components/ThemeToggle';
+import { UserManagementModule } from './components/configuration/UserManagementModule';
 
 import { ProductsMasterModule } from './components/building/ProductsMasterModule';
-import StockTransactionsModule from './components/building/StockTransactionsModule';
-import { RCCCalculators } from './components/calculator/RCCCalculators';
-import { BuildingMaterialCategoriesModule } from './components/categories/BuildingMaterialCategoriesModule';
 import { BuildingReportsModule } from './components/building/BuildingReportsModule';
 import { BuildingAlertsModule } from './components/building/BuildingAlertsModule';
+import { BuildingMaterialCategoriesModule } from './components/categories/BuildingMaterialCategoriesModule';
+import { RoadMaterialCategoriesModule } from './components/categories/RoadMaterialCategoriesModule';
+import { RCCCalculators } from './components/calculator/RCCCalculators';
 import { AttendancePayrollModule } from './components/building/AttendancePayrollModule';
-import { UserManagementModule } from './components/configuration/UserManagementModule';
 
 import {
   AlertTriangle,
   RotateCcw,
   Archive,
-  Compass
+  Compass,
+  FileText,
+  Bell,
+  CalendarCheck
 } from 'lucide-react';
 
 // ==========================================
@@ -99,7 +102,6 @@ class AppErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState>
   }
 }
 
-// Fallback Generic Scaffold View for Custom Tabs
 const GenericView: React.FC<{
   title: string;
   subtitle: string;
@@ -252,8 +254,8 @@ export const AppContent: React.FC = () => {
         {/* Mobile Sidebar */}
         {mobileSidebarOpen && (
           <div className="fixed inset-0 z-50 lg:hidden flex">
-            <div
-              className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm"
+            <div 
+              className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm" 
               onClick={() => setMobileSidebarOpen(false)}
             />
             <div className="relative flex-1 max-w-[260px] w-full bg-[#0D111D] h-full flex flex-col z-50 shadow-2xl">
