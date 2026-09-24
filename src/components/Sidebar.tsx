@@ -19,7 +19,6 @@ import {
   Archive,
   Building2,
   CreditCard,
-  Plus,
   Compass,
   X
 } from 'lucide-react';
@@ -57,7 +56,7 @@ export const Sidebar: React.FC<Props> = ({
   // Dynamic live inventory alert count from local storage
   const [liveAlertsCount, setLiveAlertsCount] = useState<number>(0);
 
-  // Dynamic custom tabs added directly through sidebar UI
+  // Dynamic custom tabs from local storage
   const [customTabs, setCustomTabs] = useState<NavItem[]>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_CUSTOM_SIDEBAR_TABS);
@@ -71,9 +70,6 @@ export const Sidebar: React.FC<Props> = ({
     } catch {}
     return [];
   });
-
-  const [isAddTabModalOpen, setIsAddTabModalOpen] = useState(false);
-  const [newTabLabel, setNewTabLabel] = useState('');
 
   useEffect(() => {
     const updateAlertCount = () => {
@@ -100,33 +96,6 @@ export const Sidebar: React.FC<Props> = ({
       window.removeEventListener('focus', updateAlertCount);
     };
   }, []);
-
-  const handleAddCustomTab = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newTabLabel.trim()) return;
-
-    const slug = newTabLabel.trim().toLowerCase().replace(/[^a-z0-9]/g, '-');
-    const newTab: NavItem = {
-      id: `custom-${slug}`,
-      label: newTabLabel.trim(),
-      icon: Compass,
-      isCustom: true
-    };
-
-    const updated = [...customTabs, newTab];
-    setCustomTabs(updated);
-    try {
-      localStorage.setItem(
-        STORAGE_CUSTOM_SIDEBAR_TABS,
-        JSON.stringify(updated.map((t) => ({ id: t.id, label: t.label, isCustom: true })))
-      );
-    } catch {}
-
-    setNewTabLabel('');
-    setIsAddTabModalOpen(false);
-    setActiveTab(newTab.id);
-    if (onClose) onClose();
-  };
 
   const handleDeleteCustomTab = (tabId: string) => {
     const updated = customTabs.filter((t) => t.id !== tabId);
@@ -356,18 +325,6 @@ export const Sidebar: React.FC<Props> = ({
             {renderNavGroup('ANALYSIS', buildingAnalysisItems)}
             {customTabs.length > 0 && renderNavGroup('CUSTOM MODULES', customTabs)}
             {renderNavGroup('CONFIGURATION', buildingConfigItems)}
-
-            {/* Quick Add Custom Navigation Tab button */}
-            <div className="pt-1 px-1">
-              <button
-                type="button"
-                onClick={() => setIsAddTabModalOpen(true)}
-                className="w-full py-2 px-3 rounded-xl border border-dashed border-[#1E293B] hover:border-blue-500/50 bg-[#070c18] hover:bg-[#121927] text-slate-400 hover:text-white text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
-              >
-                <Plus className="w-3.5 h-3.5 text-blue-400" />
-                <span>+ Add Custom Tab</span>
-              </button>
-            </div>
           </div>
         ) : (
           <div className="space-y-4">
@@ -375,17 +332,6 @@ export const Sidebar: React.FC<Props> = ({
             {renderNavGroup('ENGINEERING', roadEngineeringItems)}
             {customTabs.length > 0 && renderNavGroup('CUSTOM MODULES', customTabs)}
             {renderNavGroup('CONFIGURATION', roadConfigItems)}
-
-            <div className="pt-1 px-1">
-              <button
-                type="button"
-                onClick={() => setIsAddTabModalOpen(true)}
-                className="w-full py-2 px-3 rounded-xl border border-dashed border-[#1E293B] hover:border-blue-500/50 bg-[#070c18] hover:bg-[#121927] text-slate-400 hover:text-white text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
-              >
-                <Plus className="w-3.5 h-3.5 text-blue-400" />
-                <span>+ Add Custom Tab</span>
-              </button>
-            </div>
           </div>
         )}
       </div>
@@ -418,56 +364,6 @@ export const Sidebar: React.FC<Props> = ({
           </button>
         </div>
       </div>
-
-      {/* Modal: Add Custom Tab from Sidebar */}
-      {isAddTabModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-[#0b1120] border border-[#1e293b] rounded-2xl w-full max-w-sm p-5 shadow-2xl space-y-4 text-slate-100">
-            <div className="flex items-center justify-between border-b border-[#1e293b] pb-3">
-              <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                <Plus className="w-4 h-4 text-blue-400" />
-                <span>Add Module to Sidebar</span>
-              </h3>
-              <button
-                onClick={() => setIsAddTabModalOpen(false)}
-                className="text-slate-400 hover:text-white p-1 rounded-lg"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <form onSubmit={handleAddCustomTab} className="space-y-3.5 text-xs">
-              <div>
-                <label className="block text-slate-300 font-bold mb-1">Module / Tab Name *</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Scaffolding Logs, Subcontractor Ledger"
-                  value={newTabLabel}
-                  onChange={(e) => setNewTabLabel(e.target.value)}
-                  className="w-full px-3 py-2 bg-[#131b2e] border border-[#1e293b] rounded-xl text-white outline-none focus:border-blue-500 placeholder-slate-500"
-                />
-              </div>
-
-              <div className="flex justify-end gap-2 pt-2 border-t border-[#1e293b]">
-                <button
-                  type="button"
-                  onClick={() => setIsAddTabModalOpen(false)}
-                  className="px-3 py-1.5 rounded-lg text-slate-400 hover:text-white"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-bold"
-                >
-                  Add Tab
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </aside>
   );
 };
