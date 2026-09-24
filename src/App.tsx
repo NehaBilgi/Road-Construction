@@ -19,13 +19,13 @@ import { MachineryFleetModule } from './components/machinery/MachineryFleetModul
 import StockTransactionsModule from './components/building/StockTransactionsModule';
 import { UserManagementModule } from './components/configuration/UserManagementModule';
 
-// Building & Road Categories correctly separated per directory structure
+// Building & Road Modules
 import { ProductsMasterModule } from './components/building/ProductsMasterModule';
 import { BuildingReportsModule } from './components/building/BuildingReportsModule';
 import { BuildingAlertsModule } from './components/building/BuildingAlertsModule';
 import { BuildingCategoriesModule } from './components/building/BuildingCategoriesModule';
 import { CategoriesModule as RoadMaterialCategoriesModule } from './components/configuration/CategoriesModule';
-import { RCCCalculators } from './components/building/RCCCalculators';
+import { RCCCalculators } from './components/calculator/RCCCalculators';
 import { AttendancePayrollModule } from './components/building/AttendancePayrollModule';
 
 import {
