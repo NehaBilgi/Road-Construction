@@ -9,7 +9,8 @@ import {
   Layers,
   Box,
   Building,
-  Footprints
+  Footprints,
+  Check
 } from 'lucide-react';
 
 export type StructuralType = 'SLAB' | 'COLUMN' | 'BEAM' | 'RCC_WALL' | 'STAIRS' | 'FOOTING';
@@ -17,74 +18,38 @@ export type UnitSystem = 'METRIC' | 'IMPERIAL';
 
 export interface ConcreteItem {
   id: string;
-  category: StructuralType;
+  categories: StructuralType[];
   label: string;
-  dimensionsText: string;
+  breakdownText: string;
   volumeM3: number;
   volumeCft: number;
   ratePerM3: number;
 }
 
-const STORAGE_RCC_ELEMENTS_KEY = 'CONSTRUCTION_PRO_RCC_CALCULATOR_ELEMENTS_V4';
+const STORAGE_RCC_ELEMENTS_KEY = 'CONSTRUCTION_PRO_RCC_CALCULATOR_ELEMENTS_V5';
 
 const INITIAL_ELEMENTS: ConcreteItem[] = [
   {
     id: 'RCC-1001',
-    category: 'SLAB',
-    label: 'Ground Floor Slab',
-    dimensionsText: '15.00m × 10.00m × 150mm',
-    volumeM3: 22.50,
-    volumeCft: 794.58,
+    categories: ['SLAB', 'COLUMN', 'BEAM'],
+    label: 'Ground Floor Complete Pour',
+    breakdownText: 'Slab (22.50m³) + Column (6.91m³) + Beam (4.97m³)',
+    volumeM3: 34.38,
+    volumeCft: 1214.12,
     ratePerM3: 4500
   },
   {
     id: 'RCC-1002',
-    category: 'FOOTING',
-    label: 'Isolated Footings (12 Nos)',
-    dimensionsText: '12 Nos (2.00m × 2.00m × 500mm)',
-    volumeM3: 24.00,
-    volumeCft: 847.55,
+    categories: ['FOOTING', 'RCC_WALL'],
+    label: 'Substructure & Lift Pit',
+    breakdownText: 'Footings (24.00m³) + Retaining Wall (10.24m³)',
+    volumeM3: 34.24,
+    volumeCft: 1209.18,
     ratePerM3: 4200
-  },
-  {
-    id: 'RCC-1003',
-    category: 'COLUMN',
-    label: 'Plinth Columns (12 Nos)',
-    dimensionsText: '12 Nos (300×600mm, H: 3.20m)',
-    volumeM3: 6.912,
-    volumeCft: 244.10,
-    ratePerM3: 4800
-  },
-  {
-    id: 'RCC-1004',
-    category: 'BEAM',
-    label: 'Main Plinth Beams (8 Nos)',
-    dimensionsText: '8 Nos (6.00m × 230×450mm)',
-    volumeM3: 4.968,
-    volumeCft: 175.44,
-    ratePerM3: 4600
-  },
-  {
-    id: 'RCC-1005',
-    category: 'RCC_WALL',
-    label: 'Lift Core Shear Wall',
-    dimensionsText: '2 Nos (8.00m L × 3.20m H × 200mm)',
-    volumeM3: 10.24,
-    volumeCft: 361.62,
-    ratePerM3: 5000
-  },
-  {
-    id: 'RCC-1006',
-    category: 'STAIRS',
-    label: 'Main Staircase Flight',
-    dimensionsText: '1 Flight (18 Steps, W: 1.20m, Waist: 150mm)',
-    volumeM3: 1.35,
-    volumeCft: 47.67,
-    ratePerM3: 4700
   }
 ];
 
-const CATEGORIES: { id: StructuralType; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
+const CATEGORY_DEFINITIONS: { id: StructuralType; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
   { id: 'SLAB', label: 'Slab / Deck', icon: Layers },
   { id: 'COLUMN', label: 'Column', icon: Box },
   { id: 'BEAM', label: 'Beam', icon: Building },
@@ -114,8 +79,8 @@ export const BuildingCalculatorModule: React.FC = () => {
   // Modal Input Unit Mode
   const [unitMode, setUnitMode] = useState<UnitSystem>('METRIC');
 
-  // Modal Generic States
-  const [category, setCategory] = useState<StructuralType>('SLAB');
+  // Multi-Category Active Selection
+  const [selectedCategories, setSelectedCategories] = useState<StructuralType[]>(['SLAB']);
   const [label, setLabel] = useState('');
   const [ratePerM3, setRatePerM3] = useState<number | ''>(4500);
 
@@ -160,81 +125,76 @@ export const BuildingCalculatorModule: React.FC = () => {
     localStorage.setItem(STORAGE_RCC_ELEMENTS_KEY, JSON.stringify(items));
   }, [items]);
 
-  const computedVolumes = useMemo(() => {
-    let m3 = 0;
-
-    if (unitMode === 'METRIC') {
-      switch (category) {
-        case 'SLAB': {
-          m3 = slabLen * slabWid * (slabThk / 1000);
-          break;
-        }
-        case 'COLUMN': {
-          m3 = colCount * (colDim1 / 1000) * (colDim2 / 1000) * colHgt;
-          break;
-        }
-        case 'BEAM': {
-          m3 = beamCount * beamLen * (beamWid / 1000) * (beamDep / 1000);
-          break;
-        }
-        case 'RCC_WALL': {
-          m3 = wallCount * wallLen * wallHgt * (wallThk / 1000);
-          break;
-        }
-        case 'STAIRS': {
-          const trM = stepTread / 1000;
-          const rM = stepRiser / 1000;
-          const wtM = waistSlabThk / 1000;
-          const stepsVol = 0.5 * trM * rM * stairWid * numberOfSteps;
-          const waistVol = Math.sqrt(trM * trM + rM * rM) * numberOfSteps * stairWid * wtM;
-          m3 = flightsCount * (stepsVol + waistVol);
-          break;
-        }
-        case 'FOOTING': {
-          m3 = footingCount * footingLen * footingWid * (footingDep / 1000);
-          break;
-        }
-      }
+  // Toggle selection of categories
+  const handleToggleCategory = (catId: StructuralType) => {
+    if (selectedCategories.includes(catId)) {
+      if (selectedCategories.length === 1) return; // keep at least one category selected
+      setSelectedCategories(selectedCategories.filter((id) => id !== catId));
     } else {
-      let cftRaw = 0;
-      switch (category) {
-        case 'SLAB': {
-          cftRaw = slabLen * slabWid * (slabThk / 12);
-          break;
-        }
-        case 'COLUMN': {
-          cftRaw = colCount * (colDim1 / 12) * (colDim2 / 12) * colHgt;
-          break;
-        }
-        case 'BEAM': {
-          cftRaw = beamCount * beamLen * (beamWid / 12) * (beamDep / 12);
-          break;
-        }
-        case 'RCC_WALL': {
-          cftRaw = wallCount * wallLen * wallHgt * (wallThk / 12);
-          break;
-        }
-        case 'STAIRS': {
-          const trFt = stepTread / 12;
-          const rFt = stepRiser / 12;
-          const wtFt = waistSlabThk / 12;
-          const stepsVol = 0.5 * trFt * rFt * stairWid * numberOfSteps;
-          const waistVol = Math.sqrt(trFt * trFt + rFt * rFt) * numberOfSteps * stairWid * wtFt;
-          cftRaw = flightsCount * (stepsVol + waistVol);
-          break;
-        }
-        case 'FOOTING': {
-          cftRaw = footingCount * footingLen * footingWid * (footingDep / 12);
-          break;
-        }
-      }
-      m3 = cftRaw / 35.3146667;
+      setSelectedCategories([...selectedCategories, catId]);
+    }
+  };
+
+  const handleSelectAllCategories = () => {
+    if (selectedCategories.length === CATEGORY_DEFINITIONS.length) {
+      setSelectedCategories(['SLAB']);
+    } else {
+      setSelectedCategories(CATEGORY_DEFINITIONS.map((c) => c.id));
+    }
+  };
+
+  // Compute sub-volumes and overall grand sum
+  const subVolumesM3 = useMemo(() => {
+    const isMetric = unitMode === 'METRIC';
+    const vols: Record<StructuralType, number> = {
+      SLAB: 0,
+      COLUMN: 0,
+      BEAM: 0,
+      RCC_WALL: 0,
+      STAIRS: 0,
+      FOOTING: 0
+    };
+
+    if (isMetric) {
+      vols.SLAB = slabLen * slabWid * (slabThk / 1000);
+      vols.COLUMN = colCount * (colDim1 / 1000) * (colDim2 / 1000) * colHgt;
+      vols.BEAM = beamCount * beamLen * (beamWid / 1000) * (beamDep / 1000);
+      vols.RCC_WALL = wallCount * wallLen * wallHgt * (wallThk / 1000);
+
+      const trM = stepTread / 1000;
+      const rM = stepRiser / 1000;
+      const wtM = waistSlabThk / 1000;
+      const stepsVol = 0.5 * trM * rM * stairWid * numberOfSteps;
+      const waistVol = Math.sqrt(trM * trM + rM * rM) * numberOfSteps * stairWid * wtM;
+      vols.STAIRS = flightsCount * (stepsVol + waistVol);
+
+      vols.FOOTING = footingCount * footingLen * footingWid * (footingDep / 1000);
+    } else {
+      const slabCft = slabLen * slabWid * (slabThk / 12);
+      vols.SLAB = slabCft / 35.3146667;
+
+      const colCft = colCount * (colDim1 / 12) * (colDim2 / 12) * colHgt;
+      vols.COLUMN = colCft / 35.3146667;
+
+      const beamCft = beamCount * beamLen * (beamWid / 12) * (beamDep / 12);
+      vols.BEAM = beamCft / 35.3146667;
+
+      const wallCft = wallCount * wallLen * wallHgt * (wallThk / 12);
+      vols.RCC_WALL = wallCft / 35.3146667;
+
+      const trFt = stepTread / 12;
+      const rFt = stepRiser / 12;
+      const wtFt = waistSlabThk / 12;
+      const stepsVol = 0.5 * trFt * rFt * stairWid * numberOfSteps;
+      const waistVol = Math.sqrt(trFt * trFt + rFt * rFt) * numberOfSteps * stairWid * wtFt;
+      vols.STAIRS = (flightsCount * (stepsVol + waistVol)) / 35.3146667;
+
+      const ftgCft = footingCount * footingLen * footingWid * (footingDep / 12);
+      vols.FOOTING = ftgCft / 35.3146667;
     }
 
-    const cft = m3 * 35.3146667;
-    return { m3, cft };
+    return vols;
   }, [
-    category,
     unitMode,
     slabLen, slabWid, slabThk,
     colCount, colDim1, colDim2, colHgt,
@@ -243,6 +203,15 @@ export const BuildingCalculatorModule: React.FC = () => {
     flightsCount, stairWid, stepTread, stepRiser, numberOfSteps, waistSlabThk,
     footingCount, footingLen, footingWid, footingDep
   ]);
+
+  const grandTotalComputed = useMemo(() => {
+    let totalM3 = 0;
+    selectedCategories.forEach((cat) => {
+      totalM3 += subVolumesM3[cat] || 0;
+    });
+    const totalCft = totalM3 * 35.3146667;
+    return { totalM3, totalCft };
+  }, [selectedCategories, subVolumesM3]);
 
   const handleUnitModeSwitch = (mode: UnitSystem) => {
     if (mode === unitMode) return;
@@ -302,7 +271,7 @@ export const BuildingCalculatorModule: React.FC = () => {
 
   const handleOpenAddModal = () => {
     setEditingItem(null);
-    setCategory('SLAB');
+    setSelectedCategories(['SLAB', 'COLUMN', 'BEAM']);
     setLabel('');
     setRatePerM3(4500);
     setUnitMode('METRIC');
@@ -315,17 +284,12 @@ export const BuildingCalculatorModule: React.FC = () => {
   const handleSaveItem = (e: React.FormEvent) => {
     e.preventDefault();
 
-    const isImp = unitMode === 'IMPERIAL';
-    const lUnit = isImp ? 'ft' : 'm';
-    const sUnit = isImp ? 'in' : 'mm';
+    const parts = selectedCategories.map((cat) => {
+      const labelName = CATEGORY_DEFINITIONS.find((c) => c.id === cat)?.label.split('/')[0].trim();
+      return `${labelName} (${subVolumesM3[cat].toFixed(2)}m³)`;
+    });
 
-    let dims = '';
-    if (category === 'SLAB') dims = `${slabLen}${lUnit} × ${slabWid}${lUnit} × ${slabThk}${sUnit}`;
-    else if (category === 'COLUMN') dims = `${colCount} Nos (${colDim1}×${colDim2}${sUnit}, H: ${colHgt}${lUnit})`;
-    else if (category === 'BEAM') dims = `${beamCount} Nos (${beamLen}${lUnit} × ${beamWid}×${beamDep}${sUnit})`;
-    else if (category === 'RCC_WALL') dims = `${wallCount} Nos (${wallLen}${lUnit} L × ${wallHgt}${lUnit} H × ${wallThk}${sUnit})`;
-    else if (category === 'STAIRS') dims = `${flightsCount} Flight (${numberOfSteps} Steps, W: ${stairWid}${lUnit}, Waist: ${waistSlabThk}${sUnit})`;
-    else if (category === 'FOOTING') dims = `${footingCount} Nos (${footingLen}${lUnit} × ${footingWid}${lUnit} × ${footingDep}${sUnit})`;
+    const breakdownText = parts.join(' + ');
 
     if (editingItem) {
       setItems((prev) =>
@@ -333,11 +297,11 @@ export const BuildingCalculatorModule: React.FC = () => {
           it.id === editingItem.id
             ? {
                 ...it,
-                category,
-                label: label.trim() || `${category} Work`,
-                dimensionsText: dims,
-                volumeM3: Number(computedVolumes.m3.toFixed(3)),
-                volumeCft: Number(computedVolumes.cft.toFixed(2)),
+                categories: selectedCategories,
+                label: label.trim() || `Combined Structural Concrete Pour`,
+                breakdownText,
+                volumeM3: Number(grandTotalComputed.totalM3.toFixed(3)),
+                volumeCft: Number(grandTotalComputed.totalCft.toFixed(2)),
                 ratePerM3: Number(ratePerM3) || 0
               }
             : it
@@ -346,11 +310,11 @@ export const BuildingCalculatorModule: React.FC = () => {
     } else {
       const newItem: ConcreteItem = {
         id: `RCC-${Math.floor(1000 + Math.random() * 9000)}`,
-        category,
-        label: label.trim() || `${category} Work`,
-        dimensionsText: dims,
-        volumeM3: Number(computedVolumes.m3.toFixed(3)),
-        volumeCft: Number(computedVolumes.cft.toFixed(2)),
+        categories: selectedCategories,
+        label: label.trim() || `Combined Structural Concrete Pour`,
+        breakdownText,
+        volumeM3: Number(grandTotalComputed.totalM3.toFixed(3)),
+        volumeCft: Number(grandTotalComputed.totalCft.toFixed(2)),
         ratePerM3: Number(ratePerM3) || 0
       };
       setItems((prev) => [newItem, ...prev]);
@@ -369,9 +333,8 @@ export const BuildingCalculatorModule: React.FC = () => {
     return items.filter(
       (it) =>
         it.id.toLowerCase().includes(q) ||
-        it.category.toLowerCase().includes(q) ||
         it.label.toLowerCase().includes(q) ||
-        it.dimensionsText.toLowerCase().includes(q)
+        it.breakdownText.toLowerCase().includes(q)
     );
   }, [items, searchQuery]);
 
@@ -395,25 +358,6 @@ export const BuildingCalculatorModule: React.FC = () => {
   const totalCost = useMemo(() => {
     return items.reduce((sum, it) => sum + it.volumeM3 * it.ratePerM3, 0);
   }, [items]);
-
-  const getCategoryBadgeLabel = (cat: StructuralType) => {
-    switch (cat) {
-      case 'SLAB':
-        return 'Slab / Deck';
-      case 'COLUMN':
-        return 'Column';
-      case 'BEAM':
-        return 'Beam';
-      case 'RCC_WALL':
-        return 'RCC Wall';
-      case 'STAIRS':
-        return 'Stairs';
-      case 'FOOTING':
-        return 'Footing';
-      default:
-        return cat;
-    }
-  };
 
   return (
     <div className="min-h-screen bg-[#060913] text-slate-100 font-sans p-6 sm:p-8 space-y-6">
@@ -515,7 +459,7 @@ export const BuildingCalculatorModule: React.FC = () => {
           type="text"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Search by category, element label or ID..."
+          placeholder="Search by element name, structural breakdown or ID..."
           className="w-full bg-[#080D1A] border border-[#162238] rounded-full pl-11 pr-4 py-3 text-sm text-slate-200 placeholder-slate-500 outline-none focus:border-blue-500 transition-colors"
         />
       </div>
@@ -527,10 +471,10 @@ export const BuildingCalculatorModule: React.FC = () => {
             <thead>
               <tr className="border-b border-[#162238] text-[11px] font-bold uppercase tracking-wider text-slate-400 bg-[#090F1E]">
                 <th className="py-4 px-6">ID</th>
-                <th className="py-4 px-6">CATEGORY</th>
-                <th className="py-4 px-6">ELEMENT / DIMENSIONS</th>
+                <th className="py-4 px-6">CATEGORIES INCLUDED</th>
+                <th className="py-4 px-6">DESCRIPTION & BREAKDOWN</th>
                 <th className="py-4 px-6 text-center">RATE (₹)</th>
-                <th className="py-4 px-6 text-center">VOLUME (M³ / CFT)</th>
+                <th className="py-4 px-6 text-center">TOTAL VOLUME (M³ / CFT)</th>
                 <th className="py-4 px-6 text-center">TOTAL COST (₹)</th>
                 <th className="py-4 px-6 text-right">ACTIONS</th>
               </tr>
@@ -548,14 +492,21 @@ export const BuildingCalculatorModule: React.FC = () => {
                     <td className="py-4 px-6 text-slate-400 font-medium">{item.id}</td>
 
                     <td className="py-4 px-6">
-                      <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-[#111C33] border border-[#1C2C4E] text-blue-300 font-sans">
-                        {getCategoryBadgeLabel(item.category)}
-                      </span>
+                      <div className="flex flex-wrap gap-1">
+                        {item.categories.map((c) => (
+                          <span
+                            key={c}
+                            className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#111C33] border border-[#1C2C4E] text-blue-300 font-sans"
+                          >
+                            {c.replace('_', ' ')}
+                          </span>
+                        ))}
+                      </div>
                     </td>
 
                     <td className="py-4 px-6 font-sans">
                       <div className="font-bold text-white text-sm">{item.label}</div>
-                      <div className="text-[11px] text-slate-400 font-mono mt-0.5">{item.dimensionsText}</div>
+                      <div className="text-[11px] text-slate-400 font-mono mt-0.5">{item.breakdownText}</div>
                     </td>
 
                     <td className="py-4 px-6 text-center text-slate-300">
@@ -580,7 +531,7 @@ export const BuildingCalculatorModule: React.FC = () => {
                         <button
                           onClick={() => {
                             setEditingItem(item);
-                            setCategory(item.category);
+                            setSelectedCategories(item.categories || ['SLAB']);
                             setLabel(item.label);
                             setRatePerM3(item.ratePerM3);
                             setIsModalOpen(true);
@@ -607,18 +558,18 @@ export const BuildingCalculatorModule: React.FC = () => {
         </div>
       </div>
 
-      {/* Modal: Add / Edit Structural Work */}
+      {/* Modal: Simultaneous Multi-Category Concrete Calculator */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-[#0A0F1D] border border-[#1A2640] rounded-3xl w-full max-w-2xl shadow-2xl p-6 space-y-5 max-h-[94vh] overflow-y-auto">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-[#0A0F1D] border border-[#1A2640] rounded-3xl w-full max-w-3xl shadow-2xl p-6 space-y-5 max-h-[94vh] overflow-y-auto">
             {/* Modal Header */}
             <div className="flex items-center justify-between border-b border-[#1A2640] pb-4">
               <div>
                 <h3 className="text-lg font-bold text-white">
-                  {editingItem ? 'Edit Structural Work' : 'Add Structural Concrete Work'}
+                  {editingItem ? 'Edit Structural Work' : 'Add Structural Concrete Work (Multi-Category)'}
                 </h3>
                 <p className="text-xs text-slate-400 mt-0.5">
-                  Calculate required concrete in m³ and CFT for building elements.
+                  Select one or multiple categories simultaneously. All inputs calculate together into total m³.
                 </p>
               </div>
               <button
@@ -629,9 +580,9 @@ export const BuildingCalculatorModule: React.FC = () => {
               </button>
             </div>
 
-            <form onSubmit={handleSaveItem} className="space-y-4 text-xs">
+            <form onSubmit={handleSaveItem} className="space-y-5 text-xs">
               {/* Unit System Switcher Toggle */}
-              <div className="flex items-center justify-between p-2 rounded-xl bg-[#070B16] border border-[#17243F]">
+              <div className="flex items-center justify-between p-2.5 rounded-xl bg-[#070B16] border border-[#17243F]">
                 <span className="text-slate-300 font-bold">Input Dimensions Unit:</span>
                 <div className="flex items-center gap-1 bg-[#0F172B] p-1 rounded-lg border border-[#1E2E4E]">
                   <button
@@ -659,25 +610,41 @@ export const BuildingCalculatorModule: React.FC = () => {
                 </div>
               </div>
 
-              {/* In-Line Structural Categories Selector */}
-              <div className="space-y-1.5">
-                <label className="block text-slate-300 font-bold">Structural Category *</label>
+              {/* Multi-Category Selection Badges */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="block text-slate-300 font-bold">
+                    Select Categories to Include (Click to toggle on/off):
+                  </label>
+                  <button
+                    type="button"
+                    onClick={handleSelectAllCategories}
+                    className="text-[11px] font-bold text-blue-400 hover:text-blue-300 cursor-pointer underline"
+                  >
+                    {selectedCategories.length === CATEGORY_DEFINITIONS.length ? 'Clear All' : 'Select All Categories'}
+                  </button>
+                </div>
+
                 <div className="flex items-center gap-1.5 p-1 bg-[#070B16] border border-[#17243F] rounded-2xl overflow-x-auto scrollbar-thin">
-                  {CATEGORIES.map((cat) => {
+                  {CATEGORY_DEFINITIONS.map((cat) => {
                     const Icon = cat.icon;
-                    const isSelected = category === cat.id;
+                    const isSelected = selectedCategories.includes(cat.id);
                     return (
                       <button
                         key={cat.id}
                         type="button"
-                        onClick={() => setCategory(cat.id)}
-                        className={`flex-1 min-w-[95px] flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl font-bold text-xs transition-all whitespace-nowrap cursor-pointer active:scale-95 ${
+                        onClick={() => handleToggleCategory(cat.id)}
+                        className={`flex-1 min-w-[100px] flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl font-bold text-xs transition-all whitespace-nowrap cursor-pointer active:scale-95 ${
                           isSelected
                             ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
                             : 'bg-[#0E1628] hover:bg-[#141F38] text-slate-400 hover:text-white'
                         }`}
                       >
-                        <Icon className={`w-3.5 h-3.5 shrink-0 ${isSelected ? 'text-white' : 'text-slate-500'}`} />
+                        {isSelected ? (
+                          <Check className="w-3.5 h-3.5 stroke-[3] text-white shrink-0" />
+                        ) : (
+                          <Icon className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                        )}
                         <span>{cat.label}</span>
                       </button>
                     );
@@ -687,340 +654,405 @@ export const BuildingCalculatorModule: React.FC = () => {
 
               {/* Element Label */}
               <div>
-                <label className="block text-slate-300 font-bold mb-1.5">Element Label / Location</label>
+                <label className="block text-slate-300 font-bold mb-1.5">Pour Name / Location Identifier</label>
                 <input
                   type="text"
-                  placeholder="e.g. 1st Floor Slab, Podium Columns"
+                  placeholder="e.g. Ground Floor Slab + Plinth Beams + Columns Pour"
                   value={label}
                   onChange={(e) => setLabel(e.target.value)}
-                  className="w-full px-3.5 py-2.5 bg-[#0F172B] border border-[#1C2C4E] rounded-xl text-white outline-none focus:border-blue-500"
+                  className="w-full px-3.5 py-2.5 bg-[#0F172B] border border-[#1C2C4E] rounded-xl text-white outline-none focus:border-blue-500 text-xs"
                 />
               </div>
 
-              {/* SLAB INPUTS */}
-              {category === 'SLAB' && (
-                <div className="grid grid-cols-3 gap-3 p-3 bg-[#070B16] rounded-xl border border-[#17243F]">
-                  <div>
-                    <label className="block text-slate-400 font-bold mb-1">
-                      Length ({unitMode === 'METRIC' ? 'm' : 'ft'})
-                    </label>
-                    <input
-                      type="number"
-                      step="any"
-                      value={slabLen}
-                      onChange={(e) => setSlabLen(Number(e.target.value))}
-                      className="w-full px-2.5 py-2 bg-[#0F172B] border border-[#1C2C4E] rounded-lg text-white font-mono"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-slate-400 font-bold mb-1">
-                      Width ({unitMode === 'METRIC' ? 'm' : 'ft'})
-                    </label>
-                    <input
-                      type="number"
-                      step="any"
-                      value={slabWid}
-                      onChange={(e) => setSlabWid(Number(e.target.value))}
-                      className="w-full px-2.5 py-2 bg-[#0F172B] border border-[#1C2C4E] rounded-lg text-white font-mono"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-slate-400 font-bold mb-1">
-                      Thickness ({unitMode === 'METRIC' ? 'mm' : 'in'})
-                    </label>
-                    <input
-                      type="number"
-                      step="any"
-                      value={slabThk}
-                      onChange={(e) => setSlabThk(Number(e.target.value))}
-                      className="w-full px-2.5 py-2 bg-[#0F172B] border border-[#1C2C4E] rounded-lg text-cyan-400 font-mono font-bold"
-                    />
-                  </div>
-                </div>
-              )}
-
-              {/* COLUMN INPUTS */}
-              {category === 'COLUMN' && (
-                <div className="grid grid-cols-2 gap-3 p-3 bg-[#070B16] rounded-xl border border-[#17243F]">
-                  <div>
-                    <label className="block text-slate-400 font-bold mb-1">No. of Columns</label>
-                    <input
-                      type="number"
-                      value={colCount}
-                      onChange={(e) => setColCount(Number(e.target.value))}
-                      className="w-full px-2.5 py-2 bg-[#0F172B] border border-[#1C2C4E] rounded-lg text-white font-mono"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-slate-400 font-bold mb-1">
-                      Height ({unitMode === 'METRIC' ? 'm' : 'ft'})
-                    </label>
-                    <input
-                      type="number"
-                      step="any"
-                      value={colHgt}
-                      onChange={(e) => setColHgt(Number(e.target.value))}
-                      className="w-full px-2.5 py-2 bg-[#0F172B] border border-[#1C2C4E] rounded-lg text-white font-mono"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-slate-400 font-bold mb-1">
-                      Side A ({unitMode === 'METRIC' ? 'mm' : 'in'})
-                    </label>
-                    <input
-                      type="number"
-                      step="any"
-                      value={colDim1}
-                      onChange={(e) => setColDim1(Number(e.target.value))}
-                      className="w-full px-2.5 py-2 bg-[#0F172B] border border-[#1C2C4E] rounded-lg text-white font-mono"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-slate-400 font-bold mb-1">
-                      Side B ({unitMode === 'METRIC' ? 'mm' : 'in'})
-                    </label>
-                    <input
-                      type="number"
-                      step="any"
-                      value={colDim2}
-                      onChange={(e) => setColDim2(Number(e.target.value))}
-                      className="w-full px-2.5 py-2 bg-[#0F172B] border border-[#1C2C4E] rounded-lg text-white font-mono"
-                    />
-                  </div>
-                </div>
-              )}
-
-              {/* BEAM INPUTS */}
-              {category === 'BEAM' && (
-                <div className="grid grid-cols-2 gap-3 p-3 bg-[#070B16] rounded-xl border border-[#17243F]">
-                  <div>
-                    <label className="block text-slate-400 font-bold mb-1">No. of Beams</label>
-                    <input
-                      type="number"
-                      value={beamCount}
-                      onChange={(e) => setBeamCount(Number(e.target.value))}
-                      className="w-full px-2.5 py-2 bg-[#0F172B] border border-[#1C2C4E] rounded-lg text-white font-mono"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-slate-400 font-bold mb-1">
-                      Length ({unitMode === 'METRIC' ? 'm' : 'ft'})
-                    </label>
-                    <input
-                      type="number"
-                      step="any"
-                      value={beamLen}
-                      onChange={(e) => setBeamLen(Number(e.target.value))}
-                      className="w-full px-2.5 py-2 bg-[#0F172B] border border-[#1C2C4E] rounded-lg text-white font-mono"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-slate-400 font-bold mb-1">
-                      Width ({unitMode === 'METRIC' ? 'mm' : 'in'})
-                    </label>
-                    <input
-                      type="number"
-                      step="any"
-                      value={beamWid}
-                      onChange={(e) => setBeamWid(Number(e.target.value))}
-                      className="w-full px-2.5 py-2 bg-[#0F172B] border border-[#1C2C4E] rounded-lg text-white font-mono"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-slate-400 font-bold mb-1">
-                      Depth ({unitMode === 'METRIC' ? 'mm' : 'in'})
-                    </label>
-                    <input
-                      type="number"
-                      step="any"
-                      value={beamDep}
-                      onChange={(e) => setBeamDep(Number(e.target.value))}
-                      className="w-full px-2.5 py-2 bg-[#0F172B] border border-[#1C2C4E] rounded-lg text-white font-mono"
-                    />
-                  </div>
-                </div>
-              )}
-
-              {/* RCC WALL INPUTS */}
-              {category === 'RCC_WALL' && (
-                <div className="grid grid-cols-2 gap-3 p-3 bg-[#070B16] rounded-xl border border-[#17243F]">
-                  <div>
-                    <label className="block text-slate-400 font-bold mb-1">No. of Walls</label>
-                    <input
-                      type="number"
-                      value={wallCount}
-                      onChange={(e) => setWallCount(Number(e.target.value))}
-                      className="w-full px-2.5 py-2 bg-[#0F172B] border border-[#1C2C4E] rounded-lg text-white font-mono"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-slate-400 font-bold mb-1">
-                      Length ({unitMode === 'METRIC' ? 'm' : 'ft'})
-                    </label>
-                    <input
-                      type="number"
-                      step="any"
-                      value={wallLen}
-                      onChange={(e) => setWallLen(Number(e.target.value))}
-                      className="w-full px-2.5 py-2 bg-[#0F172B] border border-[#1C2C4E] rounded-lg text-white font-mono"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-slate-400 font-bold mb-1">
-                      Height ({unitMode === 'METRIC' ? 'm' : 'ft'})
-                    </label>
-                    <input
-                      type="number"
-                      step="any"
-                      value={wallHgt}
-                      onChange={(e) => setWallHgt(Number(e.target.value))}
-                      className="w-full px-2.5 py-2 bg-[#0F172B] border border-[#1C2C4E] rounded-lg text-white font-mono"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-slate-400 font-bold mb-1">
-                      Thickness ({unitMode === 'METRIC' ? 'mm' : 'in'})
-                    </label>
-                    <input
-                      type="number"
-                      step="any"
-                      value={wallThk}
-                      onChange={(e) => setWallThk(Number(e.target.value))}
-                      className="w-full px-2.5 py-2 bg-[#0F172B] border border-[#1C2C4E] rounded-lg text-white font-mono"
-                    />
-                  </div>
-                </div>
-              )}
-
-              {/* STAIRS INPUTS */}
-              {category === 'STAIRS' && (
-                <div className="space-y-3 p-3 bg-[#070B16] rounded-xl border border-[#17243F]">
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-slate-400 font-bold mb-1">Flights</label>
-                      <input
-                        type="number"
-                        value={flightsCount}
-                        onChange={(e) => setFlightsCount(Number(e.target.value))}
-                        className="w-full px-2.5 py-2 bg-[#0F172B] border border-[#1C2C4E] rounded-lg text-white font-mono"
-                      />
+              {/* DYNAMIC CATEGORY PANELS */}
+              <div className="space-y-3 pt-1">
+                {/* 1. SLAB INPUTS */}
+                {selectedCategories.includes('SLAB') && (
+                  <div className="p-3.5 bg-[#070B16] rounded-2xl border border-[#17243F] space-y-2">
+                    <div className="flex items-center justify-between pb-1 border-b border-[#141E33]">
+                      <div className="flex items-center gap-2 text-cyan-400 font-bold">
+                        <Layers className="w-4 h-4" />
+                        <span>Slab / Deck Dimensions</span>
+                      </div>
+                      <span className="font-mono font-bold text-cyan-300 text-xs">
+                        {subVolumesM3.SLAB.toFixed(2)} m³
+                      </span>
                     </div>
-                    <div>
-                      <label className="block text-slate-400 font-bold mb-1">
-                        Width ({unitMode === 'METRIC' ? 'm' : 'ft'})
-                      </label>
-                      <input
-                        type="number"
-                        step="any"
-                        value={stairWid}
-                        onChange={(e) => setStairWid(Number(e.target.value))}
-                        className="w-full px-2.5 py-2 bg-[#0F172B] border border-[#1C2C4E] rounded-lg text-white font-mono"
-                      />
+                    <div className="grid grid-cols-3 gap-3">
+                      <div>
+                        <label className="block text-slate-400 font-bold mb-1">
+                          Length ({unitMode === 'METRIC' ? 'm' : 'ft'})
+                        </label>
+                        <input
+                          type="number"
+                          step="any"
+                          value={slabLen}
+                          onChange={(e) => setSlabLen(Number(e.target.value))}
+                          className="w-full px-2.5 py-2 bg-[#0F172B] border border-[#1C2C4E] rounded-lg text-white font-mono"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-slate-400 font-bold mb-1">
+                          Width ({unitMode === 'METRIC' ? 'm' : 'ft'})
+                        </label>
+                        <input
+                          type="number"
+                          step="any"
+                          value={slabWid}
+                          onChange={(e) => setSlabWid(Number(e.target.value))}
+                          className="w-full px-2.5 py-2 bg-[#0F172B] border border-[#1C2C4E] rounded-lg text-white font-mono"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-slate-400 font-bold mb-1">
+                          Thickness ({unitMode === 'METRIC' ? 'mm' : 'in'})
+                        </label>
+                        <input
+                          type="number"
+                          step="any"
+                          value={slabThk}
+                          onChange={(e) => setSlabThk(Number(e.target.value))}
+                          className="w-full px-2.5 py-2 bg-[#0F172B] border border-[#1C2C4E] rounded-lg text-cyan-400 font-mono font-bold"
+                        />
+                      </div>
                     </div>
                   </div>
-                  <div className="grid grid-cols-3 gap-2">
-                    <div>
-                      <label className="block text-slate-400 font-bold mb-1">Steps</label>
-                      <input
-                        type="number"
-                        value={numberOfSteps}
-                        onChange={(e) => setNumberOfSteps(Number(e.target.value))}
-                        className="w-full px-2.5 py-2 bg-[#0F172B] border border-[#1C2C4E] rounded-lg text-white font-mono"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-slate-400 font-bold mb-1">
-                        Tread ({unitMode === 'METRIC' ? 'mm' : 'in'})
-                      </label>
-                      <input
-                        type="number"
-                        step="any"
-                        value={stepTread}
-                        onChange={(e) => setStepTread(Number(e.target.value))}
-                        className="w-full px-2.5 py-2 bg-[#0F172B] border border-[#1C2C4E] rounded-lg text-white font-mono"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-slate-400 font-bold mb-1">
-                        Riser ({unitMode === 'METRIC' ? 'mm' : 'in'})
-                      </label>
-                      <input
-                        type="number"
-                        step="any"
-                        value={stepRiser}
-                        onChange={(e) => setStepRiser(Number(e.target.value))}
-                        className="w-full px-2.5 py-2 bg-[#0F172B] border border-[#1C2C4E] rounded-lg text-white font-mono"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-slate-400 font-bold mb-1">
-                      Waist Slab Thk ({unitMode === 'METRIC' ? 'mm' : 'in'})
-                    </label>
-                    <input
-                      type="number"
-                      step="any"
-                      value={waistSlabThk}
-                      onChange={(e) => setWaistSlabThk(Number(e.target.value))}
-                      className="w-full px-2.5 py-2 bg-[#0F172B] border border-[#1C2C4E] rounded-lg text-white font-mono"
-                    />
-                  </div>
-                </div>
-              )}
+                )}
 
-              {/* FOOTING INPUTS */}
-              {category === 'FOOTING' && (
-                <div className="grid grid-cols-2 gap-3 p-3 bg-[#070B16] rounded-xl border border-[#17243F]">
-                  <div>
-                    <label className="block text-slate-400 font-bold mb-1">No. of Footings</label>
-                    <input
-                      type="number"
-                      value={footingCount}
-                      onChange={(e) => setFootingCount(Number(e.target.value))}
-                      className="w-full px-2.5 py-2 bg-[#0F172B] border border-[#1C2C4E] rounded-lg text-white font-mono"
-                    />
+                {/* 2. COLUMN INPUTS */}
+                {selectedCategories.includes('COLUMN') && (
+                  <div className="p-3.5 bg-[#070B16] rounded-2xl border border-[#17243F] space-y-2">
+                    <div className="flex items-center justify-between pb-1 border-b border-[#141E33]">
+                      <div className="flex items-center gap-2 text-cyan-400 font-bold">
+                        <Box className="w-4 h-4" />
+                        <span>Column Dimensions</span>
+                      </div>
+                      <span className="font-mono font-bold text-cyan-300 text-xs">
+                        {subVolumesM3.COLUMN.toFixed(2)} m³
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-4 gap-3">
+                      <div>
+                        <label className="block text-slate-400 font-bold mb-1">No. of Columns</label>
+                        <input
+                          type="number"
+                          value={colCount}
+                          onChange={(e) => setColCount(Number(e.target.value))}
+                          className="w-full px-2.5 py-2 bg-[#0F172B] border border-[#1C2C4E] rounded-lg text-white font-mono"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-slate-400 font-bold mb-1">
+                          Height ({unitMode === 'METRIC' ? 'm' : 'ft'})
+                        </label>
+                        <input
+                          type="number"
+                          step="any"
+                          value={colHgt}
+                          onChange={(e) => setColHgt(Number(e.target.value))}
+                          className="w-full px-2.5 py-2 bg-[#0F172B] border border-[#1C2C4E] rounded-lg text-white font-mono"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-slate-400 font-bold mb-1">
+                          Side A ({unitMode === 'METRIC' ? 'mm' : 'in'})
+                        </label>
+                        <input
+                          type="number"
+                          step="any"
+                          value={colDim1}
+                          onChange={(e) => setColDim1(Number(e.target.value))}
+                          className="w-full px-2.5 py-2 bg-[#0F172B] border border-[#1C2C4E] rounded-lg text-white font-mono"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-slate-400 font-bold mb-1">
+                          Side B ({unitMode === 'METRIC' ? 'mm' : 'in'})
+                        </label>
+                        <input
+                          type="number"
+                          step="any"
+                          value={colDim2}
+                          onChange={(e) => setColDim2(Number(e.target.value))}
+                          className="w-full px-2.5 py-2 bg-[#0F172B] border border-[#1C2C4E] rounded-lg text-white font-mono"
+                        />
+                      </div>
+                    </div>
                   </div>
-                  <div>
-                    <label className="block text-slate-400 font-bold mb-1">
-                      Depth ({unitMode === 'METRIC' ? 'mm' : 'in'})
-                    </label>
-                    <input
-                      type="number"
-                      step="any"
-                      value={footingDep}
-                      onChange={(e) => setFootingDep(Number(e.target.value))}
-                      className="w-full px-2.5 py-2 bg-[#0F172B] border border-[#1C2C4E] rounded-lg text-white font-mono"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-slate-400 font-bold mb-1">
-                      Length ({unitMode === 'METRIC' ? 'm' : 'ft'})
-                    </label>
-                    <input
-                      type="number"
-                      step="any"
-                      value={footingLen}
-                      onChange={(e) => setFootingLen(Number(e.target.value))}
-                      className="w-full px-2.5 py-2 bg-[#0F172B] border border-[#1C2C4E] rounded-lg text-white font-mono"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-slate-400 font-bold mb-1">
-                      Width ({unitMode === 'METRIC' ? 'm' : 'ft'})
-                    </label>
-                    <input
-                      type="number"
-                      step="any"
-                      value={footingWid}
-                      onChange={(e) => setFootingWid(Number(e.target.value))}
-                      className="w-full px-2.5 py-2 bg-[#0F172B] border border-[#1C2C4E] rounded-lg text-white font-mono"
-                    />
-                  </div>
-                </div>
-              )}
+                )}
 
-              {/* Rate & Live Calculated Volume Display */}
-              <div className="grid grid-cols-2 gap-3 items-center pt-1">
+                {/* 3. BEAM INPUTS */}
+                {selectedCategories.includes('BEAM') && (
+                  <div className="p-3.5 bg-[#070B16] rounded-2xl border border-[#17243F] space-y-2">
+                    <div className="flex items-center justify-between pb-1 border-b border-[#141E33]">
+                      <div className="flex items-center gap-2 text-cyan-400 font-bold">
+                        <Building className="w-4 h-4" />
+                        <span>Beam Dimensions</span>
+                      </div>
+                      <span className="font-mono font-bold text-cyan-300 text-xs">
+                        {subVolumesM3.BEAM.toFixed(2)} m³
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-4 gap-3">
+                      <div>
+                        <label className="block text-slate-400 font-bold mb-1">No. of Beams</label>
+                        <input
+                          type="number"
+                          value={beamCount}
+                          onChange={(e) => setBeamCount(Number(e.target.value))}
+                          className="w-full px-2.5 py-2 bg-[#0F172B] border border-[#1C2C4E] rounded-lg text-white font-mono"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-slate-400 font-bold mb-1">
+                          Length ({unitMode === 'METRIC' ? 'm' : 'ft'})
+                        </label>
+                        <input
+                          type="number"
+                          step="any"
+                          value={beamLen}
+                          onChange={(e) => setBeamLen(Number(e.target.value))}
+                          className="w-full px-2.5 py-2 bg-[#0F172B] border border-[#1C2C4E] rounded-lg text-white font-mono"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-slate-400 font-bold mb-1">
+                          Width ({unitMode === 'METRIC' ? 'mm' : 'in'})
+                        </label>
+                        <input
+                          type="number"
+                          step="any"
+                          value={beamWid}
+                          onChange={(e) => setBeamWid(Number(e.target.value))}
+                          className="w-full px-2.5 py-2 bg-[#0F172B] border border-[#1C2C4E] rounded-lg text-white font-mono"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-slate-400 font-bold mb-1">
+                          Depth ({unitMode === 'METRIC' ? 'mm' : 'in'})
+                        </label>
+                        <input
+                          type="number"
+                          step="any"
+                          value={beamDep}
+                          onChange={(e) => setBeamDep(Number(e.target.value))}
+                          className="w-full px-2.5 py-2 bg-[#0F172B] border border-[#1C2C4E] rounded-lg text-white font-mono"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* 4. RCC WALL INPUTS */}
+                {selectedCategories.includes('RCC_WALL') && (
+                  <div className="p-3.5 bg-[#070B16] rounded-2xl border border-[#17243F] space-y-2">
+                    <div className="flex items-center justify-between pb-1 border-b border-[#141E33]">
+                      <div className="flex items-center gap-2 text-cyan-400 font-bold">
+                        <Building className="w-4 h-4" />
+                        <span>RCC / Shear Wall Dimensions</span>
+                      </div>
+                      <span className="font-mono font-bold text-cyan-300 text-xs">
+                        {subVolumesM3.RCC_WALL.toFixed(2)} m³
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-4 gap-3">
+                      <div>
+                        <label className="block text-slate-400 font-bold mb-1">No. of Walls</label>
+                        <input
+                          type="number"
+                          value={wallCount}
+                          onChange={(e) => setWallCount(Number(e.target.value))}
+                          className="w-full px-2.5 py-2 bg-[#0F172B] border border-[#1C2C4E] rounded-lg text-white font-mono"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-slate-400 font-bold mb-1">
+                          Length ({unitMode === 'METRIC' ? 'm' : 'ft'})
+                        </label>
+                        <input
+                          type="number"
+                          step="any"
+                          value={wallLen}
+                          onChange={(e) => setWallLen(Number(e.target.value))}
+                          className="w-full px-2.5 py-2 bg-[#0F172B] border border-[#1C2C4E] rounded-lg text-white font-mono"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-slate-400 font-bold mb-1">
+                          Height ({unitMode === 'METRIC' ? 'm' : 'ft'})
+                        </label>
+                        <input
+                          type="number"
+                          step="any"
+                          value={wallHgt}
+                          onChange={(e) => setWallHgt(Number(e.target.value))}
+                          className="w-full px-2.5 py-2 bg-[#0F172B] border border-[#1C2C4E] rounded-lg text-white font-mono"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-slate-400 font-bold mb-1">
+                          Thickness ({unitMode === 'METRIC' ? 'mm' : 'in'})
+                        </label>
+                        <input
+                          type="number"
+                          step="any"
+                          value={wallThk}
+                          onChange={(e) => setWallThk(Number(e.target.value))}
+                          className="w-full px-2.5 py-2 bg-[#0F172B] border border-[#1C2C4E] rounded-lg text-white font-mono"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* 5. STAIRS INPUTS */}
+                {selectedCategories.includes('STAIRS') && (
+                  <div className="p-3.5 bg-[#070B16] rounded-2xl border border-[#17243F] space-y-2">
+                    <div className="flex items-center justify-between pb-1 border-b border-[#141E33]">
+                      <div className="flex items-center gap-2 text-cyan-400 font-bold">
+                        <Footprints className="w-4 h-4" />
+                        <span>Staircase Steps & Waist Slab Dimensions</span>
+                      </div>
+                      <span className="font-mono font-bold text-cyan-300 text-xs">
+                        {subVolumesM3.STAIRS.toFixed(2)} m³
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
+                      <div>
+                        <label className="block text-slate-400 font-bold mb-1">Flights</label>
+                        <input
+                          type="number"
+                          value={flightsCount}
+                          onChange={(e) => setFlightsCount(Number(e.target.value))}
+                          className="w-full px-2.5 py-2 bg-[#0F172B] border border-[#1C2C4E] rounded-lg text-white font-mono"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-slate-400 font-bold mb-1">
+                          Width ({unitMode === 'METRIC' ? 'm' : 'ft'})
+                        </label>
+                        <input
+                          type="number"
+                          step="any"
+                          value={stairWid}
+                          onChange={(e) => setStairWid(Number(e.target.value))}
+                          className="w-full px-2.5 py-2 bg-[#0F172B] border border-[#1C2C4E] rounded-lg text-white font-mono"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-slate-400 font-bold mb-1">Steps</label>
+                        <input
+                          type="number"
+                          value={numberOfSteps}
+                          onChange={(e) => setNumberOfSteps(Number(e.target.value))}
+                          className="w-full px-2.5 py-2 bg-[#0F172B] border border-[#1C2C4E] rounded-lg text-white font-mono"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-slate-400 font-bold mb-1">
+                          Tread ({unitMode === 'METRIC' ? 'mm' : 'in'})
+                        </label>
+                        <input
+                          type="number"
+                          step="any"
+                          value={stepTread}
+                          onChange={(e) => setStepTread(Number(e.target.value))}
+                          className="w-full px-2.5 py-2 bg-[#0F172B] border border-[#1C2C4E] rounded-lg text-white font-mono"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-slate-400 font-bold mb-1">
+                          Riser ({unitMode === 'METRIC' ? 'mm' : 'in'})
+                        </label>
+                        <input
+                          type="number"
+                          step="any"
+                          value={stepRiser}
+                          onChange={(e) => setStepRiser(Number(e.target.value))}
+                          className="w-full px-2.5 py-2 bg-[#0F172B] border border-[#1C2C4E] rounded-lg text-white font-mono"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-slate-400 font-bold mb-1">
+                          Waist ({unitMode === 'METRIC' ? 'mm' : 'in'})
+                        </label>
+                        <input
+                          type="number"
+                          step="any"
+                          value={waistSlabThk}
+                          onChange={(e) => setWaistSlabThk(Number(e.target.value))}
+                          className="w-full px-2.5 py-2 bg-[#0F172B] border border-[#1C2C4E] rounded-lg text-white font-mono"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* 6. FOOTING INPUTS */}
+                {selectedCategories.includes('FOOTING') && (
+                  <div className="p-3.5 bg-[#070B16] rounded-2xl border border-[#17243F] space-y-2">
+                    <div className="flex items-center justify-between pb-1 border-b border-[#141E33]">
+                      <div className="flex items-center gap-2 text-cyan-400 font-bold">
+                        <Box className="w-4 h-4" />
+                        <span>Footing / Foundation Dimensions</span>
+                      </div>
+                      <span className="font-mono font-bold text-cyan-300 text-xs">
+                        {subVolumesM3.FOOTING.toFixed(2)} m³
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-4 gap-3">
+                      <div>
+                        <label className="block text-slate-400 font-bold mb-1">No. of Footings</label>
+                        <input
+                          type="number"
+                          value={footingCount}
+                          onChange={(e) => setFootingCount(Number(e.target.value))}
+                          className="w-full px-2.5 py-2 bg-[#0F172B] border border-[#1C2C4E] rounded-lg text-white font-mono"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-slate-400 font-bold mb-1">
+                          Length ({unitMode === 'METRIC' ? 'm' : 'ft'})
+                        </label>
+                        <input
+                          type="number"
+                          step="any"
+                          value={footingLen}
+                          onChange={(e) => setFootingLen(Number(e.target.value))}
+                          className="w-full px-2.5 py-2 bg-[#0F172B] border border-[#1C2C4E] rounded-lg text-white font-mono"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-slate-400 font-bold mb-1">
+                          Width ({unitMode === 'METRIC' ? 'm' : 'ft'})
+                        </label>
+                        <input
+                          type="number"
+                          step="any"
+                          value={footingWid}
+                          onChange={(e) => setFootingWid(Number(e.target.value))}
+                          className="w-full px-2.5 py-2 bg-[#0F172B] border border-[#1C2C4E] rounded-lg text-white font-mono"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-slate-400 font-bold mb-1">
+                          Depth ({unitMode === 'METRIC' ? 'mm' : 'in'})
+                        </label>
+                        <input
+                          type="number"
+                          step="any"
+                          value={footingDep}
+                          onChange={(e) => setFootingDep(Number(e.target.value))}
+                          className="w-full px-2.5 py-2 bg-[#0F172B] border border-[#1C2C4E] rounded-lg text-white font-mono"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Rate & Combined Grand Total Output */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-center pt-2">
                 <div>
                   <label className="block text-slate-300 font-bold mb-1.5">Concrete Rate (₹ / m³)</label>
                   <input
@@ -1030,15 +1062,15 @@ export const BuildingCalculatorModule: React.FC = () => {
                     className="w-full px-3.5 py-2.5 bg-[#0F172B] border border-[#1C2C4E] rounded-xl text-white font-mono"
                   />
                 </div>
-                <div className="p-3 bg-[#070B16] rounded-xl border border-[#17243F] text-center">
+                <div className="p-3 bg-[#070B16] rounded-xl border border-cyan-500/40 text-center">
                   <span className="text-[10px] text-slate-400 uppercase font-bold block">
-                    Calculated Volume
+                    Total Calculated Volume (All Categories)
                   </span>
-                  <span className="text-base font-extrabold text-cyan-400 font-mono">
-                    {computedVolumes.m3.toFixed(2)} m³
+                  <span className="text-xl font-extrabold text-cyan-400 font-mono">
+                    {grandTotalComputed.totalM3.toFixed(2)} m³
                   </span>
-                  <span className="text-[10px] text-slate-400 block font-mono">
-                    ({computedVolumes.cft.toFixed(1)} CFT)
+                  <span className="text-[11px] text-slate-400 block font-mono">
+                    ({grandTotalComputed.totalCft.toFixed(1)} CFT)
                   </span>
                 </div>
               </div>
@@ -1054,7 +1086,7 @@ export const BuildingCalculatorModule: React.FC = () => {
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl shadow-lg shadow-blue-600/30 cursor-pointer"
+                  className="px-6 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl shadow-lg shadow-blue-600/30 cursor-pointer"
                 >
                   {editingItem ? 'Update Work' : 'Add Work'}
                 </button>
