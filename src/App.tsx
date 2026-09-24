@@ -25,7 +25,7 @@ import { BuildingReportsModule } from './components/building/BuildingReportsModu
 import { BuildingAlertsModule } from './components/building/BuildingAlertsModule';
 import { BuildingCategoriesModule } from './components/building/BuildingCategoriesModule';
 import { CategoriesModule as RoadMaterialCategoriesModule } from './components/configuration/CategoriesModule';
-import { RCCCalculators } from './components/calculator/RCCCalculators';
+import { RCCCalculators } from './components/building/RCCCalculators';
 import { AttendancePayrollModule } from './components/building/AttendancePayrollModule';
 
 import {
