@@ -205,9 +205,8 @@ export const Sidebar: React.FC<Props> = ({
     { id: 'reports', label: 'Reports', icon: FileText },
     {
       id: 'building_calculator',
-      label: 'RCC Calculator',
+      label: 'Building Calculator',
       icon: Calculator,
-      badge: 'IS 456',
       badgeStyle: 'bg-cyan-950/60 text-cyan-300 border border-cyan-800 font-mono'
     },
     {
