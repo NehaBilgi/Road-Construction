@@ -171,7 +171,7 @@ export const AttendancePayrollModule: React.FC = () => {
 
   const [activeTab, setActiveTab] = useState<'GRID' | 'LABOUR_HEADCOUNT' | 'PAYROLL' | 'REGISTER'>('GRID');
   const [payType, setPayType] = useState<'WEEKLY' | 'MONTHLY'>('WEEKLY');
-  const [currentYearMonth, setCurrentYearMonth] = useState({ year: 2026, month: 8 }); // 8 = September (0-indexed)
+  const [currentYearMonth, setCurrentYearMonth] = useState({ year: 2026, month: 8 });
 
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isLabourModalOpen, setIsLabourModalOpen] = useState(false);
@@ -358,12 +358,12 @@ export const AttendancePayrollModule: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[#070b14] font-sans text-slate-100 p-6 space-y-6">
-      {/* Top Header Banner */}
+      {/* Header Banner */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 text-amber-400 font-bold text-base mb-1">
             <CalendarCheck className="w-6 h-6" />
-            <h1 className="text-2xl font-black text-white tracking-tight">Attendance & Salary Muster</h1>
+            <h1 className="text-2xl font-black text-white tracking-tight">Attendance & Payroll</h1>
           </div>
           <p className="text-sm text-slate-400">
             Track muster rolls, daily labour headcounts, wage payouts, and advance ledgers.
@@ -449,7 +449,7 @@ export const AttendancePayrollModule: React.FC = () => {
         </div>
       </div>
 
-      {/* VIEW 1: ATTENDANCE GRID */}
+      {/* VIEW 1: STAFF ATTENDANCE GRID */}
       {activeTab === 'GRID' && (
         <div className="bg-[#0f1523] border border-[#1e293b] rounded-2xl overflow-hidden shadow-2xl">
           <div className="overflow-x-auto">
@@ -752,7 +752,6 @@ export const AttendancePayrollModule: React.FC = () => {
                 <th className="py-4 px-6 text-center">ADVANCES GIVEN</th>
                 <th className="py-4 px-6 text-center">DEDUCTED</th>
                 <th className="py-4 px-6 text-center">OUTSTANDING</th>
-                <th className="py-4 px-6 text-center">DOCUMENTS</th>
                 <th className="py-4 px-6 text-right">ACTIONS</th>
               </tr>
             </thead>
@@ -776,9 +775,6 @@ export const AttendancePayrollModule: React.FC = () => {
                   <td className="py-4 px-6 text-center font-medium text-rose-500">
                     ₹{(emp.advancesGiven - emp.advancesDeducted).toLocaleString('en-IN')}
                   </td>
-                  <td className="py-4 px-6 text-center font-mono text-xs text-blue-400">
-                    {emp.attachedFiles?.length || 0} Files
-                  </td>
                   <td className="py-4 px-6 text-right">
                     <button
                       onClick={() => setDrawerEmployee(emp)}
@@ -794,7 +790,7 @@ export const AttendancePayrollModule: React.FC = () => {
         </div>
       )}
 
-      {/* DRAWER: EMPLOYEE FINANCIAL & FILE ACTIONS */}
+      {/* DRAWER: EMPLOYEE ACTIONS & DOCUMENT UPLOAD */}
       {drawerEmployee && (
         <div className="fixed inset-0 z-50 flex justify-end bg-black/60 backdrop-blur-xs animate-in fade-in">
           <div className="w-full max-w-sm bg-[#0e1626] border-l border-[#1E293B] h-full p-6 space-y-6 overflow-y-auto text-slate-100">
