@@ -19,14 +19,14 @@ import { MachineryFleetModule } from './components/machinery/MachineryFleetModul
 import StockTransactionsModule from './components/building/StockTransactionsModule';
 import { UserManagementModule } from './components/configuration/UserManagementModule';
 
-// Building & Engineering Modules
+// Building & Engineering Modules (Updated to match your actual folder structure)
 import { ProductsMasterModule } from './components/building/ProductsMasterModule';
-import { BuildingReportsModule } from './components/building/BuildingReportsModule';
-import { BuildingAlertsModule } from './components/building/BuildingAlertsModule';
+import { BuildingReportsModule } from './components/reports/BuildingReportsModule';
+import { BuildingAlertsModule } from './components/alerts/BuildingAlertsModule';
 import { BuildingCategoriesModule as BuildingMaterialCategoriesModule } from './components/building/BuildingCategoriesModule';
-import { RoadMaterialCategoriesModule } from './components/categories/RoadMaterialCategoriesModule';
-import { RCCCalculators } from './components/calculator/RCCCalculators';
-import { AttendancePayrollModule } from './components/building/AttendancePayrollModule';
+import { RoadMaterialCategoriesModule } from './components/road/RoadMaterialCategoriesModule';
+import { RCCCalculators } from './components/building/RCCCalculators';
+import { AttendancePayrollModule } from './components/labour/AttendancePayrollModule';
 
 import {
   AlertTriangle,
