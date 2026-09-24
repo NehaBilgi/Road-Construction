@@ -1,14 +1,17 @@
 import React, { useState } from 'react';
-import { useERP } from '../../context/ERPContext';
+import { useERP } from '../context/ERPContext';
 import {
   Menu,
   ChevronDown,
   Building2,
   Check,
   Plus,
+  Trash2,
+  AlertTriangle,
+  X,
   LogOut
 } from 'lucide-react';
-import CreateRoadSiteModal from '../../components/modals/CreateRoadSiteModal';
+import CreateRoadSiteModal from './modals/CreateRoadSiteModal';
 
 interface Props {
   activeTab: string;
@@ -17,26 +20,44 @@ interface Props {
 }
 
 export const Header: React.FC<Props> = ({ onToggleSidebar }) => {
-  const erpContext = useERP() as any;
+  const erpContext = useERP();
   const {
     selectedSiteId,
     setSelectedSiteId,
-    siteSheets = [],
+    siteSheets,
     userRole,
-    currentUser,
     logout
-  } = erpContext || {};
+  } = erpContext;
 
   const [isSiteOpen, setIsSiteOpen] = useState(false);
   const [isAddRoadSiteOpen, setIsAddRoadSiteOpen] = useState(false);
+  const [siteToDelete, setSiteToDelete] = useState<{ id: string; name: string } | null>(null);
 
-  const currentRoleStr = String(userRole || currentUser?.role || '').toUpperCase();
-  const isSuperAdmin = currentRoleStr.includes('SUPER_ADMIN') || currentRoleStr.includes('OWNER') || currentRoleStr.includes('ADMIN');
+  const isSuperAdmin = userRole === 'SUPER_ADMIN' || userRole === 'OWNER' || userRole === 'Admin';
+  const currentSiteSheet = siteSheets.find((s) => s.siteId === selectedSiteId) || siteSheets[0];
 
-  const safeSiteSheets = Array.isArray(siteSheets) ? siteSheets : [];
-  const currentSiteSheet = safeSiteSheets.find(
-    (s: any) => s?.siteId === selectedSiteId || s?.id === selectedSiteId
-  ) || safeSiteSheets[0];
+  const handleExecuteDeleteSite = () => {
+    if (!siteToDelete) return;
+    const targetId = siteToDelete.id;
+
+    if (typeof (erpContext as any).deleteSite === 'function') {
+      (erpContext as any).deleteSite(targetId);
+    } else {
+      try {
+        const savedDeleted = localStorage.getItem('CONSTRUCTION_PRO_DELETED_SITE_IDS');
+        const list = savedDeleted ? JSON.parse(savedDeleted) : [];
+        if (!list.includes(targetId)) {
+          list.push(targetId);
+          localStorage.setItem('CONSTRUCTION_PRO_DELETED_SITE_IDS', JSON.stringify(list));
+        }
+      } catch (e) {
+        console.error(e);
+      }
+      window.location.reload();
+    }
+    setSiteToDelete(null);
+    setIsSiteOpen(false);
+  };
 
   const handleLogout = () => {
     if (window.confirm('Are you sure you want to log out?')) {
@@ -72,7 +93,7 @@ export const Header: React.FC<Props> = ({ onToggleSidebar }) => {
           >
             <Building2 className="w-4 h-4 text-blue-400 shrink-0" />
             <span className="font-mono text-blue-400 truncate max-w-[120px] sm:max-w-[200px]">
-              {currentSiteSheet?.siteName || currentSiteSheet?.name || 'Select Site'}
+              {currentSiteSheet ? currentSiteSheet.siteName : 'Select Site'}
             </span>
             <ChevronDown className="w-3.5 h-3.5 text-[#94A3B8] shrink-0" />
           </button>
@@ -81,35 +102,31 @@ export const Header: React.FC<Props> = ({ onToggleSidebar }) => {
             <div className="absolute left-0 mt-2 w-[280px] sm:w-80 bg-[#121927] border border-[#1E293B] rounded-2xl shadow-2xl py-1.5 z-50">
               <div className="px-3.5 py-2 text-[10px] font-extrabold uppercase tracking-wider text-[#94A3B8] border-b border-[#1E293B] flex items-center justify-between">
                 <span>Active Sites</span>
-                <span className="text-blue-400 font-mono">{safeSiteSheets.length} Sites</span>
+                <span className="text-blue-400 font-mono">{siteSheets.length} Sites</span>
               </div>
 
               <div className="max-h-60 overflow-y-auto">
-                {safeSiteSheets.map((s: any) => {
-                  const sId = s?.siteId || s?.id;
-                  const isSelected = selectedSiteId === sId;
-                  return (
-                    <div
-                      key={sId}
-                      className={`w-full px-3.5 py-2.5 text-xs flex items-center justify-between hover:bg-[#162032] transition-colors ${
-                        isSelected ? 'bg-[#162032]/60' : ''
-                      }`}
+                {siteSheets.map((s) => (
+                  <div
+                    key={s.siteId}
+                    className={`w-full px-3.5 py-2.5 text-xs flex items-center justify-between hover:bg-[#162032] transition-colors ${
+                      selectedSiteId === s.siteId ? 'bg-[#162032]/60' : ''
+                    }`}
+                  >
+                    <button
+                      onClick={() => {
+                        setSelectedSiteId(s.siteId);
+                        setIsSiteOpen(false);
+                      }}
+                      className="flex-1 text-left cursor-pointer truncate"
                     >
-                      <button
-                        onClick={() => {
-                          setSelectedSiteId(sId);
-                          setIsSiteOpen(false);
-                        }}
-                        className="flex-1 text-left cursor-pointer truncate"
-                      >
-                        <div className={`font-semibold truncate ${isSelected ? 'text-blue-400 font-bold' : 'text-white'}`}>
-                          {s?.siteName || s?.name}
-                        </div>
-                      </button>
-                      {isSelected && <Check className="w-3.5 h-3.5 text-blue-400 shrink-0" />}
-                    </div>
-                  );
-                })}
+                      <div className={`font-semibold truncate ${selectedSiteId === s.siteId ? 'text-blue-400 font-bold' : 'text-white'}`}>
+                        {s.siteName}
+                      </div>
+                    </button>
+                    {selectedSiteId === s.siteId && <Check className="w-3.5 h-3.5 text-blue-400 shrink-0" />}
+                  </div>
+                ))}
               </div>
 
               {isSuperAdmin && (
@@ -119,7 +136,7 @@ export const Header: React.FC<Props> = ({ onToggleSidebar }) => {
                       setIsSiteOpen(false);
                       setIsAddRoadSiteOpen(true);
                     }}
-                    className="w-full py-2 px-3 rounded-xl bg-blue-600/25 hover:bg-blue-600 border border-blue-500/40 text-blue-300 hover:text-white font-black text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                    className="w-full py-2 px-3 rounded-xl bg-blue-600/20 hover:bg-blue-600 border border-blue-500/30 text-blue-300 hover:text-white font-black text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer"
                   >
                     <Plus className="w-3.5 h-3.5" />
                     <span>+ Add New Site</span>
@@ -143,9 +160,7 @@ export const Header: React.FC<Props> = ({ onToggleSidebar }) => {
         </button>
       </div>
 
-      {isAddRoadSiteOpen && (
-        <CreateRoadSiteModal isOpen={isAddRoadSiteOpen} onClose={() => setIsAddRoadSiteOpen(false)} />
-      )}
+      <CreateRoadSiteModal isOpen={isAddRoadSiteOpen} onClose={() => setIsAddRoadSiteOpen(false)} />
     </header>
   );
 };
