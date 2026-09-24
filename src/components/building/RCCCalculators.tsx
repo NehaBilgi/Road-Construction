@@ -5,7 +5,11 @@ import {
   Trash2,
   Edit2,
   X,
-  Truck
+  Truck,
+  Layers,
+  Box,
+  Building,
+  Footprints
 } from 'lucide-react';
 
 export type StructuralType = 'SLAB' | 'COLUMN' | 'BEAM' | 'RCC_WALL' | 'STAIRS' | 'FOOTING';
@@ -21,63 +25,72 @@ export interface ConcreteItem {
   ratePerM3: number;
 }
 
-const STORAGE_RCC_ELEMENTS_KEY = 'CONSTRUCTION_PRO_RCC_CALCULATOR_ELEMENTS_V2';
+const STORAGE_RCC_ELEMENTS_KEY = 'CONSTRUCTION_PRO_RCC_CALCULATOR_ELEMENTS_V4';
 
 const INITIAL_ELEMENTS: ConcreteItem[] = [
   {
     id: 'RCC-1001',
     category: 'SLAB',
     label: 'Ground Floor Slab',
-    dimensionsText: '15.00m × 10.00m × 150mm (49.2ft × 32.8ft × 6.0in)',
-    volumeM3: 22.5,
+    dimensionsText: '15.00m × 10.00m × 150mm',
+    volumeM3: 22.50,
     volumeCft: 794.58,
     ratePerM3: 4500
   },
   {
     id: 'RCC-1002',
-    category: 'COLUMN',
-    label: 'Plinth Columns (12 Nos)',
-    dimensionsText: '12 Nos (300×600mm, H: 3.2m / 12×24in, H: 10.5ft)',
-    volumeM3: 6.912,
-    volumeCft: 244.1,
-    ratePerM3: 4800
+    category: 'FOOTING',
+    label: 'Isolated Footings (12 Nos)',
+    dimensionsText: '12 Nos (2.00m × 2.00m × 500mm)',
+    volumeM3: 24.00,
+    volumeCft: 847.55,
+    ratePerM3: 4200
   },
   {
     id: 'RCC-1003',
-    category: 'BEAM',
-    label: 'Main Plinth Beams (8 Nos)',
-    dimensionsText: '8 Nos (6.0m × 230×450mm / 19.7ft × 9×18in)',
-    volumeM3: 3.974,
-    volumeCft: 140.34,
-    ratePerM3: 4600
+    category: 'COLUMN',
+    label: 'Plinth Columns (12 Nos)',
+    dimensionsText: '12 Nos (300×600mm, H: 3.20m)',
+    volumeM3: 6.912,
+    volumeCft: 244.10,
+    ratePerM3: 4800
   },
   {
     id: 'RCC-1004',
+    category: 'BEAM',
+    label: 'Main Plinth Beams (8 Nos)',
+    dimensionsText: '8 Nos (6.00m × 230×450mm)',
+    volumeM3: 4.968,
+    volumeCft: 175.44,
+    ratePerM3: 4600
+  },
+  {
+    id: 'RCC-1005',
     category: 'RCC_WALL',
     label: 'Lift Core Shear Wall',
-    dimensionsText: '2 Nos (8.0m L × 3.2m H × 200mm / 26.2ft × 10.5ft × 8.0in)',
+    dimensionsText: '2 Nos (8.00m L × 3.20m H × 200mm)',
     volumeM3: 10.24,
     volumeCft: 361.62,
     ratePerM3: 5000
   },
   {
-    id: 'RCC-1005',
+    id: 'RCC-1006',
     category: 'STAIRS',
     label: 'Main Staircase Flight',
-    dimensionsText: '1 Flight (18 Steps, W: 1.2m / 3.9ft, Waist: 150mm / 5.9in)',
-    volumeM3: 1.85,
-    volumeCft: 65.33,
+    dimensionsText: '1 Flight (18 Steps, W: 1.20m, Waist: 150mm)',
+    volumeM3: 1.35,
+    volumeCft: 47.67,
     ratePerM3: 4700
-  },
-  {
-    id: 'RCC-1006',
-    category: 'FOOTING',
-    label: 'Isolated Footings (12 Nos)',
-    dimensionsText: '12 Nos (2.0m × 2.0m × 500mm / 6.6ft × 6.6ft × 19.7in)',
-    volumeM3: 24.0,
-    volumeCft: 847.55,
-    ratePerM3: 4200
   }
+];
+
+const CATEGORIES: { id: StructuralType; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
+  { id: 'SLAB', label: 'Slab / Deck', icon: Layers },
+  { id: 'COLUMN', label: 'Column', icon: Box },
+  { id: 'BEAM', label: 'Beam', icon: Building },
+  { id: 'RCC_WALL', label: 'RCC Wall', icon: Building },
+  { id: 'STAIRS', label: 'Stairs', icon: Footprints },
+  { id: 'FOOTING', label: 'Footing', icon: Box }
 ];
 
 export const BuildingCalculatorModule: React.FC = () => {
@@ -109,103 +122,116 @@ export const BuildingCalculatorModule: React.FC = () => {
   // --- Slab Inputs ---
   const [slabLen, setSlabLen] = useState<number>(15);
   const [slabWid, setSlabWid] = useState<number>(10);
-  const [slabThk, setSlabThk] = useState<number>(150); // mm in metric, inches in imperial
+  const [slabThk, setSlabThk] = useState<number>(150);
 
   // --- Column Inputs ---
   const [colCount, setColCount] = useState<number>(12);
-  const [colDim1, setColDim1] = useState<number>(300); // mm or inches
-  const [colDim2, setColDim2] = useState<number>(600); // mm or inches
-  const [colHgt, setColHgt] = useState<number>(3.2); // m or ft
+  const [colDim1, setColDim1] = useState<number>(300);
+  const [colDim2, setColDim2] = useState<number>(600);
+  const [colHgt, setColHgt] = useState<number>(3.2);
 
   // --- Beam Inputs ---
   const [beamCount, setBeamCount] = useState<number>(8);
-  const [beamLen, setBeamLen] = useState<number>(6); // m or ft
-  const [beamWid, setBeamWid] = useState<number>(230); // mm or inches
-  const [beamDep, setBeamDep] = useState<number>(450); // mm or inches
+  const [beamLen, setBeamLen] = useState<number>(6);
+  const [beamWid, setBeamWid] = useState<number>(230);
+  const [beamDep, setBeamDep] = useState<number>(450);
 
   // --- RCC Wall Inputs ---
   const [wallCount, setWallCount] = useState<number>(2);
-  const [wallLen, setWallLen] = useState<number>(8); // m or ft
-  const [wallHgt, setWallHgt] = useState<number>(3.2); // m or ft
-  const [wallThk, setWallThk] = useState<number>(200); // mm or inches
+  const [wallLen, setWallLen] = useState<number>(8);
+  const [wallHgt, setWallHgt] = useState<number>(3.2);
+  const [wallThk, setWallThk] = useState<number>(200);
 
   // --- Stairs Inputs ---
   const [flightsCount, setFlightsCount] = useState<number>(1);
-  const [stairWid, setStairWid] = useState<number>(1.2); // m or ft
-  const [stepTread, setStepTread] = useState<number>(250); // mm or inches
-  const [stepRiser, setStepRiser] = useState<number>(150); // mm or inches
+  const [stairWid, setStairWid] = useState<number>(1.2);
+  const [stepTread, setStepTread] = useState<number>(250);
+  const [stepRiser, setStepRiser] = useState<number>(150);
   const [numberOfSteps, setNumberOfSteps] = useState<number>(18);
-  const [waistSlabThk, setWaistSlabThk] = useState<number>(150); // mm or inches
+  const [waistSlabThk, setWaistSlabThk] = useState<number>(150);
 
   // --- Footing Inputs ---
   const [footingCount, setFootingCount] = useState<number>(12);
-  const [footingLen, setFootingLen] = useState<number>(2); // m or ft
-  const [footingWid, setFootingWid] = useState<number>(2); // m or ft
-  const [footingDep, setFootingDep] = useState<number>(500); // mm or inches
+  const [footingLen, setFootingLen] = useState<number>(2);
+  const [footingWid, setFootingWid] = useState<number>(2);
+  const [footingDep, setFootingDep] = useState<number>(500);
 
   useEffect(() => {
     localStorage.setItem(STORAGE_RCC_ELEMENTS_KEY, JSON.stringify(items));
   }, [items]);
 
-  // Convert inputs to meters when calculating volume
   const computedVolumes = useMemo(() => {
-    const isImp = unitMode === 'IMPERIAL';
-    const toMeterFromLarge = (val: number) => (isImp ? val * 0.3048 : val);
-    const toMeterFromSmall = (val: number) => (isImp ? val * 0.0254 : val / 1000);
-
     let m3 = 0;
 
-    switch (category) {
-      case 'SLAB': {
-        const l = toMeterFromLarge(slabLen);
-        const w = toMeterFromLarge(slabWid);
-        const t = toMeterFromSmall(slabThk);
-        m3 = l * w * t;
-        break;
+    if (unitMode === 'METRIC') {
+      switch (category) {
+        case 'SLAB': {
+          m3 = slabLen * slabWid * (slabThk / 1000);
+          break;
+        }
+        case 'COLUMN': {
+          m3 = colCount * (colDim1 / 1000) * (colDim2 / 1000) * colHgt;
+          break;
+        }
+        case 'BEAM': {
+          m3 = beamCount * beamLen * (beamWid / 1000) * (beamDep / 1000);
+          break;
+        }
+        case 'RCC_WALL': {
+          m3 = wallCount * wallLen * wallHgt * (wallThk / 1000);
+          break;
+        }
+        case 'STAIRS': {
+          const trM = stepTread / 1000;
+          const rM = stepRiser / 1000;
+          const wtM = waistSlabThk / 1000;
+          const stepsVol = 0.5 * trM * rM * stairWid * numberOfSteps;
+          const waistVol = Math.sqrt(trM * trM + rM * rM) * numberOfSteps * stairWid * wtM;
+          m3 = flightsCount * (stepsVol + waistVol);
+          break;
+        }
+        case 'FOOTING': {
+          m3 = footingCount * footingLen * footingWid * (footingDep / 1000);
+          break;
+        }
       }
-      case 'COLUMN': {
-        const l = toMeterFromSmall(colDim1);
-        const w = toMeterFromSmall(colDim2);
-        const h = toMeterFromLarge(colHgt);
-        m3 = colCount * l * w * h;
-        break;
+    } else {
+      let cftRaw = 0;
+      switch (category) {
+        case 'SLAB': {
+          cftRaw = slabLen * slabWid * (slabThk / 12);
+          break;
+        }
+        case 'COLUMN': {
+          cftRaw = colCount * (colDim1 / 12) * (colDim2 / 12) * colHgt;
+          break;
+        }
+        case 'BEAM': {
+          cftRaw = beamCount * beamLen * (beamWid / 12) * (beamDep / 12);
+          break;
+        }
+        case 'RCC_WALL': {
+          cftRaw = wallCount * wallLen * wallHgt * (wallThk / 12);
+          break;
+        }
+        case 'STAIRS': {
+          const trFt = stepTread / 12;
+          const rFt = stepRiser / 12;
+          const wtFt = waistSlabThk / 12;
+          const stepsVol = 0.5 * trFt * rFt * stairWid * numberOfSteps;
+          const waistVol = Math.sqrt(trFt * trFt + rFt * rFt) * numberOfSteps * stairWid * wtFt;
+          cftRaw = flightsCount * (stepsVol + waistVol);
+          break;
+        }
+        case 'FOOTING': {
+          cftRaw = footingCount * footingLen * footingWid * (footingDep / 12);
+          break;
+        }
       }
-      case 'BEAM': {
-        const l = toMeterFromLarge(beamLen);
-        const w = toMeterFromSmall(beamWid);
-        const d = toMeterFromSmall(beamDep);
-        m3 = beamCount * l * w * d;
-        break;
-      }
-      case 'RCC_WALL': {
-        const l = toMeterFromLarge(wallLen);
-        const h = toMeterFromLarge(wallHgt);
-        const t = toMeterFromSmall(wallThk);
-        m3 = wallCount * l * h * t;
-        break;
-      }
-      case 'STAIRS': {
-        const w = toMeterFromLarge(stairWid);
-        const tr = toMeterFromSmall(stepTread);
-        const r = toMeterFromSmall(stepRiser);
-        const wt = toMeterFromSmall(waistSlabThk);
-        const singleStep = 0.5 * tr * r * w;
-        const stepsVol = singleStep * numberOfSteps;
-        const slopeLen = Math.sqrt(Math.pow(tr, 2) + Math.pow(r, 2));
-        const waistVol = slopeLen * numberOfSteps * w * wt;
-        m3 = flightsCount * (stepsVol + waistVol);
-        break;
-      }
-      case 'FOOTING': {
-        const l = toMeterFromLarge(footingLen);
-        const w = toMeterFromLarge(footingWid);
-        const d = toMeterFromSmall(footingDep);
-        m3 = footingCount * l * w * d;
-        break;
-      }
+      m3 = cftRaw / 35.3146667;
     }
 
-    const cft = m3 * 35.3147;
+    const cft = m3 * 35.3146667;
     return { m3, cft };
   }, [
     category,
@@ -221,7 +247,6 @@ export const BuildingCalculatorModule: React.FC = () => {
   const handleUnitModeSwitch = (mode: UnitSystem) => {
     if (mode === unitMode) return;
     if (mode === 'IMPERIAL') {
-      // Metric to Imperial
       setSlabLen((prev) => Number((prev * 3.28084).toFixed(2)));
       setSlabWid((prev) => Number((prev * 3.28084).toFixed(2)));
       setSlabThk((prev) => Number((prev / 25.4).toFixed(2)));
@@ -247,7 +272,6 @@ export const BuildingCalculatorModule: React.FC = () => {
       setFootingWid((prev) => Number((prev * 3.28084).toFixed(2)));
       setFootingDep((prev) => Number((prev / 25.4).toFixed(2)));
     } else {
-      // Imperial to Metric
       setSlabLen((prev) => Number((prev / 3.28084).toFixed(2)));
       setSlabWid((prev) => Number((prev / 3.28084).toFixed(2)));
       setSlabThk((prev) => Number((prev * 25.4).toFixed(0)));
@@ -356,7 +380,7 @@ export const BuildingCalculatorModule: React.FC = () => {
   }, [items]);
 
   const totalWetCft = useMemo(() => {
-    return totalWetM3 * 35.3147;
+    return totalWetM3 * 35.3146667;
   }, [totalWetM3]);
 
   const totalWithWastage = useMemo(() => {
@@ -375,7 +399,7 @@ export const BuildingCalculatorModule: React.FC = () => {
   const getCategoryBadgeLabel = (cat: StructuralType) => {
     switch (cat) {
       case 'SLAB':
-        return 'Slab & Deck';
+        return 'Slab / Deck';
       case 'COLUMN':
         return 'Column';
       case 'BEAM':
@@ -411,7 +435,7 @@ export const BuildingCalculatorModule: React.FC = () => {
         </button>
       </div>
 
-      {/* RMC Vehicle Delivery Planner Banner */}
+      {/* RMC Summary Banner */}
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
         <div className="bg-[#0B1120] border border-[#17233D] p-4 rounded-2xl">
           <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
@@ -442,7 +466,7 @@ export const BuildingCalculatorModule: React.FC = () => {
             {totalWithWastage.toFixed(2)} <span className="text-xs text-cyan-500 font-sans">m³</span>
           </div>
           <span className="text-[11px] text-slate-400 font-mono mt-0.5 block">
-            ≈ {(totalWithWastage * 35.3147).toFixed(1)} CFT
+            ≈ {(totalWithWastage * 35.3146667).toFixed(1)} CFT
           </span>
         </div>
 
@@ -479,7 +503,7 @@ export const BuildingCalculatorModule: React.FC = () => {
             ₹{Math.round(totalCost).toLocaleString('en-IN')}
           </div>
           <span className="text-[11px] text-slate-400 font-mono mt-0.5 block">
-            Average Rate Applied
+            Estimated Cost on Site
           </span>
         </div>
       </div>
@@ -543,7 +567,7 @@ export const BuildingCalculatorModule: React.FC = () => {
                         {item.volumeM3.toFixed(2)} <span className="text-xs text-cyan-500 font-sans">m³</span>
                       </div>
                       <div className="text-[10px] text-slate-400">
-                        {(item.volumeCft || item.volumeM3 * 35.3147).toFixed(1)} CFT
+                        {(item.volumeCft || item.volumeM3 * 35.3146667).toFixed(1)} CFT
                       </div>
                     </td>
 
@@ -583,10 +607,10 @@ export const BuildingCalculatorModule: React.FC = () => {
         </div>
       </div>
 
-      {/* Modal: Add / Edit Structural Work with Meters & Feet Units Switcher */}
+      {/* Modal: Add / Edit Structural Work */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-[#0A0F1D] border border-[#1A2640] rounded-3xl w-full max-w-lg shadow-2xl p-6 space-y-5 max-h-[92vh] overflow-y-auto">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-[#0A0F1D] border border-[#1A2640] rounded-3xl w-full max-w-2xl shadow-2xl p-6 space-y-5 max-h-[94vh] overflow-y-auto">
             {/* Modal Header */}
             <div className="flex items-center justify-between border-b border-[#1A2640] pb-4">
               <div>
@@ -635,21 +659,30 @@ export const BuildingCalculatorModule: React.FC = () => {
                 </div>
               </div>
 
-              {/* Structural Category selector */}
-              <div>
-                <label className="block text-slate-300 font-bold mb-1.5">Structural Category *</label>
-                <select
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value as StructuralType)}
-                  className="w-full px-3.5 py-2.5 bg-[#0F172B] border border-[#1C2C4E] rounded-xl text-white outline-none focus:border-blue-500 font-medium cursor-pointer"
-                >
-                  <option value="SLAB">Slab / Deck</option>
-                  <option value="COLUMN">Column</option>
-                  <option value="BEAM">Beam (Plinth / Roof)</option>
-                  <option value="RCC_WALL">RCC / Shear / Retaining Wall</option>
-                  <option value="STAIRS">Stairs & Steps</option>
-                  <option value="FOOTING">Footing / Foundation</option>
-                </select>
+              {/* In-Line Structural Categories Selector */}
+              <div className="space-y-1.5">
+                <label className="block text-slate-300 font-bold">Structural Category *</label>
+                <div className="flex items-center gap-1.5 p-1 bg-[#070B16] border border-[#17243F] rounded-2xl overflow-x-auto scrollbar-thin">
+                  {CATEGORIES.map((cat) => {
+                    const Icon = cat.icon;
+                    const isSelected = category === cat.id;
+                    return (
+                      <button
+                        key={cat.id}
+                        type="button"
+                        onClick={() => setCategory(cat.id)}
+                        className={`flex-1 min-w-[95px] flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl font-bold text-xs transition-all whitespace-nowrap cursor-pointer active:scale-95 ${
+                          isSelected
+                            ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
+                            : 'bg-[#0E1628] hover:bg-[#141F38] text-slate-400 hover:text-white'
+                        }`}
+                      >
+                        <Icon className={`w-3.5 h-3.5 shrink-0 ${isSelected ? 'text-white' : 'text-slate-500'}`} />
+                        <span>{cat.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
 
               {/* Element Label */}
@@ -673,7 +706,7 @@ export const BuildingCalculatorModule: React.FC = () => {
                     </label>
                     <input
                       type="number"
-                      step="0.01"
+                      step="any"
                       value={slabLen}
                       onChange={(e) => setSlabLen(Number(e.target.value))}
                       className="w-full px-2.5 py-2 bg-[#0F172B] border border-[#1C2C4E] rounded-lg text-white font-mono"
@@ -685,7 +718,7 @@ export const BuildingCalculatorModule: React.FC = () => {
                     </label>
                     <input
                       type="number"
-                      step="0.01"
+                      step="any"
                       value={slabWid}
                       onChange={(e) => setSlabWid(Number(e.target.value))}
                       className="w-full px-2.5 py-2 bg-[#0F172B] border border-[#1C2C4E] rounded-lg text-white font-mono"
@@ -697,7 +730,7 @@ export const BuildingCalculatorModule: React.FC = () => {
                     </label>
                     <input
                       type="number"
-                      step="0.1"
+                      step="any"
                       value={slabThk}
                       onChange={(e) => setSlabThk(Number(e.target.value))}
                       className="w-full px-2.5 py-2 bg-[#0F172B] border border-[#1C2C4E] rounded-lg text-cyan-400 font-mono font-bold"
@@ -724,7 +757,7 @@ export const BuildingCalculatorModule: React.FC = () => {
                     </label>
                     <input
                       type="number"
-                      step="0.01"
+                      step="any"
                       value={colHgt}
                       onChange={(e) => setColHgt(Number(e.target.value))}
                       className="w-full px-2.5 py-2 bg-[#0F172B] border border-[#1C2C4E] rounded-lg text-white font-mono"
@@ -736,7 +769,7 @@ export const BuildingCalculatorModule: React.FC = () => {
                     </label>
                     <input
                       type="number"
-                      step="0.1"
+                      step="any"
                       value={colDim1}
                       onChange={(e) => setColDim1(Number(e.target.value))}
                       className="w-full px-2.5 py-2 bg-[#0F172B] border border-[#1C2C4E] rounded-lg text-white font-mono"
@@ -748,7 +781,7 @@ export const BuildingCalculatorModule: React.FC = () => {
                     </label>
                     <input
                       type="number"
-                      step="0.1"
+                      step="any"
                       value={colDim2}
                       onChange={(e) => setColDim2(Number(e.target.value))}
                       className="w-full px-2.5 py-2 bg-[#0F172B] border border-[#1C2C4E] rounded-lg text-white font-mono"
@@ -775,7 +808,7 @@ export const BuildingCalculatorModule: React.FC = () => {
                     </label>
                     <input
                       type="number"
-                      step="0.01"
+                      step="any"
                       value={beamLen}
                       onChange={(e) => setBeamLen(Number(e.target.value))}
                       className="w-full px-2.5 py-2 bg-[#0F172B] border border-[#1C2C4E] rounded-lg text-white font-mono"
@@ -787,7 +820,7 @@ export const BuildingCalculatorModule: React.FC = () => {
                     </label>
                     <input
                       type="number"
-                      step="0.1"
+                      step="any"
                       value={beamWid}
                       onChange={(e) => setBeamWid(Number(e.target.value))}
                       className="w-full px-2.5 py-2 bg-[#0F172B] border border-[#1C2C4E] rounded-lg text-white font-mono"
@@ -799,7 +832,7 @@ export const BuildingCalculatorModule: React.FC = () => {
                     </label>
                     <input
                       type="number"
-                      step="0.1"
+                      step="any"
                       value={beamDep}
                       onChange={(e) => setBeamDep(Number(e.target.value))}
                       className="w-full px-2.5 py-2 bg-[#0F172B] border border-[#1C2C4E] rounded-lg text-white font-mono"
@@ -826,7 +859,7 @@ export const BuildingCalculatorModule: React.FC = () => {
                     </label>
                     <input
                       type="number"
-                      step="0.01"
+                      step="any"
                       value={wallLen}
                       onChange={(e) => setWallLen(Number(e.target.value))}
                       className="w-full px-2.5 py-2 bg-[#0F172B] border border-[#1C2C4E] rounded-lg text-white font-mono"
@@ -838,7 +871,7 @@ export const BuildingCalculatorModule: React.FC = () => {
                     </label>
                     <input
                       type="number"
-                      step="0.01"
+                      step="any"
                       value={wallHgt}
                       onChange={(e) => setWallHgt(Number(e.target.value))}
                       className="w-full px-2.5 py-2 bg-[#0F172B] border border-[#1C2C4E] rounded-lg text-white font-mono"
@@ -850,7 +883,7 @@ export const BuildingCalculatorModule: React.FC = () => {
                     </label>
                     <input
                       type="number"
-                      step="0.1"
+                      step="any"
                       value={wallThk}
                       onChange={(e) => setWallThk(Number(e.target.value))}
                       className="w-full px-2.5 py-2 bg-[#0F172B] border border-[#1C2C4E] rounded-lg text-white font-mono"
@@ -878,7 +911,7 @@ export const BuildingCalculatorModule: React.FC = () => {
                       </label>
                       <input
                         type="number"
-                        step="0.01"
+                        step="any"
                         value={stairWid}
                         onChange={(e) => setStairWid(Number(e.target.value))}
                         className="w-full px-2.5 py-2 bg-[#0F172B] border border-[#1C2C4E] rounded-lg text-white font-mono"
@@ -901,7 +934,7 @@ export const BuildingCalculatorModule: React.FC = () => {
                       </label>
                       <input
                         type="number"
-                        step="0.1"
+                        step="any"
                         value={stepTread}
                         onChange={(e) => setStepTread(Number(e.target.value))}
                         className="w-full px-2.5 py-2 bg-[#0F172B] border border-[#1C2C4E] rounded-lg text-white font-mono"
@@ -913,7 +946,7 @@ export const BuildingCalculatorModule: React.FC = () => {
                       </label>
                       <input
                         type="number"
-                        step="0.1"
+                        step="any"
                         value={stepRiser}
                         onChange={(e) => setStepRiser(Number(e.target.value))}
                         className="w-full px-2.5 py-2 bg-[#0F172B] border border-[#1C2C4E] rounded-lg text-white font-mono"
@@ -926,7 +959,7 @@ export const BuildingCalculatorModule: React.FC = () => {
                     </label>
                     <input
                       type="number"
-                      step="0.1"
+                      step="any"
                       value={waistSlabThk}
                       onChange={(e) => setWaistSlabThk(Number(e.target.value))}
                       className="w-full px-2.5 py-2 bg-[#0F172B] border border-[#1C2C4E] rounded-lg text-white font-mono"
@@ -953,7 +986,7 @@ export const BuildingCalculatorModule: React.FC = () => {
                     </label>
                     <input
                       type="number"
-                      step="0.1"
+                      step="any"
                       value={footingDep}
                       onChange={(e) => setFootingDep(Number(e.target.value))}
                       className="w-full px-2.5 py-2 bg-[#0F172B] border border-[#1C2C4E] rounded-lg text-white font-mono"
@@ -965,7 +998,7 @@ export const BuildingCalculatorModule: React.FC = () => {
                     </label>
                     <input
                       type="number"
-                      step="0.01"
+                      step="any"
                       value={footingLen}
                       onChange={(e) => setFootingLen(Number(e.target.value))}
                       className="w-full px-2.5 py-2 bg-[#0F172B] border border-[#1C2C4E] rounded-lg text-white font-mono"
@@ -977,7 +1010,7 @@ export const BuildingCalculatorModule: React.FC = () => {
                     </label>
                     <input
                       type="number"
-                      step="0.01"
+                      step="any"
                       value={footingWid}
                       onChange={(e) => setFootingWid(Number(e.target.value))}
                       className="w-full px-2.5 py-2 bg-[#0F172B] border border-[#1C2C4E] rounded-lg text-white font-mono"
