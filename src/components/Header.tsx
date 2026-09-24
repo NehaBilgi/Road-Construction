@@ -8,8 +8,7 @@ import {
   Plus,
   LogOut
 } from 'lucide-react';
-// Safe fallback import or standard relative path:
-import CreateRoadSiteModal from '../../components/modals/CreateRoadSiteModal';
+import CreateRoadSiteModal from '../modals/CreateRoadSiteModal';
 
 interface Props {
   activeTab: string;
@@ -40,17 +39,20 @@ export const Header: React.FC<Props> = ({ onToggleSidebar }) => {
   ) || safeSiteSheets[0];
 
   const handleLogout = () => {
-    if (typeof logout === 'function') {
-      logout();
-    } else {
-      sessionStorage.clear();
-      window.location.reload();
+    if (window.confirm('Are you sure you want to log out?')) {
+      if (typeof logout === 'function') {
+        logout();
+      } else {
+        sessionStorage.clear();
+        window.location.reload();
+      }
     }
   };
 
   return (
     <header className="h-14 bg-[#080C14] border-b border-[#1E293B] flex items-center justify-between px-3 sm:px-4 text-xs select-none font-sans z-40 relative">
       <div className="flex items-center gap-2 sm:gap-3">
+        {/* MOBILE HAMBURGER TOGGLE BUTTON */}
         <button
           type="button"
           onClick={() => {
@@ -62,6 +64,7 @@ export const Header: React.FC<Props> = ({ onToggleSidebar }) => {
           <Menu className="w-5 h-5" />
         </button>
 
+        {/* Site Selector Dropdown */}
         <div className="relative">
           <button
             onClick={() => setIsSiteOpen(!isSiteOpen)}
