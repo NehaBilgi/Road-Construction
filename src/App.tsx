@@ -19,13 +19,13 @@ import { MachineryFleetModule } from './components/machinery/MachineryFleetModul
 import StockTransactionsModule from './components/building/StockTransactionsModule';
 import { UserManagementModule } from './components/configuration/UserManagementModule';
 
-// Building & Engineering Modules
+// Building & Road Categories correctly separated per directory structure
 import { ProductsMasterModule } from './components/building/ProductsMasterModule';
 import { BuildingReportsModule } from './components/building/BuildingReportsModule';
 import { BuildingAlertsModule } from './components/building/BuildingAlertsModule';
-import { BuildingCategoriesModule as BuildingMaterialCategoriesModule } from './components/building/BuildingCategoriesModule';
-import { RoadMaterialCategoriesModule } from './components/configuration/CategoriesModule';
-import { RCCCalculators } from './components/building/RCCCalculators';
+import { BuildingCategoriesModule } from './components/building/BuildingCategoriesModule';
+import { CategoriesModule as RoadMaterialCategoriesModule } from './components/configuration/CategoriesModule';
+import { RCCCalculators } from './components/calculator/RCCCalculators';
 import { AttendancePayrollModule } from './components/building/AttendancePayrollModule';
 
 import {
@@ -275,7 +275,7 @@ export const AppContent: React.FC = () => {
                 {activeTab === 'products' && <ProductsMasterModule />}
                 {activeTab === 'transactions' && <StockTransactionsModule />}
                 {activeTab === 'building_calculator' && <RCCCalculators />}
-                {activeTab === 'categories' && <BuildingMaterialCategoriesModule />}
+                {activeTab === 'categories' && <BuildingCategoriesModule />}
                 {activeTab === 'users' && <UserManagementModule />}
                 {activeTab === 'reports' && <BuildingReportsModule />}
                 {activeTab === 'alerts' && <BuildingAlertsModule onNavigateTab={setActiveTab} />}
