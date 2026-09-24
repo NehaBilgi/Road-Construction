@@ -23,7 +23,7 @@ import { UserManagementModule } from './components/configuration/UserManagementM
 import { ProductsMasterModule } from './components/building/ProductsMasterModule';
 import { BuildingReportsModule } from './components/building/BuildingReportsModule';
 import { BuildingAlertsModule } from './components/building/BuildingAlertsModule';
-import { BuildingCategoriesModule as BuildingMaterialCategoriesModule } from './components/categories/BuildingMaterialCategoriesModule';
+import { BuildingCategoriesModule as BuildingMaterialCategoriesModule } from './components/categories/BuildingCategoriesModule';
 import { RoadMaterialCategoriesModule } from './components/categories/RoadMaterialCategoriesModule';
 import { RCCCalculators } from './components/calculator/RCCCalculators';
 import { AttendancePayrollModule } from './components/building/AttendancePayrollModule';
