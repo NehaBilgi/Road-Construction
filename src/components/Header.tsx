@@ -8,7 +8,7 @@ import {
   Plus,
   LogOut
 } from 'lucide-react';
-import CreateRoadSiteModal from '../modals/CreateRoadSiteModal';
+import CreateRoadSiteModal from '../../components/modals/CreateRoadSiteModal';
 
 interface Props {
   activeTab: string;
