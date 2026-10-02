@@ -14,7 +14,11 @@ import {
   RotateCcw,
   Check,
   Building2,
-  KeyRound
+  KeyRound,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight
 } from 'lucide-react';
 
 export interface HaulageTripRecord {
@@ -107,7 +111,6 @@ const formatDateDMY = (dateStr: string) => {
   return dateStr;
 };
 
-// Start of month in DD-MM-YYYY
 const getStartOfMonthDMY = () => {
   const d = new Date();
   const month = String(d.getMonth() + 1).padStart(2, '0');
@@ -115,7 +118,6 @@ const getStartOfMonthDMY = () => {
   return `01-${month}-${year}`;
 };
 
-// End of month in DD-MM-YYYY
 const getEndOfMonthDMY = () => {
   const d = new Date();
   const year = d.getFullYear();
@@ -126,12 +128,11 @@ const getEndOfMonthDMY = () => {
   return `${day}-${month}-${year}`;
 };
 
-// Conversion helpers between DD-MM-YYYY and HTML input YYYY-MM-DD
 const dmyToYmd = (dmyStr: string) => {
   if (!dmyStr) return '';
   const parts = dmyStr.split('-');
   if (parts.length === 3) {
-    if (parts[0].length === 4) return dmyStr; // already YYYY-MM-DD
+    if (parts[0].length === 4) return dmyStr;
     const [d, m, y] = parts;
     return `${y}-${m}-${d}`;
   }
@@ -142,14 +143,13 @@ const ymdToDmy = (ymdStr: string) => {
   if (!ymdStr) return '';
   const parts = ymdStr.split('-');
   if (parts.length === 3) {
-    if (parts[2].length === 4) return ymdStr; // already DD-MM-YYYY
+    if (parts[2].length === 4) return ymdStr;
     const [y, m, d] = parts;
     return `${d}-${m}-${y}`;
   }
   return ymdStr;
 };
 
-// Convert string to sortable YYYYMMDD
 const toComparableDate = (dateStr: string) => {
   if (!dateStr) return '';
   const clean = dateStr.split('T')[0].split(' ')[0];
@@ -234,17 +234,19 @@ export const MaterialHaulageTripsModule: React.FC = () => {
   }, [savedVendors, advances]);
 
   const [searchQuery, setSearchQuery] = useState('');
-  
-  // Date Range State in DD-MM-YYYY format
   const [fromDate, setFromDate] = useState<string>(getStartOfMonthDMY);
   const [toDate, setToDate] = useState<string>(getEndOfMonthDMY);
+
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [pageSize, setPageSize] = useState<number>(10);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
 
   const [tripDate, setTripDate] = useState(new Date().toISOString().split('T')[0]);
   const [siteName, setSiteName] = useState(activeSiteName);
-  
+
   const [vehicleNumber, setVehicleNumber] = useState('');
   const [isVehicleMenuOpen, setIsVehicleMenuOpen] = useState(false);
   const vehicleDropdownRef = useRef<HTMLDivElement>(null);
@@ -316,7 +318,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
   const filtered = useMemo(() => {
     return trips.filter((t) => {
       const matchSite = !activeSiteName || t.siteName === activeSiteName;
-      
+
       const recComp = toComparableDate(t.tripDate);
       const fromComp = toComparableDate(fromDate);
       const toComp = toComparableDate(toDate);
@@ -336,6 +338,19 @@ export const MaterialHaulageTripsModule: React.FC = () => {
       return matchSite && matchQuery;
     });
   }, [trips, activeSiteName, fromDate, toDate, searchQuery]);
+
+  // Reset to page 1 whenever filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeSiteName, fromDate, toDate, searchQuery]);
+
+  // Pagination calculation
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+
+  const paginatedRecords = useMemo(() => {
+    const startIndex = (currentPage - 1) * pageSize;
+    return filtered.slice(startIndex, startIndex + pageSize);
+  }, [filtered, currentPage, pageSize]);
 
   const currentSupplierName = useMemo(() => {
     const vendors = Array.from(new Set(filtered.map((t) => t.purchasedFrom?.trim()).filter(Boolean)));
@@ -402,7 +417,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
     return advances.filter((a) => {
       const matchSite = !activeSiteName || a.siteName === activeSiteName;
       const matchVendor = currentVendorNames.length === 0 || currentVendorNames.includes((a.vendorName || a.supplierName || '').trim().toLowerCase());
-      
+
       const advComp = toComparableDate(a.date);
       const fromComp = toComparableDate(fromDate);
       const toComp = toComparableDate(toDate);
@@ -420,7 +435,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
 
   const totalDeductions = totalVendorAdvancePaid + overallTotals.dieselCost;
   const rawBalance = overallTotals.amount - totalDeductions;
-  
+
   const isAdvanceExcess = rawBalance < 0;
   const netPayableAmount = Math.abs(rawBalance);
 
@@ -435,7 +450,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
     setEditingId(null);
     setTripDate(new Date().toISOString().split('T')[0]);
     setSiteName(activeSiteName);
-    
+
     setVehicleNumber('');
     setIsVehicleMenuOpen(false);
 
@@ -757,7 +772,11 @@ export const MaterialHaulageTripsModule: React.FC = () => {
                   </td>
                 </tr>
               ) : (
-                filtered.map((t) => {
+                // On screen we display paginated records; in print all records render
+                (typeof window !== 'undefined' && window.matchMedia && window.matchMedia('print').matches
+                  ? filtered
+                  : paginatedRecords
+                ).map((t) => {
                   const vObj = rentedVehiclesMap.get(t.vehicleNumber.trim().toUpperCase());
                   const isRented = vObj?.ownershipType === 'rented';
                   const rowDiesel = getRowDiesel(t.tripDate, t.vehicleNumber);
@@ -779,7 +798,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
                       </td>
                       <td className="py-2 px-3 font-bold text-cyan-400 print:text-black text-center">{t.siteName}</td>
                       <td className="py-2 px-3 font-semibold text-emerald-400 print:text-black">{t.purchasedFrom || 'MBB CRUSHER'}</td>
-                      
+
                       <td className="py-2 px-3 font-mono text-center print:text-black">
                         <span className="font-bold">{t.vehicleNumber}</span>
                         {isRented ? (
@@ -791,7 +810,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
 
                       <td className="py-2 px-3 font-bold text-amber-300 print:text-black">{t.materialName}</td>
                       <td className="py-2 px-2 text-center font-mono print:text-black">{t.dayTrips}</td>
-                      
+
                       <td className="py-2 px-2 text-right font-mono print:text-black">
                         {isRented ? (
                           <span className="text-slate-500 font-sans text-[10px]">{t.brassPerTrip} Brass (Haul)</span>
@@ -939,6 +958,83 @@ export const MaterialHaulageTripsModule: React.FC = () => {
             )}
           </table>
         </div>
+
+        {/* --- PAGINATION CONTROLS BAR --- */}
+        {filtered.length > 0 && (
+          <div className="px-5 py-3.5 bg-[#080d19] border-t border-[#1E293B] flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-400 no-print">
+            <div className="flex items-center gap-3">
+              <span>
+                Showing <strong className="text-white">{Math.min(filtered.length, (currentPage - 1) * pageSize + 1)}</strong> to{' '}
+                <strong className="text-white">{Math.min(filtered.length, currentPage * pageSize)}</strong> of{' '}
+                <strong className="text-white">{filtered.length}</strong> records
+              </span>
+
+              <div className="flex items-center gap-1.5 ml-2 border-l border-[#1E293B] pl-3">
+                <span className="text-[11px] text-slate-500">Per page:</span>
+                <select
+                  value={pageSize}
+                  onChange={(e) => {
+                    setPageSize(Number(e.target.value));
+                    setCurrentPage(1);
+                  }}
+                  className="bg-[#121c2e] border border-slate-700/80 rounded-lg px-2 py-1 text-white text-xs outline-none cursor-pointer"
+                >
+                  <option value={10}>10</option>
+                  <option value={25}>25</option>
+                  <option value={50}>50</option>
+                  <option value={100}>100</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Page navigation buttons */}
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => setCurrentPage(1)}
+                disabled={currentPage === 1}
+                title="First Page"
+                className="p-1.5 rounded-lg bg-[#121c2e] border border-slate-700/80 text-slate-300 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition"
+              >
+                <ChevronsLeft size={15} />
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                title="Previous Page"
+                className="p-1.5 rounded-lg bg-[#121c2e] border border-slate-700/80 text-slate-300 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition"
+              >
+                <ChevronLeft size={15} />
+              </button>
+
+              <span className="px-3 py-1 font-mono text-white text-xs">
+                Page <strong className="text-blue-400">{currentPage}</strong> of <strong>{totalPages}</strong>
+              </span>
+
+              <button
+                type="button"
+                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+                title="Next Page"
+                className="p-1.5 rounded-lg bg-[#121c2e] border border-slate-700/80 text-slate-300 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition"
+              >
+                <ChevronRight size={15} />
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setCurrentPage(totalPages)}
+                disabled={currentPage === totalPages}
+                title="Last Page"
+                className="p-1.5 rounded-lg bg-[#121c2e] border border-slate-700/80 text-slate-300 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition"
+              >
+                <ChevronsRight size={15} />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Modal Form */}
