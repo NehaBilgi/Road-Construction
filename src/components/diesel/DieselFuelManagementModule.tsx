@@ -12,7 +12,8 @@ import {
   Lock,
   Check,
   Truck,
-  KeyRound
+  Calendar,
+  RotateCcw
 } from 'lucide-react';
 
 export interface DieselFuelRecord {
@@ -59,6 +60,75 @@ const INITIAL_RECORDS: DieselFuelRecord[] = [
   }
 ];
 
+// Helper: Format Date string to DD-MM-YYYY
+const formatDateDMY = (dateStr: string) => {
+  if (!dateStr) return '';
+  const parts = dateStr.split('T')[0].split(' ')[0].split('-');
+  if (parts.length === 3) {
+    if (parts[0].length === 4) {
+      const [year, month, day] = parts;
+      return `${day}-${month}-${year}`;
+    }
+    return dateStr;
+  }
+  return dateStr;
+};
+
+// Helper: Start of current month in DD-MM-YYYY
+const getStartOfMonthDMY = () => {
+  const d = new Date();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const year = d.getFullYear();
+  return `01-${month}-${year}`;
+};
+
+// Helper: End of current month in DD-MM-YYYY
+const getEndOfMonthDMY = () => {
+  const d = new Date();
+  const year = d.getFullYear();
+  const nextMonthFirst = new Date(year, d.getMonth() + 1, 1);
+  const lastDay = new Date(nextMonthFirst.getTime() - 1);
+  const day = String(lastDay.getDate()).padStart(2, '0');
+  const month = String(lastDay.getMonth() + 1).padStart(2, '0');
+  return `${day}-${month}-${year}`;
+};
+
+// Conversion helper: DD-MM-YYYY -> YYYY-MM-DD
+const dmyToYmd = (dmyStr: string) => {
+  if (!dmyStr) return '';
+  const parts = dmyStr.split('-');
+  if (parts.length === 3) {
+    if (parts[0].length === 4) return dmyStr;
+    const [d, m, y] = parts;
+    return `${y}-${m}-${d}`;
+  }
+  return dmyStr;
+};
+
+// Conversion helper: YYYY-MM-DD -> DD-MM-YYYY
+const ymdToDmy = (ymdStr: string) => {
+  if (!ymdStr) return '';
+  const parts = ymdStr.split('-');
+  if (parts.length === 3) {
+    if (parts[2].length === 4) return ymdStr;
+    const [y, m, d] = parts;
+    return `${d}-${m}-${y}`;
+  }
+  return ymdStr;
+};
+
+// Converts date to comparable YYYYMMDD string
+const toComparableDate = (dateStr: string) => {
+  if (!dateStr) return '';
+  const clean = dateStr.split('T')[0].split(' ')[0];
+  const parts = clean.split('-');
+  if (parts.length !== 3) return clean;
+  if (parts[0].length === 4) {
+    return `${parts[0]}${parts[1]}${parts[2]}`;
+  }
+  return `${parts[2]}${parts[1]}${parts[0]}`;
+};
+
 export const DieselFuelManagementModule: React.FC = () => {
   const { siteSheets = [], selectedSiteId, currentUser, userRole } = useERP() as any;
 
@@ -104,11 +174,16 @@ export const DieselFuelManagementModule: React.FC = () => {
   });
 
   const [searchQuery, setSearchQuery] = useState('');
+  
+  // Date Range State in DD-MM-YYYY format
+  const [fromDate, setFromDate] = useState<string>(getStartOfMonthDMY);
+  const [toDate, setToDate] = useState<string>(getEndOfMonthDMY);
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
 
   // Form States
-  const [date, setDate] = useState('2026-08-19');
+  const [date, setDate] = useState(() => new Date().toISOString().substring(0, 10));
   const [siteName, setSiteName] = useState(activeSiteName);
   const [vehicleNumber, setVehicleNumber] = useState('');
   const [isVehicleMenuOpen, setIsVehicleMenuOpen] = useState(false);
@@ -157,18 +232,28 @@ export const DieselFuelManagementModule: React.FC = () => {
     return ltrs * rate;
   }, [litres, ratePerLitre]);
 
-  // Dynamically filter records by the active site header
+  // Dynamically filter records by the active site and date range
   const filtered = useMemo(() => {
     return records.filter((r) => {
       const matchSite = r.siteName === activeSiteName;
-      const q = searchQuery.toLowerCase();
+
+      const recComp = toComparableDate(r.date);
+      const fromComp = toComparableDate(fromDate);
+      const toComp = toComparableDate(toDate);
+
+      if (fromComp && recComp < fromComp) return false;
+      if (toComp && recComp > toComp) return false;
+
+      const q = searchQuery.toLowerCase().trim();
       const matchQuery =
         !q ||
         r.vehicleNumber.toLowerCase().includes(q) ||
-        r.date.includes(q);
+        r.date.includes(q) ||
+        formatDateDMY(r.date).includes(q);
+
       return matchSite && matchQuery;
     });
-  }, [records, activeSiteName, searchQuery]);
+  }, [records, activeSiteName, fromDate, toDate, searchQuery]);
 
   const totalLitresDispensed = filtered.reduce((sum, r) => sum + r.litres, 0);
   const totalFuelCost = filtered.reduce((sum, r) => sum + r.totalCost, 0);
@@ -207,7 +292,7 @@ export const DieselFuelManagementModule: React.FC = () => {
       return;
     }
     setEditingId(record.id);
-    setDate(record.date);
+    setDate(dmyToYmd(record.date));
     setSiteName(record.siteName);
     setVehicleNumber(record.vehicleNumber);
     setIsVehicleMenuOpen(false);
@@ -236,7 +321,7 @@ export const DieselFuelManagementModule: React.FC = () => {
 
     const record: DieselFuelRecord = {
       id: editingId || `DSL-${Date.now().toString().slice(-4)}`,
-      date,
+      date: ymdToDmy(date),
       siteName: siteName.trim() || activeSiteName,
       vehicleNumber: vehicleNumber.trim().toUpperCase(),
       litres: Number(litres),
@@ -257,14 +342,14 @@ export const DieselFuelManagementModule: React.FC = () => {
   const handleExportCSV = () => {
     const headers = ['Date', 'Site Name', 'Vehicle Number', 'Litres', 'Rate/Litre', 'Total Cost'];
     const rows = filtered.map((r) => [
-      r.date,
+      formatDateDMY(r.date),
       `"${r.siteName}"`,
       `"${r.vehicleNumber}"`,
       r.litres,
       r.ratePerLitre,
       r.totalCost
     ]);
-    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
+    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map((e) => e.join(','))].join('\n');
     const link = document.createElement('a');
     link.href = encodeURI(csvContent);
     link.download = `Diesel_Fuel_Log_${activeSiteName}_${Date.now()}.csv`;
@@ -309,17 +394,91 @@ export const DieselFuelManagementModule: React.FC = () => {
         </div>
       </div>
 
-      {/* Filter Row */}
-      <div className="p-4 rounded-3xl bg-[#0c1427] border border-[#182643] flex items-center gap-3 text-xs">
-        <div className="relative flex-1">
-          <Search className="absolute left-3.5 top-3 w-4 h-4 text-slate-500" />
-          <input
-            type="text"
-            placeholder="Search by vehicle number or date..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 bg-[#080d19] border border-[#1E293B] rounded-xl text-white outline-none placeholder-slate-500"
-          />
+      {/* Search & DD-MM-YYYY Date Range Filter Bar */}
+      <div className="p-4 rounded-3xl bg-[#0c1427] border border-[#182643]">
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
+          {/* Search Box */}
+          <div className="md:col-span-6 relative">
+            <label className="block text-[11px] font-semibold text-slate-400 mb-1.5">Search Records</label>
+            <div className="relative">
+              <Search className="absolute left-3.5 top-3 w-4 h-4 text-slate-500" />
+              <input
+                type="text"
+                placeholder="Search by vehicle number or date..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 bg-[#080d19] border border-[#1E293B] rounded-xl text-white outline-none focus:border-amber-500 placeholder-slate-500 text-xs"
+              />
+            </div>
+          </div>
+
+          {/* From Date (DD-MM-YYYY) */}
+          <div className="md:col-span-3">
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="text-[11px] font-semibold text-slate-400">
+                From Date <span className="text-slate-500 font-normal">({fromDate})</span>
+              </label>
+              <button
+                type="button"
+                onClick={() => setFromDate(getStartOfMonthDMY())}
+                className="text-[10px] text-amber-400 hover:text-amber-300 underline font-medium cursor-pointer"
+              >
+                Start of Month
+              </button>
+            </div>
+            <div className="relative flex items-center bg-[#080d19] border border-[#1E293B] rounded-xl px-3 py-1.5 focus-within:border-amber-500">
+              <Calendar className="w-4 h-4 text-amber-400 mr-2 shrink-0 pointer-events-none" />
+              <input
+                type="date"
+                value={dmyToYmd(fromDate)}
+                onChange={(e) => setFromDate(ymdToDmy(e.target.value))}
+                className="w-full bg-transparent text-white outline-none font-mono text-xs cursor-pointer"
+              />
+            </div>
+          </div>
+
+          {/* To Date (DD-MM-YYYY) */}
+          <div className="md:col-span-3">
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="text-[11px] font-semibold text-slate-400">
+                To Date <span className="text-slate-500 font-normal">({toDate})</span>
+              </label>
+              <button
+                type="button"
+                onClick={() => setToDate(getEndOfMonthDMY())}
+                className="text-[10px] text-amber-400 hover:text-amber-300 underline font-medium cursor-pointer"
+              >
+                End of Month
+              </button>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="relative flex-1 flex items-center bg-[#080d19] border border-[#1E293B] rounded-xl px-3 py-1.5 focus-within:border-amber-500">
+                <Calendar className="w-4 h-4 text-amber-400 mr-2 shrink-0 pointer-events-none" />
+                <input
+                  type="date"
+                  value={dmyToYmd(toDate)}
+                  onChange={(e) => setToDate(ymdToDmy(e.target.value))}
+                  className="w-full bg-transparent text-white outline-none font-mono text-xs cursor-pointer"
+                />
+              </div>
+
+              {(fromDate !== getStartOfMonthDMY() || toDate !== getEndOfMonthDMY() || searchQuery) && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFromDate(getStartOfMonthDMY());
+                    setToDate(getEndOfMonthDMY());
+                    setSearchQuery('');
+                  }}
+                  title="Reset all filters"
+                  className="px-2.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white flex items-center gap-1 text-[11px] font-semibold transition-all cursor-pointer shrink-0"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Reset</span>
+                </button>
+              )}
+            </div>
+          </div>
         </div>
       </div>
 
@@ -327,12 +486,16 @@ export const DieselFuelManagementModule: React.FC = () => {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="p-4 rounded-2xl bg-[#0c1427] border border-amber-900/40">
           <div className="text-[11px] font-semibold text-slate-400">Total Litres Dispensed ({activeSiteName})</div>
-          <div className="text-3xl font-black text-amber-400 font-mono mt-1">{totalLitresDispensed.toLocaleString()} <span className="text-sm font-normal text-slate-400">L</span></div>
+          <div className="text-3xl font-black text-amber-400 font-mono mt-1">
+            {totalLitresDispensed.toLocaleString()} <span className="text-sm font-normal text-slate-400">L</span>
+          </div>
         </div>
 
         <div className="p-4 rounded-2xl bg-[#0c1427] border border-emerald-900/40">
           <div className="text-[11px] font-semibold text-slate-400">Total Fuel Cost</div>
-          <div className="text-3xl font-black text-emerald-400 font-mono mt-1">₹{totalFuelCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+          <div className="text-3xl font-black text-emerald-400 font-mono mt-1">
+            ₹{totalFuelCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          </div>
         </div>
       </div>
 
@@ -359,13 +522,15 @@ export const DieselFuelManagementModule: React.FC = () => {
               {filtered.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="py-8 text-center text-slate-500">
-                    No fuel dispense logs found for {activeSiteName}.
+                    No fuel dispense logs found for {activeSiteName} in the selected date range.
                   </td>
                 </tr>
               ) : (
                 filtered.map((r) => (
                   <tr key={r.id} className="hover:bg-[#121c33]/50 transition-colors">
-                    <td className="py-4 px-6 font-mono font-bold text-slate-300">{r.date}</td>
+                    <td className="py-4 px-6 font-mono font-bold text-slate-300">
+                      {formatDateDMY(r.date)}
+                    </td>
                     <td className="py-4 px-6 font-bold text-white">{r.siteName}</td>
                     <td className="py-4 px-6">
                       <span className="px-2.5 py-1 rounded bg-amber-900/30 text-amber-400 border border-amber-700/50 font-mono font-bold">
@@ -435,7 +600,7 @@ export const DieselFuelManagementModule: React.FC = () => {
                     required
                     value={date}
                     onChange={(e) => setDate(e.target.value)}
-                    className="w-full px-3.5 py-2.5 bg-[#162032] border border-[#1E293B] rounded-xl text-white font-mono outline-none focus:border-amber-500"
+                    className="w-full px-3.5 py-2.5 bg-[#162032] border border-[#1E293B] rounded-xl text-white font-mono outline-none focus:border-amber-500 cursor-pointer"
                   />
                 </div>
                 <div>
