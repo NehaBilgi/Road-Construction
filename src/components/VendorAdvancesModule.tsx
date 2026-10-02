@@ -1,6 +1,16 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useERP } from '../context/ERPContext';
-import { Plus, Search, Trash2, Edit2, CreditCard, X, Store } from 'lucide-react';
+import {
+  Plus,
+  Search,
+  Trash2,
+  Edit2,
+  CreditCard,
+  X,
+  Store,
+  Calendar,
+  RotateCcw
+} from 'lucide-react';
 
 export interface VendorAdvanceRecord {
   id: string;
@@ -15,6 +25,75 @@ export interface VendorAdvanceRecord {
 
 export const STORAGE_VENDOR_ADVANCES_KEY = 'CONSTRUCTION_PRO_VENDOR_ADVANCES_V1';
 const STORAGE_VENDORS_KEY = 'CONSTRUCTION_PRO_VENDOR_NAMES_V1';
+
+// Helper: Format Date string to DD-MM-YYYY
+const formatDateDMY = (dateStr: string) => {
+  if (!dateStr) return '';
+  const parts = dateStr.split('T')[0].split(' ')[0].split('-');
+  if (parts.length === 3) {
+    if (parts[0].length === 4) {
+      const [year, month, day] = parts;
+      return `${day}-${month}-${year}`;
+    }
+    return dateStr;
+  }
+  return dateStr;
+};
+
+// Helper: Start of current month in DD-MM-YYYY
+const getStartOfMonthDMY = () => {
+  const d = new Date();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const year = d.getFullYear();
+  return `01-${month}-${year}`;
+};
+
+// Helper: End of current month in DD-MM-YYYY
+const getEndOfMonthDMY = () => {
+  const d = new Date();
+  const year = d.getFullYear();
+  const nextMonthFirst = new Date(year, d.getMonth() + 1, 1);
+  const lastDay = new Date(nextMonthFirst.getTime() - 1);
+  const day = String(lastDay.getDate()).padStart(2, '0');
+  const month = String(lastDay.getMonth() + 1).padStart(2, '0');
+  return `${day}-${month}-${year}`;
+};
+
+// Conversion helper: DD-MM-YYYY -> YYYY-MM-DD
+const dmyToYmd = (dmyStr: string) => {
+  if (!dmyStr) return '';
+  const parts = dmyStr.split('-');
+  if (parts.length === 3) {
+    if (parts[0].length === 4) return dmyStr;
+    const [d, m, y] = parts;
+    return `${y}-${m}-${d}`;
+  }
+  return dmyStr;
+};
+
+// Conversion helper: YYYY-MM-DD -> DD-MM-YYYY
+const ymdToDmy = (ymdStr: string) => {
+  if (!ymdStr) return '';
+  const parts = ymdStr.split('-');
+  if (parts.length === 3) {
+    if (parts[2].length === 4) return ymdStr;
+    const [y, m, d] = parts;
+    return `${d}-${m}-${y}`;
+  }
+  return ymdStr;
+};
+
+// Converts date to comparable YYYYMMDD string
+const toComparableDate = (dateStr: string) => {
+  if (!dateStr) return '';
+  const clean = dateStr.split('T')[0].split(' ')[0];
+  const parts = clean.split('-');
+  if (parts.length !== 3) return clean;
+  if (parts[0].length === 4) {
+    return `${parts[0]}${parts[1]}${parts[2]}`;
+  }
+  return `${parts[2]}${parts[1]}${parts[0]}`;
+};
 
 export const VendorAdvancesModule: React.FC = () => {
   const { siteSheets = [], selectedSiteId, currentUser, userRole } = useERP() as any;
@@ -48,8 +127,12 @@ export const VendorAdvancesModule: React.FC = () => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
 
+  // Date Range State in DD-MM-YYYY format
+  const [fromDate, setFromDate] = useState<string>(getStartOfMonthDMY);
+  const [toDate, setToDate] = useState<string>(getEndOfMonthDMY);
+
   // Form state
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [date, setDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [siteName, setSiteName] = useState(activeSiteName);
   const [vendorName, setVendorName] = useState('');
   const [amount, setAmount] = useState<number | ''>('');
@@ -69,11 +152,25 @@ export const VendorAdvancesModule: React.FC = () => {
   const filtered = useMemo(() => {
     return advances.filter((a) => {
       const matchSite = !activeSiteName || a.siteName === activeSiteName;
-      const q = searchQuery.toLowerCase();
-      const matchQuery = !q || a.vendorName.toLowerCase().includes(q) || (a.referenceNo || '').toLowerCase().includes(q);
+
+      const recComp = toComparableDate(a.date);
+      const fromComp = toComparableDate(fromDate);
+      const toComp = toComparableDate(toDate);
+
+      if (fromComp && recComp < fromComp) return false;
+      if (toComp && recComp > toComp) return false;
+
+      const q = searchQuery.toLowerCase().trim();
+      const matchQuery =
+        !q ||
+        a.vendorName.toLowerCase().includes(q) ||
+        (a.referenceNo || '').toLowerCase().includes(q) ||
+        a.date.includes(q) ||
+        formatDateDMY(a.date).includes(q);
+
       return matchSite && matchQuery;
     });
-  }, [advances, activeSiteName, searchQuery]);
+  }, [advances, activeSiteName, fromDate, toDate, searchQuery]);
 
   const totalAdvancePaid = useMemo(() => {
     return filtered.reduce((sum, a) => sum + (Number(a.amount) || 0), 0);
@@ -97,7 +194,7 @@ export const VendorAdvancesModule: React.FC = () => {
       return;
     }
     setEditingId(rec.id);
-    setDate(rec.date);
+    setDate(dmyToYmd(rec.date));
     setSiteName(rec.siteName);
     setVendorName(rec.vendorName);
     setAmount(rec.amount);
@@ -134,7 +231,7 @@ export const VendorAdvancesModule: React.FC = () => {
 
     const newRecord: VendorAdvanceRecord = {
       id: editingId || `ADV-${Date.now().toString().slice(-4)}`,
-      date,
+      date: ymdToDmy(date),
       siteName: siteName.trim() || activeSiteName,
       vendorName: trimmedVendor,
       amount: Number(amount),
@@ -190,17 +287,91 @@ export const VendorAdvancesModule: React.FC = () => {
         </div>
       </div>
 
-      {/* Search */}
-      <div className="p-3 rounded-2xl bg-[#0c1427] border border-[#182643] flex items-center gap-3 text-xs">
-        <div className="relative flex-1">
-          <Search className="absolute left-3.5 top-2.5 w-4 h-4 text-slate-500" />
-          <input
-            type="text"
-            placeholder="Search by vendor name, ref no..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 bg-[#080d19] border border-[#1E293B] rounded-xl text-white outline-none placeholder-slate-500"
-          />
+      {/* Search & DD-MM-YYYY Date Range Filter Bar */}
+      <div className="p-4 rounded-2xl bg-[#0c1427] border border-[#182643]">
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
+          {/* Search Box */}
+          <div className="md:col-span-6 relative">
+            <label className="block text-[11px] font-semibold text-slate-400 mb-1.5">Search Records</label>
+            <div className="relative">
+              <Search className="absolute left-3.5 top-2.5 w-4 h-4 text-slate-500" />
+              <input
+                type="text"
+                placeholder="Search by vendor name, ref no..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 bg-[#080d19] border border-[#1E293B] rounded-xl text-white outline-none focus:border-amber-500 placeholder-slate-500 text-xs"
+              />
+            </div>
+          </div>
+
+          {/* From Date (DD-MM-YYYY) */}
+          <div className="md:col-span-3">
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="text-[11px] font-semibold text-slate-400">
+                From Date <span className="text-slate-500 font-normal">({fromDate})</span>
+              </label>
+              <button
+                type="button"
+                onClick={() => setFromDate(getStartOfMonthDMY())}
+                className="text-[10px] text-amber-400 hover:text-amber-300 underline font-medium cursor-pointer"
+              >
+                Start of Month
+              </button>
+            </div>
+            <div className="relative flex items-center bg-[#080d19] border border-[#1E293B] rounded-xl px-3 py-1.5 focus-within:border-amber-500">
+              <Calendar className="w-4 h-4 text-amber-400 mr-2 shrink-0 pointer-events-none" />
+              <input
+                type="date"
+                value={dmyToYmd(fromDate)}
+                onChange={(e) => setFromDate(ymdToDmy(e.target.value))}
+                className="w-full bg-transparent text-white outline-none font-mono text-xs cursor-pointer"
+              />
+            </div>
+          </div>
+
+          {/* To Date (DD-MM-YYYY) */}
+          <div className="md:col-span-3">
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="text-[11px] font-semibold text-slate-400">
+                To Date <span className="text-slate-500 font-normal">({toDate})</span>
+              </label>
+              <button
+                type="button"
+                onClick={() => setToDate(getEndOfMonthDMY())}
+                className="text-[10px] text-amber-400 hover:text-amber-300 underline font-medium cursor-pointer"
+              >
+                End of Month
+              </button>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="relative flex-1 flex items-center bg-[#080d19] border border-[#1E293B] rounded-xl px-3 py-1.5 focus-within:border-amber-500">
+                <Calendar className="w-4 h-4 text-amber-400 mr-2 shrink-0 pointer-events-none" />
+                <input
+                  type="date"
+                  value={dmyToYmd(toDate)}
+                  onChange={(e) => setToDate(ymdToDmy(e.target.value))}
+                  className="w-full bg-transparent text-white outline-none font-mono text-xs cursor-pointer"
+                />
+              </div>
+
+              {(fromDate !== getStartOfMonthDMY() || toDate !== getEndOfMonthDMY() || searchQuery) && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFromDate(getStartOfMonthDMY());
+                    setToDate(getEndOfMonthDMY());
+                    setSearchQuery('');
+                  }}
+                  title="Reset all filters"
+                  className="px-2.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white flex items-center gap-1 text-[11px] font-semibold transition-all cursor-pointer shrink-0"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Reset</span>
+                </button>
+              )}
+            </div>
+          </div>
         </div>
       </div>
 
@@ -221,13 +392,13 @@ export const VendorAdvancesModule: React.FC = () => {
             {filtered.length === 0 ? (
               <tr>
                 <td colSpan={6} className="py-8 text-center text-slate-500">
-                  No advance payments recorded for {activeSiteName}.
+                  No advance payments recorded for {activeSiteName} in the selected date range.
                 </td>
               </tr>
             ) : (
               filtered.map((a) => (
                 <tr key={a.id} className="hover:bg-[#121c33]/50">
-                  <td className="py-3 px-4 font-mono text-slate-300">{a.date}</td>
+                  <td className="py-3 px-4 font-mono text-slate-300">{formatDateDMY(a.date)}</td>
                   <td className="py-3 px-4 font-bold text-emerald-400 flex items-center gap-1.5">
                     <Store className="w-3.5 h-3.5 text-emerald-400/70" />
                     <span>{a.vendorName}</span>
@@ -289,7 +460,7 @@ export const VendorAdvancesModule: React.FC = () => {
                   required
                   value={date}
                   onChange={(e) => setDate(e.target.value)}
-                  className="w-full px-3 py-2 bg-[#162032] border border-[#1E293B] rounded-xl text-white outline-none"
+                  className="w-full px-3 py-2 bg-[#162032] border border-[#1E293B] rounded-xl text-white outline-none cursor-pointer"
                 />
               </div>
 
@@ -376,3 +547,5 @@ export const VendorAdvancesModule: React.FC = () => {
     </div>
   );
 };
+
+export default VendorAdvancesModule;
