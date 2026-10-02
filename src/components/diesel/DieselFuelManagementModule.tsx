@@ -13,7 +13,11 @@ import {
   Check,
   Truck,
   Calendar,
-  RotateCcw
+  RotateCcw,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight
 } from 'lucide-react';
 
 export interface DieselFuelRecord {
@@ -174,10 +178,14 @@ export const DieselFuelManagementModule: React.FC = () => {
   });
 
   const [searchQuery, setSearchQuery] = useState('');
-  
+
   // Date Range State in DD-MM-YYYY format
   const [fromDate, setFromDate] = useState<string>(getStartOfMonthDMY);
   const [toDate, setToDate] = useState<string>(getEndOfMonthDMY);
+
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [pageSize, setPageSize] = useState<number>(10);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -254,6 +262,19 @@ export const DieselFuelManagementModule: React.FC = () => {
       return matchSite && matchQuery;
     });
   }, [records, activeSiteName, fromDate, toDate, searchQuery]);
+
+  // Reset to page 1 whenever filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeSiteName, fromDate, toDate, searchQuery]);
+
+  // Pagination slice
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+
+  const paginatedRecords = useMemo(() => {
+    const startIndex = (currentPage - 1) * pageSize;
+    return filtered.slice(startIndex, startIndex + pageSize);
+  }, [filtered, currentPage, pageSize]);
 
   const totalLitresDispensed = filtered.reduce((sum, r) => sum + r.litres, 0);
   const totalFuelCost = filtered.reduce((sum, r) => sum + r.totalCost, 0);
@@ -526,7 +547,7 @@ export const DieselFuelManagementModule: React.FC = () => {
                   </td>
                 </tr>
               ) : (
-                filtered.map((r) => (
+                paginatedRecords.map((r) => (
                   <tr key={r.id} className="hover:bg-[#121c33]/50 transition-colors">
                     <td className="py-4 px-6 font-mono font-bold text-slate-300">
                       {formatDateDMY(r.date)}
@@ -574,6 +595,83 @@ export const DieselFuelManagementModule: React.FC = () => {
             </tbody>
           </table>
         </div>
+
+        {/* --- PAGINATION CONTROLS BAR --- */}
+        {filtered.length > 0 && (
+          <div className="px-6 py-4 bg-[#080d19] border-t border-[#1E293B] flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-400">
+            <div className="flex items-center gap-3">
+              <span>
+                Showing <strong className="text-white">{Math.min(filtered.length, (currentPage - 1) * pageSize + 1)}</strong> to{' '}
+                <strong className="text-white">{Math.min(filtered.length, currentPage * pageSize)}</strong> of{' '}
+                <strong className="text-white">{filtered.length}</strong> entries
+              </span>
+
+              <div className="flex items-center gap-1.5 ml-2 border-l border-[#1E293B] pl-3">
+                <span className="text-[11px] text-slate-500">Per page:</span>
+                <select
+                  value={pageSize}
+                  onChange={(e) => {
+                    setPageSize(Number(e.target.value));
+                    setCurrentPage(1);
+                  }}
+                  className="bg-[#121c2e] border border-slate-700/80 rounded-lg px-2 py-1 text-white text-xs outline-none cursor-pointer"
+                >
+                  <option value={10}>10</option>
+                  <option value={25}>25</option>
+                  <option value={50}>50</option>
+                  <option value={100}>100</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Page Navigation Buttons */}
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => setCurrentPage(1)}
+                disabled={currentPage === 1}
+                title="First Page"
+                className="p-1.5 rounded-lg bg-[#121c2e] border border-slate-700/80 text-slate-300 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition"
+              >
+                <ChevronsLeft size={15} />
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                title="Previous Page"
+                className="p-1.5 rounded-lg bg-[#121c2e] border border-slate-700/80 text-slate-300 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition"
+              >
+                <ChevronLeft size={15} />
+              </button>
+
+              <span className="px-3 py-1 font-mono text-white text-xs">
+                Page <strong className="text-amber-400">{currentPage}</strong> of <strong>{totalPages}</strong>
+              </span>
+
+              <button
+                type="button"
+                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+                title="Next Page"
+                className="p-1.5 rounded-lg bg-[#121c2e] border border-slate-700/80 text-slate-300 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition"
+              >
+                <ChevronRight size={15} />
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setCurrentPage(totalPages)}
+                disabled={currentPage === totalPages}
+                title="Last Page"
+                className="p-1.5 rounded-lg bg-[#121c2e] border border-slate-700/80 text-slate-300 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition"
+              >
+                <ChevronsRight size={15} />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Log/Edit Modal */}
