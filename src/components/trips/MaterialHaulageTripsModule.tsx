@@ -98,10 +98,67 @@ const formatDateDMY = (dateStr: string) => {
   if (!dateStr) return '';
   const parts = dateStr.split('-');
   if (parts.length === 3) {
-    const [year, month, day] = parts;
-    return `${day}-${month}-${year}`;
+    if (parts[0].length === 4) {
+      const [year, month, day] = parts;
+      return `${day}-${month}-${year}`;
+    }
+    return dateStr;
   }
   return dateStr;
+};
+
+// Start of month in DD-MM-YYYY
+const getStartOfMonthDMY = () => {
+  const d = new Date();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const year = d.getFullYear();
+  return `01-${month}-${year}`;
+};
+
+// End of month in DD-MM-YYYY
+const getEndOfMonthDMY = () => {
+  const d = new Date();
+  const year = d.getFullYear();
+  const nextMonthFirst = new Date(year, d.getMonth() + 1, 1);
+  const lastDay = new Date(nextMonthFirst.getTime() - 1);
+  const day = String(lastDay.getDate()).padStart(2, '0');
+  const month = String(lastDay.getMonth() + 1).padStart(2, '0');
+  return `${day}-${month}-${year}`;
+};
+
+// Conversion helpers between DD-MM-YYYY and HTML input YYYY-MM-DD
+const dmyToYmd = (dmyStr: string) => {
+  if (!dmyStr) return '';
+  const parts = dmyStr.split('-');
+  if (parts.length === 3) {
+    if (parts[0].length === 4) return dmyStr; // already YYYY-MM-DD
+    const [d, m, y] = parts;
+    return `${y}-${m}-${d}`;
+  }
+  return dmyStr;
+};
+
+const ymdToDmy = (ymdStr: string) => {
+  if (!ymdStr) return '';
+  const parts = ymdStr.split('-');
+  if (parts.length === 3) {
+    if (parts[2].length === 4) return ymdStr; // already DD-MM-YYYY
+    const [y, m, d] = parts;
+    return `${d}-${m}-${y}`;
+  }
+  return ymdStr;
+};
+
+// Convert string to sortable YYYYMMDD
+const toComparableDate = (dateStr: string) => {
+  if (!dateStr) return '';
+  const clean = dateStr.split('T')[0].split(' ')[0];
+  const parts = clean.split('-');
+  if (parts.length !== 3) return clean;
+  if (parts[0].length === 4) {
+    return `${parts[0]}${parts[1]}${parts[2]}`;
+  }
+  return `${parts[2]}${parts[1]}${parts[0]}`;
 };
 
 export const MaterialHaulageTripsModule: React.FC = () => {
@@ -177,7 +234,10 @@ export const MaterialHaulageTripsModule: React.FC = () => {
   }, [savedVendors, advances]);
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [filterDate, setFilterDate] = useState<string>('');
+  
+  // Date Range State in DD-MM-YYYY format
+  const [fromDate, setFromDate] = useState<string>(getStartOfMonthDMY);
+  const [toDate, setToDate] = useState<string>(getEndOfMonthDMY);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -185,7 +245,6 @@ export const MaterialHaulageTripsModule: React.FC = () => {
   const [tripDate, setTripDate] = useState(new Date().toISOString().split('T')[0]);
   const [siteName, setSiteName] = useState(activeSiteName);
   
-  // Empty default vehicle number so it is not pre-filled
   const [vehicleNumber, setVehicleNumber] = useState('');
   const [isVehicleMenuOpen, setIsVehicleMenuOpen] = useState(false);
   const vehicleDropdownRef = useRef<HTMLDivElement>(null);
@@ -257,7 +316,14 @@ export const MaterialHaulageTripsModule: React.FC = () => {
   const filtered = useMemo(() => {
     return trips.filter((t) => {
       const matchSite = !activeSiteName || t.siteName === activeSiteName;
-      const matchDate = !filterDate || t.tripDate === filterDate;
+      
+      const recComp = toComparableDate(t.tripDate);
+      const fromComp = toComparableDate(fromDate);
+      const toComp = toComparableDate(toDate);
+
+      if (fromComp && recComp < fromComp) return false;
+      if (toComp && recComp > toComp) return false;
+
       const q = searchQuery.toLowerCase().trim();
       const matchQuery =
         !q ||
@@ -267,9 +333,9 @@ export const MaterialHaulageTripsModule: React.FC = () => {
         t.tripDate.includes(q) ||
         formatDateDMY(t.tripDate).includes(q);
 
-      return matchSite && matchDate && matchQuery;
+      return matchSite && matchQuery;
     });
-  }, [trips, activeSiteName, filterDate, searchQuery]);
+  }, [trips, activeSiteName, fromDate, toDate, searchQuery]);
 
   const currentSupplierName = useMemo(() => {
     const vendors = Array.from(new Set(filtered.map((t) => t.purchasedFrom?.trim()).filter(Boolean)));
@@ -291,7 +357,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
 
     const matchingLogs = dieselLogs.filter(
       (d) =>
-        d.date === rowDate &&
+        toComparableDate(d.date) === toComparableDate(rowDate) &&
         d.vehicleNumber.trim().toUpperCase() === rowVehicle.trim().toUpperCase() &&
         (!activeSiteName || d.siteName === activeSiteName)
     );
@@ -336,10 +402,17 @@ export const MaterialHaulageTripsModule: React.FC = () => {
     return advances.filter((a) => {
       const matchSite = !activeSiteName || a.siteName === activeSiteName;
       const matchVendor = currentVendorNames.length === 0 || currentVendorNames.includes((a.vendorName || a.supplierName || '').trim().toLowerCase());
-      const matchDate = !filterDate || a.date === filterDate;
-      return matchSite && matchVendor && matchDate;
+      
+      const advComp = toComparableDate(a.date);
+      const fromComp = toComparableDate(fromDate);
+      const toComp = toComparableDate(toDate);
+
+      if (fromComp && advComp < fromComp) return false;
+      if (toComp && advComp > toComp) return false;
+
+      return matchSite && matchVendor;
     });
-  }, [advances, filtered, activeSiteName, filterDate]);
+  }, [advances, filtered, activeSiteName, fromDate, toDate]);
 
   const totalVendorAdvancePaid = useMemo(() => {
     return matchingAdvances.reduce((sum, a) => sum + (Number(a.amount) || 0), 0);
@@ -363,7 +436,6 @@ export const MaterialHaulageTripsModule: React.FC = () => {
     setTripDate(new Date().toISOString().split('T')[0]);
     setSiteName(activeSiteName);
     
-    // Kept blank so placeholder "Add Vehicle No" is shown
     setVehicleNumber('');
     setIsVehicleMenuOpen(false);
 
@@ -379,7 +451,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
   const handleEdit = (trip: HaulageTripRecord) => {
     if (!isAdmin) return;
     setEditingId(trip.id);
-    setTripDate(trip.tripDate);
+    setTripDate(dmyToYmd(trip.tripDate));
     setSiteName(trip.siteName);
     setVehicleNumber(trip.vehicleNumber);
     setPurchasedFrom(trip.purchasedFrom || '');
@@ -435,7 +507,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
 
     const record: HaulageTripRecord = {
       id: editingId || `TRIP-${Date.now().toString().slice(-4)}`,
-      tripDate,
+      tripDate: ymdToDmy(tripDate),
       siteName: siteName.trim() || activeSiteName,
       vehicleNumber: vehicleNumber.trim().toUpperCase(),
       purchasedFrom: trimmedVendor,
@@ -503,7 +575,9 @@ export const MaterialHaulageTripsModule: React.FC = () => {
         <div className="print-header-title">M B BILGI CONSTRUCTIONS</div>
         <div className="print-sub-header">
           <div>{currentSupplierName}</div>
-          <div>SITE: {activeSiteName} {filterDate && `(${formatDateDMY(filterDate)})`}</div>
+          <div>
+            SITE: {activeSiteName} {fromDate && toDate ? `(${fromDate} to ${toDate})` : ''}
+          </div>
         </div>
       </div>
 
@@ -567,44 +641,91 @@ export const MaterialHaulageTripsModule: React.FC = () => {
         </div>
       </div>
 
-      {/* Search & Date Filter Bar */}
-      <div className="p-3.5 rounded-2xl bg-[#0c1427] border border-[#182643] flex flex-col sm:flex-row items-stretch sm:items-center gap-3 text-xs no-print">
-        <div className="relative flex-1">
-          <Search className="absolute left-3.5 top-2.5 w-4 h-4 text-slate-500" />
-          <input
-            type="text"
-            placeholder="Search by vehicle, supplier, material..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 bg-[#080d19] border border-[#1E293B] rounded-xl text-white outline-none focus:border-blue-500 placeholder-slate-500"
-          />
-        </div>
-
-        <div className="flex items-center gap-2">
-          <div className="relative flex items-center bg-[#080d19] border border-[#1E293B] rounded-xl px-3 py-1.5 focus-within:border-blue-500">
-            <Calendar className="w-4 h-4 text-blue-400 mr-2 shrink-0" />
-            <span className="text-[11px] text-slate-400 font-medium mr-1.5 whitespace-nowrap">Date:</span>
-            <input
-              type="date"
-              value={filterDate}
-              onChange={(e) => setFilterDate(e.target.value)}
-              className="bg-transparent text-white outline-none font-mono text-xs cursor-pointer"
-            />
+      {/* Search & DD-MM-YYYY Date Range Filter Bar */}
+      <div className="p-4 rounded-2xl bg-[#0c1427] border border-[#182643] no-print">
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
+          {/* Search Box */}
+          <div className="md:col-span-6 relative">
+            <label className="block text-[11px] font-semibold text-slate-400 mb-1.5">Search Records</label>
+            <div className="relative">
+              <Search className="absolute left-3.5 top-2.5 w-4 h-4 text-slate-500" />
+              <input
+                type="text"
+                placeholder="Search by vehicle, supplier, material..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 bg-[#080d19] border border-[#1E293B] rounded-xl text-white outline-none focus:border-blue-500 placeholder-slate-500 text-xs"
+              />
+            </div>
           </div>
 
-          {(filterDate || searchQuery) && (
-            <button
-              onClick={() => {
-                setFilterDate('');
-                setSearchQuery('');
-              }}
-              title="Reset all filters"
-              className="px-2.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white flex items-center gap-1 text-[11px] font-semibold transition-all cursor-pointer"
-            >
-              <RotateCcw className="w-3.5 h-3.5" />
-              <span>Reset</span>
-            </button>
-          )}
+          {/* From Date (DD-MM-YYYY) */}
+          <div className="md:col-span-3">
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="text-[11px] font-semibold text-slate-400">
+                From Date <span className="text-slate-500 font-normal">({fromDate})</span>
+              </label>
+              <button
+                type="button"
+                onClick={() => setFromDate(getStartOfMonthDMY())}
+                className="text-[10px] text-blue-400 hover:text-blue-300 underline font-medium cursor-pointer"
+              >
+                Start of Month
+              </button>
+            </div>
+            <div className="relative flex items-center bg-[#080d19] border border-[#1E293B] rounded-xl px-3 py-1.5 focus-within:border-blue-500">
+              <Calendar className="w-4 h-4 text-blue-400 mr-2 shrink-0 pointer-events-none" />
+              <input
+                type="date"
+                value={dmyToYmd(fromDate)}
+                onChange={(e) => setFromDate(ymdToDmy(e.target.value))}
+                className="w-full bg-transparent text-white outline-none font-mono text-xs cursor-pointer"
+              />
+            </div>
+          </div>
+
+          {/* To Date (DD-MM-YYYY) */}
+          <div className="md:col-span-3">
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="text-[11px] font-semibold text-slate-400">
+                To Date <span className="text-slate-500 font-normal">({toDate})</span>
+              </label>
+              <button
+                type="button"
+                onClick={() => setToDate(getEndOfMonthDMY())}
+                className="text-[10px] text-blue-400 hover:text-blue-300 underline font-medium cursor-pointer"
+              >
+                End of Month
+              </button>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="relative flex-1 flex items-center bg-[#080d19] border border-[#1E293B] rounded-xl px-3 py-1.5 focus-within:border-blue-500">
+                <Calendar className="w-4 h-4 text-blue-400 mr-2 shrink-0 pointer-events-none" />
+                <input
+                  type="date"
+                  value={dmyToYmd(toDate)}
+                  onChange={(e) => setToDate(ymdToDmy(e.target.value))}
+                  className="w-full bg-transparent text-white outline-none font-mono text-xs cursor-pointer"
+                />
+              </div>
+
+              {(fromDate !== getStartOfMonthDMY() || toDate !== getEndOfMonthDMY() || searchQuery) && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFromDate(getStartOfMonthDMY());
+                    setToDate(getEndOfMonthDMY());
+                    setSearchQuery('');
+                  }}
+                  title="Reset all filters"
+                  className="px-2.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white flex items-center gap-1 text-[11px] font-semibold transition-all cursor-pointer shrink-0"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Reset</span>
+                </button>
+              )}
+            </div>
+          </div>
         </div>
       </div>
 
@@ -632,7 +753,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
               {filtered.length === 0 ? (
                 <tr>
                   <td colSpan={12} className="py-8 text-center text-slate-500">
-                    No records found for {activeSiteName}.
+                    No records found for {activeSiteName} in selected date range.
                   </td>
                 </tr>
               ) : (
@@ -843,7 +964,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
                     required
                     value={tripDate}
                     onChange={(e) => setTripDate(e.target.value)}
-                    className="w-full px-3 py-2 bg-[#162032] border border-[#1E293B] rounded-xl text-white outline-none"
+                    className="w-full px-3 py-2 bg-[#162032] border border-[#1E293B] rounded-xl text-white outline-none cursor-pointer"
                   />
                 </div>
                 <div>
@@ -858,7 +979,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
                 </div>
               </div>
 
-              {/* Vehicle Number: Type directly or pick from auto-suggest dropdown */}
+              {/* Vehicle Number Input */}
               <div className="relative" ref={vehicleDropdownRef}>
                 <div className="flex items-center justify-between mb-1">
                   <label className="block text-slate-300 font-bold">Vehicle Number *</label>
