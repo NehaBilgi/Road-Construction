@@ -251,6 +251,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
   const [isVehicleMenuOpen, setIsVehicleMenuOpen] = useState(false);
   const vehicleDropdownRef = useRef<HTMLDivElement>(null);
 
+  // Changed: Purchased From starts empty (no auto-selection)
   const [purchasedFrom, setPurchasedFrom] = useState('');
   const [isSupplierMenuOpen, setIsSupplierMenuOpen] = useState(false);
   const [editingSupplierIndex, setEditingSupplierIndex] = useState<number | null>(null);
@@ -262,7 +263,9 @@ export const MaterialHaulageTripsModule: React.FC = () => {
     : '';
 
   const [materialName, setMaterialName] = useState(defaultCategory);
-  const [dayTrips, setDayTrips] = useState<number | ''>(3);
+
+  // Changed: Day Trips starts empty (no auto-selection)
+  const [dayTrips, setDayTrips] = useState<number | ''>('');
   const [brassPerTrip, setBrassPerTrip] = useState<number | ''>(6);
   const [ratePerBrass, setRatePerBrass] = useState<number | ''>(categories[0]?.standardRate || 1500);
 
@@ -454,9 +457,10 @@ export const MaterialHaulageTripsModule: React.FC = () => {
     setVehicleNumber('');
     setIsVehicleMenuOpen(false);
 
-    setPurchasedFrom(allSuppliers[0] || 'MBB CRUSHER');
+    // Cleared: No auto-selection on open
+    setPurchasedFrom('');
     setMaterialName(defaultCategory);
-    setDayTrips(3);
+    setDayTrips('');
     setBrassPerTrip(6);
     setRatePerBrass(categories[0]?.standardRate || 1500);
 
@@ -503,7 +507,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
       setSavedVendors(updated);
       localStorage.setItem(STORAGE_VENDORS_KEY, JSON.stringify(updated));
       if (purchasedFrom === suppName) {
-        setPurchasedFrom(updated[0] || '');
+        setPurchasedFrom('');
       }
     }
   };
@@ -1179,7 +1183,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
                 )}
               </div>
 
-              {/* Purchased From / Supplier with Typing Input & Dropdown Menu */}
+              {/* Purchased From / Supplier (No auto-select, full typing + dropdown) */}
               <div className="relative" ref={supplierDropdownRef}>
                 <div className="flex items-center justify-between mb-1">
                   <label className="text-slate-300 font-bold">
@@ -1332,9 +1336,10 @@ export const MaterialHaulageTripsModule: React.FC = () => {
                     type="number"
                     min="1"
                     required
+                    placeholder="0"
                     value={dayTrips}
                     onChange={(e) => setDayTrips(e.target.value === '' ? '' : Number(e.target.value))}
-                    className="w-full px-3 py-2 bg-[#162032] border border-[#1E293B] rounded-xl text-white font-mono outline-none"
+                    className="w-full px-3 py-2 bg-[#162032] border border-[#1E293B] rounded-xl text-white font-mono outline-none placeholder:text-slate-500"
                   />
                 </div>
                 <div>
