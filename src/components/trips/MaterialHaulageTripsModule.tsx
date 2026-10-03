@@ -251,7 +251,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
   const [isVehicleMenuOpen, setIsVehicleMenuOpen] = useState(false);
   const vehicleDropdownRef = useRef<HTMLDivElement>(null);
 
-  // Changed: Purchased From starts empty (no auto-selection)
+  // Default empty so user can choose or type freely
   const [purchasedFrom, setPurchasedFrom] = useState('');
   const [isSupplierMenuOpen, setIsSupplierMenuOpen] = useState(false);
   const [editingSupplierIndex, setEditingSupplierIndex] = useState<number | null>(null);
@@ -264,7 +264,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
 
   const [materialName, setMaterialName] = useState(defaultCategory);
 
-  // Changed: Day Trips starts empty (no auto-selection)
+  // Default empty so user specifies trips each time
   const [dayTrips, setDayTrips] = useState<number | ''>('');
   const [brassPerTrip, setBrassPerTrip] = useState<number | ''>(6);
   const [ratePerBrass, setRatePerBrass] = useState<number | ''>(categories[0]?.standardRate || 1500);
@@ -415,8 +415,35 @@ export const MaterialHaulageTripsModule: React.FC = () => {
     );
   }, [filtered, rentedVehiclesMap, dieselLogs, activeSiteName]);
 
+  // Today's total trips calculation for active site
+  const todayStats = useMemo(() => {
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, '0');
+    const d = String(now.getDate()).padStart(2, '0');
+
+    const todayIso = `${y}-${m}-${d}`;
+    const todayDmy = `${d}-${m}-${y}`;
+    const todayComp = `${y}${m}${d}`;
+
+    const siteTrips = trips.filter((t) => !activeSiteName || t.siteName === activeSiteName);
+
+    const todayRecords = siteTrips.filter((t) => {
+      const raw = (t.tripDate || '').trim();
+      return raw === todayIso || raw === todayDmy || toComparableDate(raw) === todayComp;
+    });
+
+    const totalTodayTrips = todayRecords.reduce((sum, t) => sum + (Number(t.dayTrips) || 0), 0);
+    const totalTodayBrass = todayRecords.reduce(
+      (sum, t) => sum + (Number(t.dayTrips) || 0) * (Number(t.brassPerTrip) || 0),
+      0
+    );
+
+    return { trips: totalTodayTrips, brass: totalTodayBrass, count: todayRecords.length };
+  }, [trips, activeSiteName]);
+
   const matchingAdvances = useMemo(() => {
-    const currentVendorNames = Array.from(new Set(filtered.map((t) => t.purchasedFrom?.trim()).filter(Boolean)));
+    const currentVendorNames = Array.from(new Set(filtered.map((t) => t.purchasedFrom?.trim().toLowerCase()).filter(Boolean)));
     return advances.filter((a) => {
       const matchSite = !activeSiteName || a.siteName === activeSiteName;
       const matchVendor = currentVendorNames.length === 0 || currentVendorNames.includes((a.vendorName || a.supplierName || '').trim().toLowerCase());
@@ -457,7 +484,6 @@ export const MaterialHaulageTripsModule: React.FC = () => {
     setVehicleNumber('');
     setIsVehicleMenuOpen(false);
 
-    // Cleared: No auto-selection on open
     setPurchasedFrom('');
     setMaterialName(defaultCategory);
     setDayTrips('');
@@ -624,14 +650,30 @@ export const MaterialHaulageTripsModule: React.FC = () => {
         </div>
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 no-print">
+      {/* Summary Cards with Today's Total Trips */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 no-print">
+        {/* Today's Total Trips */}
+        <div className="p-4 rounded-2xl bg-[#0B1220] border border-blue-500/30">
+          <div className="text-[10px] font-bold uppercase text-blue-400 flex items-center justify-between">
+            <span>Today's Total Trips</span>
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" title="Live today" />
+          </div>
+          <div className="text-xl font-black text-white font-mono mt-1">
+            {todayStats.trips} <span className="text-xs font-normal text-slate-400">Trips</span>
+          </div>
+          <div className="text-[10px] text-slate-500">
+            {todayStats.brass} Brass ({todayStats.count} entries today)
+          </div>
+        </div>
+
+        {/* Gross Haulage / Trips Total */}
         <div className="p-4 rounded-2xl bg-[#0B1220] border border-[#1E293B]">
           <div className="text-[10px] font-bold uppercase text-slate-400">Gross Haulage / Trips Total</div>
           <div className="text-xl font-black text-white font-mono mt-1">₹{overallTotals.amount.toLocaleString('en-IN')}</div>
           <div className="text-[10px] text-slate-500">{overallTotals.trips} Trips ({overallTotals.brass} Brass)</div>
         </div>
 
+        {/* Less: Rented Diesel */}
         <div className="p-4 rounded-2xl bg-[#0B1220] border border-[#1E293B]">
           <div className="text-[10px] font-bold uppercase text-amber-400 flex items-center gap-1">
             <Fuel className="w-3 h-3 text-amber-400" />
@@ -641,12 +683,14 @@ export const MaterialHaulageTripsModule: React.FC = () => {
           <div className="text-[10px] text-slate-500">{overallTotals.dieselLitres.toFixed(1)} Litres Issued</div>
         </div>
 
+        {/* Less: Advance Paid */}
         <div className="p-4 rounded-2xl bg-[#0B1220] border border-[#1E293B]">
           <div className="text-[10px] font-bold uppercase text-rose-400">(-) Less: Advance Paid</div>
           <div className="text-xl font-black text-rose-400 font-mono mt-1">₹{totalVendorAdvancePaid.toLocaleString('en-IN')}</div>
           <div className="text-[10px] text-slate-500">{matchingAdvances.length} Advance Payments Recorded</div>
         </div>
 
+        {/* Net Payable / Advance Excess */}
         <div className={`p-4 rounded-2xl border ${isAdvanceExcess ? 'bg-rose-950/20 border-rose-500/30' : 'bg-amber-950/20 border-amber-500/30'}`}>
           <div className={`text-[10px] font-bold uppercase ${isAdvanceExcess ? 'text-rose-400' : 'text-amber-400'}`}>
             {isAdvanceExcess ? '(+) Advance Balance With Vendor' : '(=) Net Payable to Vendor'}
@@ -1183,7 +1227,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
                 )}
               </div>
 
-              {/* Purchased From / Supplier (No auto-select, full typing + dropdown) */}
+              {/* Purchased From / Supplier (No auto-select, free typing + dropdown) */}
               <div className="relative" ref={supplierDropdownRef}>
                 <div className="flex items-center justify-between mb-1">
                   <label className="text-slate-300 font-bold">
