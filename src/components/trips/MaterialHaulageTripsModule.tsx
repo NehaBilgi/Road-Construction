@@ -1179,17 +1179,19 @@ export const MaterialHaulageTripsModule: React.FC = () => {
                 )}
               </div>
 
-              {/* Purchased From / Supplier Dropdown with Direct Typing */}
+              {/* Purchased From / Supplier with Typing Input & Dropdown Menu */}
               <div className="relative" ref={supplierDropdownRef}>
                 <div className="flex items-center justify-between mb-1">
-                  <label className="text-slate-300 font-bold">Purchased From / Supplier *</label>
+                  <label className="text-slate-300 font-bold">
+                    Purchased From / Supplier <span className="text-red-400">*</span>
+                  </label>
                   <button
                     type="button"
                     onClick={() => setIsSupplierMenuOpen(!isSupplierMenuOpen)}
                     className="text-[10px] text-blue-400 hover:text-blue-300 font-mono flex items-center gap-1 cursor-pointer"
                   >
                     <span>{allSuppliers.length} vendors</span>
-                    <ChevronDown className="w-3 h-3" />
+                    <ChevronDown className={`w-3 h-3 transition-transform ${isSupplierMenuOpen ? 'rotate-180' : ''}`} />
                   </button>
                 </div>
 
@@ -1204,7 +1206,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
                       setIsSupplierMenuOpen(true);
                     }}
                     onFocus={() => setIsSupplierMenuOpen(true)}
-                    className="w-full pl-3.5 pr-10 py-2.5 bg-[#162032] border border-[#1E293B] focus:border-blue-500 rounded-xl text-white uppercase font-bold outline-none placeholder:text-slate-500 placeholder:font-normal placeholder:font-sans"
+                    className="w-full pl-3.5 pr-10 py-2.5 bg-[#162032] border border-[#1E293B] focus:border-blue-500 rounded-xl text-white font-bold uppercase outline-none placeholder:text-slate-500 placeholder:font-normal placeholder:font-sans transition-colors"
                   />
                   <button
                     type="button"
@@ -1225,82 +1227,84 @@ export const MaterialHaulageTripsModule: React.FC = () => {
                     {allSuppliers.length === 0 ? (
                       <div className="p-3 text-center text-slate-500 text-xs">No suppliers saved yet. Type above to add.</div>
                     ) : (
-                      allSuppliers.map((supp, idx) => (
-                        <div
-                          key={idx}
-                          className={`px-3 py-2 text-xs flex items-center justify-between hover:bg-[#162032] transition-colors ${
-                            purchasedFrom === supp ? 'bg-[#162032]/80' : ''
-                          }`}
-                        >
-                          {editingSupplierIndex === idx ? (
-                            <div className="flex items-center gap-1.5 flex-1 pr-2">
-                              <input
-                                type="text"
-                                autoFocus
-                                value={tempSupplierEditVal}
-                                onChange={(e) => setTempSupplierEditVal(e.target.value.toUpperCase())}
-                                className="w-full px-2 py-1 bg-[#080d19] border border-blue-500 rounded-lg text-white text-xs uppercase font-bold outline-none"
-                              />
-                              <button
-                                type="button"
-                                onClick={() => handleSaveSupplierEdit(supp)}
-                                className="p-1 rounded bg-blue-600 hover:bg-blue-500 text-white cursor-pointer"
-                                title="Save"
-                              >
-                                <Check className="w-3.5 h-3.5" />
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => setEditingSupplierIndex(null)}
-                                className="p-1 rounded text-slate-400 hover:text-white cursor-pointer"
-                                title="Cancel"
-                              >
-                                <X className="w-3.5 h-3.5" />
-                              </button>
-                            </div>
-                          ) : (
-                            <>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setPurchasedFrom(supp);
-                                  setIsSupplierMenuOpen(false);
-                                }}
-                                className="flex-1 text-left font-bold text-white truncate cursor-pointer flex items-center gap-2"
-                              >
-                                <Building2 className="w-3.5 h-3.5 text-blue-400 shrink-0" />
-                                <span className={purchasedFrom === supp ? 'text-blue-400' : ''}>{supp}</span>
-                              </button>
-
-                              <div className="flex items-center gap-1 shrink-0">
+                      allSuppliers
+                        .filter((supp) => !purchasedFrom || supp.toLowerCase().includes(purchasedFrom.toLowerCase()))
+                        .map((supp, idx) => (
+                          <div
+                            key={idx}
+                            className={`px-3 py-2 text-xs flex items-center justify-between hover:bg-[#162032] transition-colors ${
+                              purchasedFrom === supp ? 'bg-[#162032]/80' : ''
+                            }`}
+                          >
+                            {editingSupplierIndex === idx ? (
+                              <div className="flex items-center gap-1.5 flex-1 pr-2">
+                                <input
+                                  type="text"
+                                  autoFocus
+                                  value={tempSupplierEditVal}
+                                  onChange={(e) => setTempSupplierEditVal(e.target.value.toUpperCase())}
+                                  className="w-full px-2 py-1 bg-[#080d19] border border-blue-500 rounded-lg text-white text-xs uppercase font-bold outline-none"
+                                />
                                 <button
                                   type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setEditingSupplierIndex(idx);
-                                    setTempSupplierEditVal(supp);
-                                  }}
-                                  className="p-1 rounded text-slate-400 hover:text-blue-400 hover:bg-blue-950/40 cursor-pointer"
-                                  title="Edit Name"
+                                  onClick={() => handleSaveSupplierEdit(supp)}
+                                  className="p-1 rounded bg-blue-600 hover:bg-blue-500 text-white cursor-pointer"
+                                  title="Save"
                                 >
-                                  <Edit2 className="w-3 h-3" />
+                                  <Check className="w-3.5 h-3.5" />
                                 </button>
                                 <button
                                   type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleDeleteSupplier(supp);
-                                  }}
-                                  className="p-1 rounded text-slate-400 hover:text-rose-400 hover:bg-rose-950/40 cursor-pointer"
-                                  title="Delete Supplier"
+                                  onClick={() => setEditingSupplierIndex(null)}
+                                  className="p-1 rounded text-slate-400 hover:text-white cursor-pointer"
+                                  title="Cancel"
                                 >
-                                  <Trash2 className="w-3 h-3" />
+                                  <X className="w-3.5 h-3.5" />
                                 </button>
                               </div>
-                            </>
-                          )}
-                        </div>
-                      ))
+                            ) : (
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setPurchasedFrom(supp);
+                                    setIsSupplierMenuOpen(false);
+                                  }}
+                                  className="flex-1 text-left font-bold text-white truncate cursor-pointer flex items-center gap-2"
+                                >
+                                  <Building2 className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+                                  <span className={purchasedFrom === supp ? 'text-blue-400' : ''}>{supp}</span>
+                                </button>
+
+                                <div className="flex items-center gap-1 shrink-0">
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setEditingSupplierIndex(idx);
+                                      setTempSupplierEditVal(supp);
+                                    }}
+                                    className="p-1 rounded text-slate-400 hover:text-blue-400 hover:bg-blue-950/40 cursor-pointer"
+                                    title="Edit Name"
+                                  >
+                                    <Edit2 className="w-3 h-3" />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleDeleteSupplier(supp);
+                                    }}
+                                    className="p-1 rounded text-slate-400 hover:text-rose-400 hover:bg-rose-950/40 cursor-pointer"
+                                    title="Delete Supplier"
+                                  >
+                                    <Trash2 className="w-3 h-3" />
+                                  </button>
+                                </div>
+                              </>
+                            )}
+                          </div>
+                        ))
                     )}
                   </div>
                 )}
