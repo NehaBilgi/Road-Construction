@@ -413,7 +413,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
   }, [filtered, rentedVehiclesMap, dieselLogs, activeSiteName]);
 
   const matchingAdvances = useMemo(() => {
-    const currentVendorNames = Array.from(new Set(filtered.map((t) => t.purchasedFrom?.trim().toLowerCase()).filter(Boolean)));
+    const currentVendorNames = Array.from(new Set(filtered.map((t) => t.purchasedFrom?.trim()).filter(Boolean)));
     return advances.filter((a) => {
       const matchSite = !activeSiteName || a.siteName === activeSiteName;
       const matchVendor = currentVendorNames.length === 0 || currentVendorNames.includes((a.vendorName || a.supplierName || '').trim().toLowerCase());
@@ -772,7 +772,6 @@ export const MaterialHaulageTripsModule: React.FC = () => {
                   </td>
                 </tr>
               ) : (
-                // On screen we display paginated records; in print all records render
                 (typeof window !== 'undefined' && window.matchMedia && window.matchMedia('print').matches
                   ? filtered
                   : paginatedRecords
@@ -1180,7 +1179,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
                 )}
               </div>
 
-              {/* Purchased From / Supplier Dropdown */}
+              {/* Purchased From / Supplier Dropdown with Direct Typing */}
               <div className="relative" ref={supplierDropdownRef}>
                 <div className="flex items-center justify-between mb-1">
                   <label className="text-slate-300 font-bold">Purchased From / Supplier *</label>
@@ -1198,11 +1197,14 @@ export const MaterialHaulageTripsModule: React.FC = () => {
                   <input
                     type="text"
                     required
-                    placeholder="Type or select supplier (e.g. MBB CRUSHER)"
+                    placeholder="Type or select supplier..."
                     value={purchasedFrom}
-                    onChange={(e) => setPurchasedFrom(e.target.value.toUpperCase())}
+                    onChange={(e) => {
+                      setPurchasedFrom(e.target.value.toUpperCase());
+                      setIsSupplierMenuOpen(true);
+                    }}
                     onFocus={() => setIsSupplierMenuOpen(true)}
-                    className="w-full pl-3.5 pr-10 py-2.5 bg-[#162032] border border-blue-500/40 focus:border-blue-400 rounded-xl text-white uppercase font-bold outline-none"
+                    className="w-full pl-3.5 pr-10 py-2.5 bg-[#162032] border border-[#1E293B] focus:border-blue-500 rounded-xl text-white uppercase font-bold outline-none placeholder:text-slate-500 placeholder:font-normal placeholder:font-sans"
                   />
                   <button
                     type="button"
