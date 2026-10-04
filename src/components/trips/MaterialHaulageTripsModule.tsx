@@ -251,7 +251,6 @@ export const MaterialHaulageTripsModule: React.FC = () => {
   const [isVehicleMenuOpen, setIsVehicleMenuOpen] = useState(false);
   const vehicleDropdownRef = useRef<HTMLDivElement>(null);
 
-  // Default empty so user can choose or type freely
   const [purchasedFrom, setPurchasedFrom] = useState('');
   const [isSupplierMenuOpen, setIsSupplierMenuOpen] = useState(false);
   const [editingSupplierIndex, setEditingSupplierIndex] = useState<number | null>(null);
@@ -264,7 +263,6 @@ export const MaterialHaulageTripsModule: React.FC = () => {
 
   const [materialName, setMaterialName] = useState(defaultCategory);
 
-  // Default empty so user specifies trips each time
   const [dayTrips, setDayTrips] = useState<number | ''>('');
   const [brassPerTrip, setBrassPerTrip] = useState<number | ''>(6);
   const [ratePerBrass, setRatePerBrass] = useState<number | ''>(categories[0]?.standardRate || 1500);
@@ -318,7 +316,13 @@ export const MaterialHaulageTripsModule: React.FC = () => {
     return tripsNum * brassNum * rateNum;
   }, [dayTrips, brassPerTrip, ratePerBrass, isSelectedVehicleRented, selectedVehicleObj]);
 
+  // Enhanced search: supports single search terms and multiple vehicle numbers (e.g. "9241, 8922" or "9241 8922")
   const filtered = useMemo(() => {
+    const trimmed = searchQuery.trim().toLowerCase();
+    const tokens = trimmed
+      ? trimmed.split(/[\s,/]+/).filter(Boolean)
+      : [];
+
     return trips.filter((t) => {
       const matchSite = !activeSiteName || t.siteName === activeSiteName;
 
@@ -329,16 +333,28 @@ export const MaterialHaulageTripsModule: React.FC = () => {
       if (fromComp && recComp < fromComp) return false;
       if (toComp && recComp > toComp) return false;
 
-      const q = searchQuery.toLowerCase().trim();
-      const matchQuery =
-        !q ||
-        t.vehicleNumber.toLowerCase().includes(q) ||
-        t.materialName.toLowerCase().includes(q) ||
-        (t.purchasedFrom || '').toLowerCase().includes(q) ||
-        t.tripDate.includes(q) ||
-        formatDateDMY(t.tripDate).includes(q);
+      if (!tokens.length) return matchSite;
 
-      return matchSite && matchQuery;
+      const vehNumber = (t.vehicleNumber || '').toLowerCase();
+
+      // Check if vehicle number matches any token
+      const matchesAnyVehicleToken = tokens.some((token) => vehNumber.includes(token));
+
+      if (tokens.length > 1) {
+        // Multi-vehicle search mode: shows records matching any of the vehicle numbers entered
+        return matchSite && matchesAnyVehicleToken;
+      }
+
+      // Single token search mode: matches vehicle, material, supplier, or formatted date
+      const single = tokens[0];
+      const matchGeneral =
+        vehNumber.includes(single) ||
+        (t.materialName || '').toLowerCase().includes(single) ||
+        (t.purchasedFrom || '').toLowerCase().includes(single) ||
+        (t.tripDate || '').includes(single) ||
+        formatDateDMY(t.tripDate).includes(single);
+
+      return matchSite && matchGeneral;
     });
   }, [trips, activeSiteName, fromDate, toDate, searchQuery]);
 
@@ -709,12 +725,14 @@ export const MaterialHaulageTripsModule: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
           {/* Search Box */}
           <div className="md:col-span-6 relative">
-            <label className="block text-[11px] font-semibold text-slate-400 mb-1.5">Search Records</label>
+            <label className="block text-[11px] font-semibold text-slate-400 mb-1.5">
+              Search Records <span className="text-slate-500 font-normal">(enter one or multiple vehicle nos e.g. 9241, 8922)</span>
+            </label>
             <div className="relative">
               <Search className="absolute left-3.5 top-2.5 w-4 h-4 text-slate-500" />
               <input
                 type="text"
-                placeholder="Search by vehicle, supplier, material..."
+                placeholder="Search vehicles (e.g. 9241, 8922), supplier, material..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 bg-[#080d19] border border-[#1E293B] rounded-xl text-white outline-none focus:border-blue-500 placeholder-slate-500 text-xs"
@@ -1227,7 +1245,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
                 )}
               </div>
 
-              {/* Purchased From / Supplier (No auto-select, free typing + dropdown) */}
+              {/* Purchased From / Supplier */}
               <div className="relative" ref={supplierDropdownRef}>
                 <div className="flex items-center justify-between mb-1">
                   <label className="text-slate-300 font-bold">
