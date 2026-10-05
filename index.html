@@ -6,20 +6,29 @@
     <title>Construction Pro</title>
     <meta name="description" content="Construction project and site operations management." />
     <meta name="theme-color" content="#080C14" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Construction Pro" />
+
+    <!-- Open Graph & Twitter Social Previews -->
     <meta property="og:title" content="Construction Pro" />
     <meta property="og:description" content="Construction project and site operations management." />
+    <meta property="og:image" content="/logo.png" />
     <meta property="og:type" content="website" />
     <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:image" content="/logo.png" />
 
-    <!-- Construction Pro Favicon & App Icons -->
-    <link rel="icon" type="image/png" href="/logo.png" />
+    <!-- App Favicons & Desktop / Mobile Icons -->
+    <link rel="icon" type="image/png" sizes="32x32" href="/logo.png" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/logo.png" />
     <link rel="shortcut icon" type="image/png" href="/logo.png" />
     <link rel="apple-touch-icon" sizes="180x180" href="/logo.png" />
 
     <!-- Web App Manifest -->
     <link rel="manifest" href="/manifest.webmanifest" />
   </head>
-  <body>
+  <body class="bg-[#080C14] text-slate-100 antialiased selection:bg-amber-500 selection:text-slate-950">
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
