@@ -14,6 +14,7 @@ import { MaterialHaulageTripsModule } from './components/trips/MaterialHaulageTr
 import { VendorAdvancesModule } from './components/VendorAdvancesModule';
 import { DieselFuelManagementModule } from './components/diesel/DieselFuelManagementModule';
 import { SiteCostExpensesModule } from './components/costing/SiteCostExpensesModule';
+import { FinalReport } from './components/FinalReport';
 import { RoadYieldCalculatorModule } from './components/calculator/RoadYieldCalculatorModule';
 import { MachineryFleetModule } from './components/machinery/MachineryFleetModule';
 import StockTransactionsModule from './components/building/StockTransactionsModule';
@@ -263,6 +264,7 @@ export const AppContent: React.FC = () => {
                 {activeTab === 'vendor-advances' && <VendorAdvancesModule />}
                 {activeTab === 'diesel' && <DieselFuelManagementModule />}
                 {activeTab === 'site-expenses' && <SiteCostExpensesModule />}
+                {activeTab === 'final-report' && <FinalReport />}
                 {(activeTab === 'yield_calculator' || activeTab === 'road-yield') && <RoadYieldCalculatorModule />}
                 {(activeTab === 'machinery_fleet' || activeTab === 'machinery') && <MachineryFleetModule />}
                 {activeTab === 'categories' && <RoadMaterialCategoriesModule />}
