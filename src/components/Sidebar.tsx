@@ -13,6 +13,7 @@ import {
   Package,
   ArrowLeftRight,
   FileText,
+  FileSpreadsheet,
   Bell,
   CalendarCheck,
   Tag,
@@ -150,6 +151,13 @@ export const Sidebar: React.FC<Props> = ({
       icon: DollarSign,
       badge: 'Petty Cash',
       badgeStyle: 'bg-[#162032] text-blue-400 border border-[#1E293B]'
+    },
+    {
+      id: 'final-report',
+      label: 'Final Report',
+      icon: FileSpreadsheet,
+      badge: 'Summary',
+      badgeStyle: 'bg-indigo-950/60 text-indigo-300 border border-indigo-700/50'
     }
   ];
 
