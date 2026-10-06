@@ -17,7 +17,8 @@ import {
   AlertTriangle,
   ArrowLeftRight,
   Building2,
-  Boxes
+  Boxes,
+  FileSpreadsheet
 } from 'lucide-react';
 
 interface Props {
@@ -284,10 +285,17 @@ export const SiteCentricMidnightDashboard: React.FC<Props> = ({ onNavigateTab })
                 </button>
                 <button 
                   onClick={() => onNavigateTab('site-expenses')}
+                  className="w-full sm:w-auto justify-center px-3 py-2.5 sm:px-4 sm:py-2.5 rounded-xl bg-[#121927] hover:bg-[#1b263b] border border-[#1E293B] text-slate-300 text-[11px] sm:text-xs font-bold flex items-center gap-1.5 sm:gap-2 transition-all cursor-pointer"
+                >
+                  <DollarSign className="w-3.5 h-3.5 text-rose-400 shrink-0" />
+                  <span className="truncate">+ Expense</span>
+                </button>
+                <button 
+                  onClick={() => onNavigateTab('final-report')}
                   className="col-span-2 sm:col-span-1 w-full sm:w-auto justify-center px-4 py-2.5 sm:px-5 sm:py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-black flex items-center gap-2 transition-all shadow-lg shadow-blue-600/30 cursor-pointer"
                 >
-                  <Plus className="w-4 h-4 shrink-0" />
-                  <span>+ Expense</span>
+                  <FileSpreadsheet className="w-4 h-4 shrink-0" />
+                  <span>Final Report</span>
                 </button>
               </>
             )}
@@ -693,12 +701,12 @@ export const SiteCentricMidnightDashboard: React.FC<Props> = ({ onNavigateTab })
               </div>
             </div>
 
-            {/* Road Engineering Shortcuts */}
+            {/* Road Engineering Shortcuts & Financial Reports */}
             <div className="p-4 sm:p-6 rounded-[1.5rem] sm:rounded-[2rem] bg-[#0B1220] border border-[#1E293B] shadow-2xl flex flex-col">
               <div className="flex items-center justify-between mb-4 sm:mb-6">
                 <div className="flex items-center gap-2">
                   <Calculator className="w-4 h-4 sm:w-5 sm:h-5 text-cyan-400 shrink-0" />
-                  <h2 className="text-sm sm:text-base font-bold text-white truncate">Engineering Shortcuts</h2>
+                  <h2 className="text-sm sm:text-base font-bold text-white truncate">Engineering & Audits</h2>
                 </div>
                 <span className="text-[8px] sm:text-[9px] font-mono text-slate-500 uppercase tracking-widest shrink-0">
                   MoRTH 5th Rev
@@ -706,15 +714,32 @@ export const SiteCentricMidnightDashboard: React.FC<Props> = ({ onNavigateTab })
               </div>
 
               <div className="space-y-3 flex-1 flex flex-col justify-center">
+                {/* Final Report Fast Navigation */}
+                <button 
+                  onClick={() => onNavigateTab('final-report')}
+                  className="w-full p-3 sm:p-3.5 rounded-2xl bg-[#080C14] border border-blue-500/30 hover:border-blue-500/60 hover:bg-[#121c33]/50 transition-all text-left group flex items-center justify-between cursor-pointer"
+                >
+                  <div className="truncate">
+                    <div className="text-xs font-bold text-blue-400 mb-0.5 group-hover:text-blue-300 transition-colors flex items-center gap-1.5 truncate">
+                      <FileSpreadsheet className="w-3.5 h-3.5 shrink-0" />
+                      <span>Consolidated Final Report</span>
+                    </div>
+                    <div className="text-[10px] text-slate-400 truncate">
+                      Rollup of haulage trips, fuel spend & expenses
+                    </div>
+                  </div>
+                  <ArrowRight className="w-4 h-4 text-blue-400 group-hover:translate-x-1 transition-transform shrink-0" />
+                </button>
+
                 <button 
                   onClick={() => onNavigateTab('yield_calculator')}
-                  className="w-full p-3 sm:p-4 rounded-2xl bg-[#080C14] border border-[#1E293B] hover:border-cyan-500/50 hover:bg-[#121c33]/50 transition-all text-left group flex items-center justify-between cursor-pointer"
+                  className="w-full p-3 sm:p-3.5 rounded-2xl bg-[#080C14] border border-[#1E293B] hover:border-cyan-500/50 hover:bg-[#121c33]/50 transition-all text-left group flex items-center justify-between cursor-pointer"
                 >
-                  <div>
-                    <div className="text-xs font-bold text-white mb-1 group-hover:text-cyan-400 transition-colors">
+                  <div className="truncate">
+                    <div className="text-xs font-bold text-white mb-0.5 group-hover:text-cyan-400 transition-colors truncate">
                       Road Layer Yield & Thickness Calc
                     </div>
-                    <div className="text-[10px] text-slate-500">
+                    <div className="text-[10px] text-slate-500 truncate">
                       Calculate GSB, WMM, DBM, BC tonnage & brass yield
                     </div>
                   </div>
@@ -723,13 +748,13 @@ export const SiteCentricMidnightDashboard: React.FC<Props> = ({ onNavigateTab })
 
                 <button 
                   onClick={() => onNavigateTab('categories')}
-                  className="w-full p-3 sm:p-4 rounded-2xl bg-[#080C14] border border-[#1E293B] hover:border-blue-500/50 hover:bg-[#121c33]/50 transition-all text-left group flex items-center justify-between cursor-pointer"
+                  className="w-full p-3 sm:p-3.5 rounded-2xl bg-[#080C14] border border-[#1E293B] hover:border-blue-500/50 hover:bg-[#121c33]/50 transition-all text-left group flex items-center justify-between cursor-pointer"
                 >
-                  <div>
-                    <div className="text-xs font-bold text-white mb-1 group-hover:text-blue-400 transition-colors">
+                  <div className="truncate">
+                    <div className="text-xs font-bold text-white mb-0.5 group-hover:text-blue-400 transition-colors truncate">
                       Material Rates & Master Spec
                     </div>
-                    <div className="text-[10px] text-slate-500">
+                    <div className="text-[10px] text-slate-500 truncate">
                       {isAdmin ? 'Manage schedule of rates and category specs' : 'View schedule of rates and specifications'}
                     </div>
                   </div>
@@ -747,3 +772,5 @@ export const SiteCentricMidnightDashboard: React.FC<Props> = ({ onNavigateTab })
     </div>
   );
 };
+
+export default SiteCentricMidnightDashboard;
