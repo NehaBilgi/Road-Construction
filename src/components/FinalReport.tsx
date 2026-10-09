@@ -494,8 +494,10 @@ export const FinalReport: React.FC = () => {
       </div>
 
       {/* 1. TRIPS HAULAGE TABLE */}
-      {(activeSubTab === 'ALL' || activeSubTab === 'TRIPS') && (
-        <div className="report-print-section bg-[#121927] border border-[#1E293B] rounded-2xl overflow-hidden shadow-sm">
+      <div
+        className="report-print-section bg-[#121927] border border-[#1E293B] rounded-2xl overflow-hidden shadow-sm"
+        style={{ display: activeSubTab === 'ALL' || activeSubTab === 'TRIPS' ? undefined : 'none' }}
+      >
           <div className="px-5 py-4 border-b border-[#1E293B] flex items-center justify-between bg-[#162032]/40">
             <div className="flex items-center gap-2.5">
               <Truck className="w-4 h-4 text-emerald-400" />
@@ -564,12 +566,13 @@ export const FinalReport: React.FC = () => {
               </tfoot>
             </table>
           </div>
-        </div>
-      )}
+      </div>
 
       {/* 2. DIESEL LOGS TABLE */}
-      {(activeSubTab === 'ALL' || activeSubTab === 'DIESEL') && (
-        <div className="report-print-section bg-[#121927] border border-[#1E293B] rounded-2xl overflow-hidden shadow-sm">
+      <div
+        className="report-print-section bg-[#121927] border border-[#1E293B] rounded-2xl overflow-hidden shadow-sm"
+        style={{ display: activeSubTab === 'ALL' || activeSubTab === 'DIESEL' ? undefined : 'none' }}
+      >
           <div className="px-5 py-4 border-b border-[#1E293B] flex items-center justify-between bg-[#162032]/40">
             <div className="flex items-center gap-2.5">
               <Fuel className="w-4 h-4 text-amber-400" />
@@ -629,12 +632,13 @@ export const FinalReport: React.FC = () => {
               </tfoot>
             </table>
           </div>
-        </div>
-      )}
+      </div>
 
       {/* 3. SITE EXPENSES & PETTY CASH TABLE */}
-      {(activeSubTab === 'ALL' || activeSubTab === 'EXPENSES') && (
-        <div className="report-print-section bg-[#121927] border border-[#1E293B] rounded-2xl overflow-hidden shadow-sm">
+      <div
+        className="report-print-section bg-[#121927] border border-[#1E293B] rounded-2xl overflow-hidden shadow-sm"
+        style={{ display: activeSubTab === 'ALL' || activeSubTab === 'EXPENSES' ? undefined : 'none' }}
+      >
           <div className="px-5 py-4 border-b border-[#1E293B] flex items-center justify-between bg-[#162032]/40">
             <div className="flex items-center gap-2.5">
               <DollarSign className="w-4 h-4 text-rose-400" />
@@ -693,8 +697,7 @@ export const FinalReport: React.FC = () => {
               </tfoot>
             </table>
           </div>
-        </div>
-      )}
+      </div>
 
       <section className="report-print-summary" aria-label="Filtered report totals">
         <h2>Operations &amp; Cost Summary</h2>
