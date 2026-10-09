@@ -5,10 +5,10 @@ export type AppTheme = 'dark' | 'light';
 export const THEME_STORAGE_KEY = 'CONSTRUCTION_PRO_THEME';
 
 const getInitialTheme = (): AppTheme => {
-  if (typeof window === 'undefined') return 'dark';
+  if (typeof window === 'undefined') return 'light';
   const saved = window.localStorage.getItem(THEME_STORAGE_KEY);
   if (saved === 'light' || saved === 'dark') return saved;
-  return window.matchMedia?.('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+  return 'light';
 };
 
 export const applyStoredTheme = () => {
