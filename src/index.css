@@ -201,27 +201,27 @@ body,
   background-color: var(--app-primary) !important;
 }
 
-:root[data-theme='light'] button[class*="text-white"][class*="bg-"],
-:root[data-theme='light'] button[class*="bg-gradient-to-"] {
+:root[data-theme='light'] button:not(.sidebar-nav-item)[class*="text-white"][class*="bg-"],
+:root[data-theme='light'] button:not(.sidebar-nav-item)[class*="bg-gradient-to-"] {
   background-image: none !important;
   background-color: var(--app-primary) !important;
   border-color: var(--app-primary) !important;
   color: #ffffff !important;
 }
 
-:root[data-theme='light'] button[class*="bg-blue-600"],
-:root[data-theme='light'] button[class*="bg-blue-500"],
-:root[data-theme='light'] button[class*="bg-indigo-600"],
-:root[data-theme='light'] button[class*="bg-indigo-500"],
-:root[data-theme='light'] button[class*="bg-emerald-600"],
-:root[data-theme='light'] button[class*="bg-green-600"],
-:root[data-theme='light'] button[class*="bg-amber-600"],
-:root[data-theme='light'] button[class*="bg-yellow-600"],
-:root[data-theme='light'] button[class*="bg-rose-600"],
-:root[data-theme='light'] button[class*="bg-red-600"],
-:root[data-theme='light'] button[class*="bg-purple-600"],
-:root[data-theme='light'] button[class*="bg-cyan-600"],
-:root[data-theme='light'] button[class*="bg-teal-600"] {
+:root[data-theme='light'] button:not(.sidebar-nav-item)[class*="bg-blue-600"],
+:root[data-theme='light'] button:not(.sidebar-nav-item)[class*="bg-blue-500"],
+:root[data-theme='light'] button:not(.sidebar-nav-item)[class*="bg-indigo-600"],
+:root[data-theme='light'] button:not(.sidebar-nav-item)[class*="bg-indigo-500"],
+:root[data-theme='light'] button:not(.sidebar-nav-item)[class*="bg-emerald-600"],
+:root[data-theme='light'] button:not(.sidebar-nav-item)[class*="bg-green-600"],
+:root[data-theme='light'] button:not(.sidebar-nav-item)[class*="bg-amber-600"],
+:root[data-theme='light'] button:not(.sidebar-nav-item)[class*="bg-yellow-600"],
+:root[data-theme='light'] button:not(.sidebar-nav-item)[class*="bg-rose-600"],
+:root[data-theme='light'] button:not(.sidebar-nav-item)[class*="bg-red-600"],
+:root[data-theme='light'] button:not(.sidebar-nav-item)[class*="bg-purple-600"],
+:root[data-theme='light'] button:not(.sidebar-nav-item)[class*="bg-cyan-600"],
+:root[data-theme='light'] button:not(.sidebar-nav-item)[class*="bg-teal-600"] {
   background-image: none !important;
   background-color: var(--app-primary) !important;
   border-color: var(--app-primary) !important;
@@ -315,6 +315,7 @@ body,
   }
 
   .final-report-print-root .report-print-section {
+    display: block !important;
     margin: 0 0 6mm !important;
     overflow: visible !important;
     border: 1px solid #111827 !important;
