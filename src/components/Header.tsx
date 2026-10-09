@@ -12,6 +12,7 @@ import {
   LogOut
 } from 'lucide-react';
 import CreateRoadSiteModal from './modals/CreateRoadSiteModal';
+import { ThemeToggle } from './ThemeToggle';
 
 interface Props {
   activeTab: string;
@@ -149,6 +150,7 @@ export const Header: React.FC<Props> = ({ onToggleSidebar }) => {
       </div>
 
       <div className="flex items-center gap-2">
+        <ThemeToggle />
         <button
           type="button"
           onClick={handleLogout}
