@@ -7,7 +7,7 @@ body,
 }
 
 :root {
-  color-scheme: dark;
+  color-scheme: light;
 }
 
 :root[data-theme='light'] {
@@ -15,46 +15,39 @@ body,
 }
 
 :root[data-theme='light'] body {
-  background: #f1f5f9;
+  background: #f8fafc;
   color: #0f172a;
 }
 
-/* The original UI uses fixed dark Tailwind colors. These targeted overrides
-   make the new light mode useful without rewriting every module at once. */
-:root[data-theme='light'] .bg-\[\#080C14\],
-:root[data-theme='light'] .bg-\[\#080d19\],
-:root[data-theme='light'] .bg-\[\#0c1427\],
-:root[data-theme='light'] .bg-\[\#0C1427\],
-:root[data-theme='light'] .bg-\[\#0D111D\],
-:root[data-theme='light'] .bg-\[\#121927\],
-:root[data-theme='light'] .bg-\[\#162032\],
-:root[data-theme='light'] .bg-\[\#142038\],
-:root[data-theme='light'] .bg-\[\#132b25\] {
+/* Default palette: cool paper surfaces, slate text, and construction blue. */
+:root[data-theme='light'] [class*="bg-[#"] {
   background-color: #ffffff !important;
 }
 
-:root[data-theme='light'] .border-\[\#1E293B\],
-:root[data-theme='light'] .border-\[\#182643\],
-:root[data-theme='light'] .border-\[\#22365e\],
-:root[data-theme='light'] .border-\[\#1d4d3e\] {
-  border-color: #cbd5e1 !important;
+:root[data-theme='light'] [class*="border-[#"] {
+  border-color: #dbe3ec !important;
 }
 
+:root[data-theme='light'] .text-white,
 :root[data-theme='light'] .text-slate-100,
-:root[data-theme='light'] .text-slate-200,
-:root[data-theme='light'] .text-slate-300,
-:root[data-theme='light'] .text-slate-400 {
-  color: #475569 !important;
-}
-
-:root[data-theme='light'] .bg-\[\#162032\].text-white,
-:root[data-theme='light'] .bg-\[\#121927\] .text-white,
-:root[data-theme='light'] .bg-\[\#080C14\] .text-white,
-:root[data-theme='light'] .bg-\[\#0c1427\] .text-white {
+:root[data-theme='light'] .text-slate-200 {
   color: #0f172a !important;
 }
 
+:root[data-theme='light'] .text-slate-300 {
+  color: #334155 !important;
+}
+
+:root[data-theme='light'] .text-slate-400,
+:root[data-theme='light'] .text-slate-500 {
+  color: #475569 !important;
+}
+
 :root[data-theme='light'] .bg-blue-600.text-white,
+:root[data-theme='light'] .bg-blue-500.text-white,
+:root[data-theme='light'] .bg-purple-600.text-white,
+:root[data-theme='light'] .bg-emerald-600.text-white,
+:root[data-theme='light'] .bg-rose-600.text-white,
 :root[data-theme='light'] .bg-gradient-to-br.text-white {
   color: #ffffff !important;
 }
@@ -62,5 +55,142 @@ body,
 :root[data-theme='light'] input,
 :root[data-theme='light'] textarea,
 :root[data-theme='light'] select {
-  color: #0f172a;
+  color: #0f172a !important;
+  background-color: #ffffff;
+}
+
+:root[data-theme='light'] input::placeholder,
+:root[data-theme='light'] textarea::placeholder {
+  color: #64748b;
+}
+
+@media print {
+  @page {
+    size: A4 landscape;
+    margin: 12mm;
+  }
+
+  html,
+  body,
+  #root {
+    min-height: 0 !important;
+    height: auto !important;
+    background: #ffffff !important;
+  }
+
+  body:has(.final-report-print-root) * {
+    visibility: hidden !important;
+  }
+
+  .final-report-print-root,
+  .final-report-print-root * {
+    visibility: visible !important;
+  }
+
+  .final-report-print-root {
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    color: #000000 !important;
+    background: #ffffff !important;
+  }
+
+  .final-report-print-root .report-print-hidden {
+    display: none !important;
+  }
+
+  .final-report-print-root .report-kpi-grid {
+    display: grid !important;
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+    gap: 3mm !important;
+    margin: 0 0 5mm !important;
+  }
+
+  .final-report-print-root .report-kpi-grid > div {
+    padding: 3mm !important;
+    border: 1px solid #64748b !important;
+    border-radius: 2mm !important;
+    box-shadow: none !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+
+  .final-report-print-root .report-print-section {
+    margin: 0 0 6mm !important;
+    overflow: visible !important;
+    border: 1px solid #111827 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    background: #ffffff !important;
+    break-inside: auto;
+  }
+
+  .final-report-print-root .report-print-section > div:first-child {
+    padding: 2.5mm 3mm !important;
+    border-bottom: 1px solid #111827 !important;
+    background: #f1f5f9 !important;
+  }
+
+  .final-report-print-root .report-print-section .overflow-x-auto {
+    overflow: visible !important;
+  }
+
+  .final-report-print-root .report-print-table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    table-layout: auto !important;
+    font-size: 8pt !important;
+  }
+
+  .final-report-print-root .report-print-table thead {
+    display: table-header-group !important;
+  }
+
+  .final-report-print-root .report-print-table th {
+    padding: 2mm 1.5mm !important;
+    border-top: 1.5px solid #111827 !important;
+    border-bottom: 1.5px solid #111827 !important;
+    background: #f8fafc !important;
+    color: #111827 !important;
+    font-size: 7pt !important;
+    font-weight: 800 !important;
+    text-transform: uppercase;
+  }
+
+  .final-report-print-root .report-print-table td {
+    padding: 1.7mm 1.5mm !important;
+    border-bottom: 0.5px solid #cbd5e1 !important;
+    color: #111827 !important;
+    font-size: 7.5pt !important;
+    vertical-align: top !important;
+  }
+
+  .final-report-print-root .report-print-table tr {
+    break-inside: avoid;
+  }
+
+  .final-report-print-root .report-print-table [class*="bg-"],
+  .final-report-print-root .report-print-table [class*="text-"] {
+    background-color: transparent !important;
+    color: #111827 !important;
+    border-color: #64748b !important;
+  }
+
+  main,
+  main > div,
+  .flex-1,
+  [class*="h-[calc(100vh-56px)]"] {
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  [class*="h-[calc(100vh-56px)]"] {
+    position: static !important;
+  }
 }
