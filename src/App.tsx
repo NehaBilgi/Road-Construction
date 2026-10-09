@@ -209,7 +209,6 @@ export const AppContent: React.FC = () => {
             activeTab={activeTab}
             setActiveTab={setActiveTab}
             projectType={activeDomain}
-            isAdminUser={isAdmin}
             onSwitchDomain={
               isAdmin
                 ? () => {
@@ -234,7 +233,6 @@ export const AppContent: React.FC = () => {
                 activeTab={activeTab}
                 setActiveTab={setActiveTab}
                 projectType={activeDomain}
-                isAdminUser={isAdmin}
                 onSwitchDomain={
                   isAdmin
                     ? () => {
