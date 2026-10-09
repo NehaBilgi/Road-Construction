@@ -49,6 +49,7 @@ export interface FleetVehicle {
   category: string;
   metricType: 'KM' | 'HMR';
   ownershipType?: 'company' | 'rented';
+  ownerName?: string;
   rentalRateType?: 'per_day' | 'per_trip';
   rentalAmount?: number;
 }
@@ -316,7 +317,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
     return tripsNum * brassNum * rateNum;
   }, [dayTrips, brassPerTrip, ratePerBrass, isSelectedVehicleRented, selectedVehicleObj]);
 
-  // Enhanced search: supports single search terms and multiple vehicle numbers (e.g. "9241, 8922" or "9241 8922")
+  // Search supports one or multiple vehicle numbers, plus the registered owner name.
   const filtered = useMemo(() => {
     const trimmed = searchQuery.trim().toLowerCase();
     const tokens = trimmed
@@ -336,19 +337,25 @@ export const MaterialHaulageTripsModule: React.FC = () => {
       if (!tokens.length) return matchSite;
 
       const vehNumber = (t.vehicleNumber || '').toLowerCase();
+      const vehicle = fleetVehicles.find(
+        (v) => v.vehicleNumber.trim().toLowerCase() === vehNumber
+      );
+      const ownerName = (vehicle?.ownerName || '').trim().toLowerCase();
+      const matchesOwner = Boolean(ownerName && ownerName.includes(trimmed));
 
       // Check if vehicle number matches any token
       const matchesAnyVehicleToken = tokens.some((token) => vehNumber.includes(token));
 
       if (tokens.length > 1) {
-        // Multi-vehicle search mode: shows records matching any of the vehicle numbers entered
-        return matchSite && matchesAnyVehicleToken;
+        // Keep multi-vehicle search behavior; full owner names may include spaces.
+        return matchSite && (matchesAnyVehicleToken || matchesOwner);
       }
 
-      // Single token search mode: matches vehicle, material, supplier, or formatted date
+      // Single search mode: vehicle, owner, material, supplier, or formatted date.
       const single = tokens[0];
       const matchGeneral =
         vehNumber.includes(single) ||
+        ownerName.includes(single) ||
         (t.materialName || '').toLowerCase().includes(single) ||
         (t.purchasedFrom || '').toLowerCase().includes(single) ||
         (t.tripDate || '').includes(single) ||
@@ -356,7 +363,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
 
       return matchSite && matchGeneral;
     });
-  }, [trips, activeSiteName, fromDate, toDate, searchQuery]);
+  }, [trips, fleetVehicles, activeSiteName, fromDate, toDate, searchQuery]);
 
   // Reset to page 1 whenever filters change
   useEffect(() => {
@@ -650,7 +657,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
           </div>
           <div>
             <h1 className="text-xl sm:text-2xl font-black text-white">Material Haulage Trips</h1>
-            <p className="text-xs text-slate-400">Track trips, apply rented vehicle per-trip tariffs, and auto-deduct diesel & advances for {activeSiteName}.</p>
+          <p className="text-xs text-slate-400">Track trips, search by vehicle or rented-vehicle owner, apply tariffs, and auto-deduct diesel & advances for {activeSiteName}.</p>
           </div>
         </div>
 
@@ -867,7 +874,14 @@ export const MaterialHaulageTripsModule: React.FC = () => {
                       <td className="py-2 px-3 font-mono text-center print:text-black">
                         <span className="font-bold">{t.vehicleNumber}</span>
                         {isRented ? (
-                          <span className="block text-[8px] text-purple-400 print:text-black font-sans font-bold uppercase">(Rented)</span>
+                          <>
+                            <span className="block text-[8px] text-purple-400 print:text-black font-sans font-bold uppercase">(Rented)</span>
+                            {vObj?.ownerName && (
+                              <span className="block text-[8px] text-slate-400 print:text-slate-700 font-sans">
+                                Owner: {vObj.ownerName}
+                              </span>
+                            )}
+                          </>
                         ) : (
                           <span className="block text-[8px] text-blue-400 print:text-black font-sans font-bold uppercase">(Company)</span>
                         )}
@@ -1196,7 +1210,8 @@ export const MaterialHaulageTripsModule: React.FC = () => {
                       .filter((v) =>
                         !vehicleNumber ||
                         v.vehicleNumber.toLowerCase().includes(vehicleNumber.toLowerCase()) ||
-                        v.vehicleType.toLowerCase().includes(vehicleNumber.toLowerCase())
+                        v.vehicleType.toLowerCase().includes(vehicleNumber.toLowerCase()) ||
+                        (v.ownerName || '').toLowerCase().includes(vehicleNumber.toLowerCase())
                       )
                       .map((v) => (
                         <button
@@ -1219,6 +1234,9 @@ export const MaterialHaulageTripsModule: React.FC = () => {
                             <Truck className="w-3.5 h-3.5 text-blue-400 shrink-0" />
                             <span className="font-mono font-bold text-white">{v.vehicleNumber}</span>
                             <span className="text-slate-400 text-[11px]">— {v.vehicleType}</span>
+                            {v.ownershipType === 'rented' && v.ownerName && (
+                              <span className="text-slate-500 text-[10px]">Owner: {v.ownerName}</span>
+                            )}
                           </div>
                           <span
                             className={`text-[9px] font-bold px-1.5 py-0.5 rounded uppercase ${
