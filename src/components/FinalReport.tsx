@@ -555,6 +555,13 @@ export const FinalReport: React.FC = () => {
                   </tr>
                 ))}
               </tbody>
+              <tfoot className="report-print-total">
+                <tr>
+                  <td colSpan={4}>TOTAL — {totalTripsCount} trips</td>
+                  <td className="text-right">{totalBrassLaid.toLocaleString('en-IN', { maximumFractionDigits: 2 })} Brass</td>
+                  <td colSpan={2}></td>
+                </tr>
+              </tfoot>
             </table>
           </div>
         </div>
@@ -612,6 +619,14 @@ export const FinalReport: React.FC = () => {
                   </tr>
                 ))}
               </tbody>
+              <tfoot className="report-print-total">
+                <tr>
+                  <td colSpan={4}>TOTAL DIESEL DISPENSED</td>
+                  <td>{totalDieselLitres.toLocaleString('en-IN', { maximumFractionDigits: 1 })} L</td>
+                  <td></td>
+                  <td className="text-right">₹{totalDieselSpend.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                </tr>
+              </tfoot>
             </table>
           </div>
         </div>
@@ -670,10 +685,28 @@ export const FinalReport: React.FC = () => {
                   </tr>
                 ))}
               </tbody>
+              <tfoot className="report-print-total">
+                <tr>
+                  <td colSpan={6}>TOTAL SITE &amp; PETTY CASH EXPENSES</td>
+                  <td className="text-right">₹{totalExpenseSpend.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                </tr>
+              </tfoot>
             </table>
           </div>
         </div>
       )}
+
+      <section className="report-print-summary" aria-label="Filtered report totals">
+        <h2>Operations &amp; Cost Summary</h2>
+        <div className="report-print-summary-grid">
+          <div><span>Total Trips</span><strong>{totalTripsCount.toLocaleString('en-IN')}</strong></div>
+          <div><span>Material Quantity</span><strong>{totalBrassLaid.toLocaleString('en-IN', { maximumFractionDigits: 2 })} Brass</strong></div>
+          <div><span>Diesel Dispensed</span><strong>{totalDieselLitres.toLocaleString('en-IN', { maximumFractionDigits: 1 })} L</strong></div>
+          <div><span>Total Diesel Amount</span><strong>₹{totalDieselSpend.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong></div>
+          <div><span>Site &amp; Petty Cash Amount</span><strong>₹{totalExpenseSpend.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong></div>
+          <div className="report-print-grand-total"><span>Total Site Expenditure</span><strong>₹{grandTotalCost.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong></div>
+        </div>
+      </section>
     </div>
   );
 };
