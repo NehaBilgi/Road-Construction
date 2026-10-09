@@ -20,6 +20,7 @@ export interface FleetVehicle {
   category: string;
   metricType: 'KM' | 'HMR';
   ownershipType: 'company' | 'rented';
+  ownerName?: string;
   rentalRateType?: 'per_day' | 'per_trip';
   rentalAmount?: number;
   status?: 'Active' | 'Under Maintenance';
@@ -60,6 +61,7 @@ export const MachineryFleetModule: React.FC = () => {
   const [category, setCategory] = useState('Haulage');
   const [metricType, setMetricType] = useState<'KM' | 'HMR'>('KM');
   const [ownershipType, setOwnershipType] = useState<'company' | 'rented'>('company');
+  const [ownerName, setOwnerName] = useState('');
   const [rentalRateType, setRentalRateType] = useState<'per_day' | 'per_trip'>('per_day');
   const [rentalAmount, setRentalAmount] = useState<number | ''>(8500);
 
@@ -80,7 +82,8 @@ export const MachineryFleetModule: React.FC = () => {
         v.vehicleNumber.toLowerCase().includes(q) ||
         v.vehicleType.toLowerCase().includes(q) ||
         v.category.toLowerCase().includes(q) ||
-        v.ownershipType.toLowerCase().includes(q)
+        v.ownershipType.toLowerCase().includes(q) ||
+        (v.ownerName || '').toLowerCase().includes(q)
     );
   }, [vehicles, searchQuery]);
 
@@ -91,6 +94,7 @@ export const MachineryFleetModule: React.FC = () => {
     setCategory('Haulage');
     setMetricType('KM');
     setOwnershipType('company');
+    setOwnerName('');
     setRentalRateType('per_day');
     setRentalAmount(8500);
     setIsModalOpen(true);
@@ -103,6 +107,7 @@ export const MachineryFleetModule: React.FC = () => {
     setCategory(v.category);
     setMetricType(v.metricType);
     setOwnershipType(v.ownershipType);
+    setOwnerName(v.ownerName || '');
     setRentalRateType(v.rentalRateType || 'per_day');
     setRentalAmount(v.rentalAmount || 8500);
     setIsModalOpen(true);
@@ -125,6 +130,7 @@ export const MachineryFleetModule: React.FC = () => {
       category,
       metricType,
       ownershipType,
+      ownerName: ownershipType === 'rented' ? ownerName.trim() : undefined,
       rentalRateType: ownershipType === 'rented' ? rentalRateType : undefined,
       rentalAmount: ownershipType === 'rented' ? (Number(rentalAmount) || 0) : undefined,
       status: 'Active'
@@ -171,7 +177,7 @@ export const MachineryFleetModule: React.FC = () => {
         <Search className="absolute left-4 top-3.5 w-4 h-4 text-slate-500" />
         <input
           type="text"
-          placeholder="Search by vehicle number, type, ownership (Company / Rented)..."
+          placeholder="Search vehicle number, owner name, type, or ownership..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           className="w-full pl-11 pr-4 py-3 bg-[#0B1322] border border-[#1E293B] rounded-2xl text-white outline-none focus:border-blue-500 placeholder-slate-500 text-xs font-medium"
@@ -239,6 +245,14 @@ export const MachineryFleetModule: React.FC = () => {
                       <span className="text-[10px] font-normal">
                         / {v.rentalRateType === 'per_day' ? 'Day' : 'Trip'}
                       </span>
+                    </span>
+                  </div>
+                )}
+                {!isCompany && (
+                  <div className="flex items-center justify-between gap-3 text-xs">
+                    <span className="text-slate-400 font-medium">Owner:</span>
+                    <span className="font-semibold text-slate-200 text-right">
+                      {v.ownerName || 'Owner not set'}
                     </span>
                   </div>
                 )}
@@ -363,7 +377,10 @@ export const MachineryFleetModule: React.FC = () => {
                 <div className="grid grid-cols-2 gap-2">
                   <button
                     type="button"
-                    onClick={() => setOwnershipType('company')}
+                    onClick={() => {
+                      setOwnershipType('company');
+                      setOwnerName('');
+                    }}
                     className={`py-2 px-3 rounded-xl border text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
                       ownershipType === 'company'
                         ? 'bg-blue-600 text-white border-blue-500 shadow-md shadow-blue-600/30'
@@ -386,6 +403,20 @@ export const MachineryFleetModule: React.FC = () => {
                   </button>
                 </div>
               </div>
+
+              {ownershipType === 'rented' && (
+                <div>
+                  <label className="block text-purple-300 font-bold mb-1">Owner Name *</label>
+                  <input
+                    type="text"
+                    required
+                    value={ownerName}
+                    onChange={(e) => setOwnerName(e.target.value)}
+                    placeholder="Enter vehicle owner's full name"
+                    className="w-full px-3.5 py-2.5 bg-[#070D18] border border-purple-500/30 rounded-xl text-white outline-none focus:border-purple-400 placeholder:text-slate-500"
+                  />
+                </div>
+              )}
 
               {ownershipType === 'rented' && (
                 <div className="grid grid-cols-2 gap-3 p-3 rounded-xl bg-purple-950/20 border border-purple-500/20">
