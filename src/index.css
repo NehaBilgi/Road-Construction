@@ -19,7 +19,7 @@ body,
   --app-muted: #64748b;
   --app-primary: #365f91;
   --app-primary-soft: #eaf0f8;
-  --app-accent: #a8782c;
+  --app-accent: #365f91;
 }
 
 :root[data-theme='light'] body {
@@ -153,6 +153,123 @@ body,
   color: #8793a4;
 }
 
+/* Unified slate-and-blue light theme for every application page. */
+:root[data-theme='light'] [class*="text-"] {
+  color: #475569 !important;
+}
+
+:root[data-theme='light'] [class*="bg-emerald-"],
+:root[data-theme='light'] [class*="bg-green-"],
+:root[data-theme='light'] [class*="bg-amber-"],
+:root[data-theme='light'] [class*="bg-yellow-"],
+:root[data-theme='light'] [class*="bg-orange-"],
+:root[data-theme='light'] [class*="bg-rose-"],
+:root[data-theme='light'] [class*="bg-red-"],
+:root[data-theme='light'] [class*="bg-pink-"],
+:root[data-theme='light'] [class*="bg-purple-"],
+:root[data-theme='light'] [class*="bg-indigo-"],
+:root[data-theme='light'] [class*="bg-cyan-"],
+:root[data-theme='light'] [class*="bg-teal-"],
+:root[data-theme='light'] [class*="bg-violet-"],
+:root[data-theme='light'] [class*="bg-slate-700"],
+:root[data-theme='light'] [class*="bg-slate-800"],
+:root[data-theme='light'] [class*="bg-slate-900"],
+:root[data-theme='light'] [class*="bg-gray-700"],
+:root[data-theme='light'] [class*="bg-gray-800"],
+:root[data-theme='light'] [class*="bg-gray-900"] {
+  background-color: #f0f3f7 !important;
+}
+
+:root[data-theme='light'] [class*="border-emerald-"],
+:root[data-theme='light'] [class*="border-green-"],
+:root[data-theme='light'] [class*="border-amber-"],
+:root[data-theme='light'] [class*="border-yellow-"],
+:root[data-theme='light'] [class*="border-orange-"],
+:root[data-theme='light'] [class*="border-rose-"],
+:root[data-theme='light'] [class*="border-red-"],
+:root[data-theme='light'] [class*="border-pink-"],
+:root[data-theme='light'] [class*="border-purple-"],
+:root[data-theme='light'] [class*="border-indigo-"],
+:root[data-theme='light'] [class*="border-cyan-"],
+:root[data-theme='light'] [class*="border-teal-"],
+:root[data-theme='light'] [class*="border-violet-"] {
+  border-color: var(--app-border) !important;
+}
+
+:root[data-theme='light'] [class*="bg-gradient-to-"] {
+  background-image: none !important;
+  background-color: var(--app-primary) !important;
+}
+
+:root[data-theme='light'] button[class*="text-white"][class*="bg-"],
+:root[data-theme='light'] button[class*="bg-gradient-to-"] {
+  background-image: none !important;
+  background-color: var(--app-primary) !important;
+  border-color: var(--app-primary) !important;
+  color: #ffffff !important;
+}
+
+:root[data-theme='light'] button[class*="bg-blue-600"],
+:root[data-theme='light'] button[class*="bg-blue-500"],
+:root[data-theme='light'] button[class*="bg-indigo-600"],
+:root[data-theme='light'] button[class*="bg-indigo-500"],
+:root[data-theme='light'] button[class*="bg-emerald-600"],
+:root[data-theme='light'] button[class*="bg-green-600"],
+:root[data-theme='light'] button[class*="bg-amber-600"],
+:root[data-theme='light'] button[class*="bg-yellow-600"],
+:root[data-theme='light'] button[class*="bg-rose-600"],
+:root[data-theme='light'] button[class*="bg-red-600"],
+:root[data-theme='light'] button[class*="bg-purple-600"],
+:root[data-theme='light'] button[class*="bg-cyan-600"],
+:root[data-theme='light'] button[class*="bg-teal-600"] {
+  background-image: none !important;
+  background-color: var(--app-primary) !important;
+  border-color: var(--app-primary) !important;
+  color: #ffffff !important;
+}
+
+:root[data-theme='light'] .sidebar-nav-item:not(.is-active) {
+  color: #475569 !important;
+}
+
+:root[data-theme='light'] .sidebar-nav-item.is-active {
+  background: var(--app-primary-soft) !important;
+  color: #294e78 !important;
+  box-shadow: inset 3px 0 0 var(--app-primary) !important;
+}
+
+:root[data-theme='light'] .sidebar-nav-item.is-active svg {
+  color: var(--app-primary) !important;
+}
+
+:root[data-theme='light'] .sidebar-nav-badge {
+  border-color: var(--app-border) !important;
+  background: #f0f3f7 !important;
+  color: #526176 !important;
+  box-shadow: none !important;
+}
+
+:root[data-theme='light'] .sidebar-nav-item.is-active .sidebar-nav-badge {
+  border-color: #d4e0ef !important;
+  background: #dfe9f5 !important;
+  color: var(--app-primary) !important;
+}
+
+/* Bottom calculation rows share a single blue emphasis across all pages. */
+:root[data-theme='light'] table tfoot,
+:root[data-theme='light'] table tfoot tr,
+:root[data-theme='light'] table tfoot th,
+:root[data-theme='light'] table tfoot td,
+:root[data-theme='light'] table tfoot td [class*="text-"],
+:root[data-theme='light'] [class*="total-row"],
+:root[data-theme='light'] [class*="total-row"] *,
+:root[data-theme='light'] [class*="grand-total"],
+:root[data-theme='light'] [class*="grand-total"] * {
+  background-color: #eaf0f8 !important;
+  border-color: #cfdceb !important;
+  color: #365f91 !important;
+}
+
 @media print {
   @page {
     size: A4 landscape;
@@ -194,19 +311,7 @@ body,
   }
 
   .final-report-print-root .report-kpi-grid {
-    display: grid !important;
-    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
-    gap: 3mm !important;
-    margin: 0 0 5mm !important;
-  }
-
-  .final-report-print-root .report-kpi-grid > div {
-    padding: 3mm !important;
-    border: 1px solid #64748b !important;
-    border-radius: 2mm !important;
-    box-shadow: none !important;
-    background: #ffffff !important;
-    color: #000000 !important;
+    display: none !important;
   }
 
   .final-report-print-root .report-print-section {
@@ -263,6 +368,71 @@ body,
     break-inside: avoid;
   }
 
+  .final-report-print-root .report-print-total {
+    display: table-row-group !important;
+  }
+
+  .final-report-print-root .report-print-total td {
+    padding: 2.2mm 1.5mm !important;
+    border-top: 1.2px solid #334155 !important;
+    border-bottom: 1px solid #cbd5e1 !important;
+    background: #f1f5f9 !important;
+    color: #1e3a5f !important;
+    font-size: 7.5pt !important;
+    font-weight: 800 !important;
+  }
+
+  .final-report-print-root .report-print-summary {
+    display: block !important;
+    margin-top: 4mm !important;
+    padding: 3mm !important;
+    border: 1.2px solid #334155 !important;
+    background: #ffffff !important;
+    color: #111827 !important;
+    break-inside: avoid;
+  }
+
+  .final-report-print-root .report-print-summary h2 {
+    margin: 0 0 2.5mm !important;
+    color: #1e3a5f !important;
+    font-size: 9pt !important;
+    font-weight: 800 !important;
+    letter-spacing: 0.04em !important;
+    text-transform: uppercase;
+  }
+
+  .final-report-print-root .report-print-summary-grid {
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 2mm 4mm !important;
+  }
+
+  .final-report-print-root .report-print-summary-grid > div {
+    display: flex !important;
+    justify-content: space-between !important;
+    gap: 3mm !important;
+    padding: 1.5mm 0 !important;
+    border-bottom: 0.5px solid #e2e8f0 !important;
+    color: #475569 !important;
+    font-size: 7.5pt !important;
+  }
+
+  .final-report-print-root .report-print-summary-grid strong {
+    color: #1e293b !important;
+    text-align: right !important;
+  }
+
+  .final-report-print-root .report-print-summary-grid .report-print-grand-total {
+    border-bottom: 1.2px solid #334155 !important;
+    color: #1e3a5f !important;
+    font-weight: 800 !important;
+  }
+
+  .final-report-print-root .report-print-summary-grid .report-print-grand-total strong {
+    color: #1e3a5f !important;
+    font-size: 8pt !important;
+  }
+
   .final-report-print-root .report-print-table [class*="bg-"],
   .final-report-print-root .report-print-table [class*="text-"] {
     background-color: transparent !important;
@@ -282,4 +452,12 @@ body,
   [class*="h-[calc(100vh-56px)]"] {
     position: static !important;
   }
+}
+
+.report-print-total {
+  display: none;
+}
+
+.report-print-summary {
+  display: none;
 }
