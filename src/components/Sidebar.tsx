@@ -1,170 +1,378 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useERP } from '../context/ERPContext';
 import {
-  Menu,
-  ChevronDown,
+  LayoutDashboard,
+  Truck,
+  Fuel,
+  DollarSign,
+  Calculator,
+  HardHat,
+  LogOut,
+  Milestone,
+  Users,
+  Package,
+  ArrowLeftRight,
+  FileText,
+  FileSpreadsheet,
+  Bell,
+  CalendarCheck,
+  Tag,
+  Archive,
   Building2,
-  Check,
-  Plus,
-  Trash2,
-  AlertTriangle,
-  X,
-  LogOut
+  CreditCard,
+  Compass,
+  X
 } from 'lucide-react';
-import CreateRoadSiteModal from './modals/CreateRoadSiteModal';
-import { ThemeToggle } from './ThemeToggle';
 
 interface Props {
   activeTab: string;
   setActiveTab: (tab: string) => void;
-  onToggleSidebar?: () => void;
+  projectType?: 'ROAD' | 'BUILDING';
+  onSwitchDomain?: () => void;
+  onClose?: () => void;
 }
 
-export const Header: React.FC<Props> = ({ onToggleSidebar }) => {
-  const erpContext = useERP();
-  const {
-    selectedSiteId,
-    setSelectedSiteId,
-    siteSheets,
-    userRole,
-    logout
-  } = erpContext;
+export interface NavItem {
+  id: string;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  badge?: string | number;
+  badgeStyle?: string;
+  isCustom?: boolean;
+}
 
-  const [isSiteOpen, setIsSiteOpen] = useState(false);
-  const [isAddRoadSiteOpen, setIsAddRoadSiteOpen] = useState(false);
-  const [siteToDelete, setSiteToDelete] = useState<{ id: string; name: string } | null>(null);
+const STORAGE_CUSTOM_SIDEBAR_TABS = 'CONSTRUCTION_PRO_CUSTOM_SIDEBAR_TABS_V1';
+const STORAGE_BUILDING_PRODUCTS_KEY = 'CONSTRUCTION_PRO_BUILDING_PRODUCTS_NO_NAME_V1';
 
-  const isSuperAdmin = userRole === 'SUPER_ADMIN' || userRole === 'OWNER' || userRole === 'Admin';
-  const currentSiteSheet = siteSheets.find((s) => s.siteId === selectedSiteId) || siteSheets[0];
+export const Sidebar: React.FC<Props> = ({
+  activeTab,
+  setActiveTab,
+  projectType = 'ROAD',
+  onSwitchDomain,
+  onClose
+}) => {
+  const { currentUser, logout } = useERP() as any;
+  const isBuilding = projectType === 'BUILDING';
 
-  const handleExecuteDeleteSite = () => {
-    if (!siteToDelete) return;
-    const targetId = siteToDelete.id;
+  // Dynamic live inventory alert count from local storage
+  const [liveAlertsCount, setLiveAlertsCount] = useState<number>(0);
 
-    if (typeof (erpContext as any).deleteSite === 'function') {
-      (erpContext as any).deleteSite(targetId);
-    } else {
+  // Dynamic custom tabs from local storage
+  const [customTabs, setCustomTabs] = useState<NavItem[]>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_CUSTOM_SIDEBAR_TABS);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return parsed.map((t: any) => ({
+          ...t,
+          icon: Compass
+        }));
+      }
+    } catch {}
+    return [];
+  });
+
+  useEffect(() => {
+    const updateAlertCount = () => {
       try {
-        const savedDeleted = localStorage.getItem('CONSTRUCTION_PRO_DELETED_SITE_IDS');
-        const list = savedDeleted ? JSON.parse(savedDeleted) : [];
-        if (!list.includes(targetId)) {
-          list.push(targetId);
-          localStorage.setItem('CONSTRUCTION_PRO_DELETED_SITE_IDS', JSON.stringify(list));
+        const raw = localStorage.getItem(STORAGE_BUILDING_PRODUCTS_KEY);
+        if (!raw) return setLiveAlertsCount(0);
+        const prods = JSON.parse(raw);
+        if (Array.isArray(prods)) {
+          const count = prods.filter(
+            (p: any) => Number(p?.currentStock || 0) <= Number(p?.minThreshold || 20)
+          ).length;
+          setLiveAlertsCount(count);
         }
-      } catch (e) {
-        console.error(e);
+      } catch {
+        setLiveAlertsCount(0);
       }
-      window.location.reload();
+    };
+
+    updateAlertCount();
+    window.addEventListener('storage', updateAlertCount);
+    window.addEventListener('focus', updateAlertCount);
+    return () => {
+      window.removeEventListener('storage', updateAlertCount);
+      window.removeEventListener('focus', updateAlertCount);
+    };
+  }, []);
+
+  const handleDeleteCustomTab = (tabId: string) => {
+    const updated = customTabs.filter((t) => t.id !== tabId);
+    setCustomTabs(updated);
+    try {
+      localStorage.setItem(
+        STORAGE_CUSTOM_SIDEBAR_TABS,
+        JSON.stringify(updated.map((t) => ({ id: t.id, label: t.label, isCustom: true })))
+      );
+    } catch {}
+    if (activeTab === tabId) {
+      setActiveTab('dashboard');
     }
-    setSiteToDelete(null);
-    setIsSiteOpen(false);
   };
 
-  const handleLogout = () => {
-    if (window.confirm('Are you sure you want to log out?')) {
-      if (typeof logout === 'function') {
-        logout();
-      } else {
-        sessionStorage.clear();
-        window.location.reload();
-      }
+  // ==========================================
+  // ROAD CONSTRUCTION NAVIGATION ITEMS
+  // ==========================================
+  const roadOperationsItems: NavItem[] = [
+    { id: 'dashboard', label: 'Site Overview', icon: LayoutDashboard },
+    {
+      id: 'road-sites',
+      label: 'Ongoing Site',
+      icon: Milestone,
+      badge: 'Sites',
+      badgeStyle: 'bg-blue-900/40 text-blue-300 border border-blue-500/40'
+    },
+    {
+      id: 'haulage-trips',
+      label: 'Trips',
+      icon: Truck,
+      badge: 'Trips',
+      badgeStyle: 'bg-[#064E3B] text-[#34D399] border border-[#065F46]'
+    },
+    {
+      id: 'vendor-advances',
+      label: 'Vendor Advance',
+      icon: CreditCard,
+      badge: 'Advance',
+      badgeStyle: 'bg-amber-950/80 text-amber-400 border border-amber-800/60'
+    },
+    {
+      id: 'diesel',
+      label: 'Diesel',
+      icon: Fuel,
+      badge: 'Diesel',
+      badgeStyle: 'bg-amber-950/60 text-amber-300 border border-amber-800'
+    },
+    {
+      id: 'site-expenses',
+      label: 'Site Expense',
+      icon: DollarSign,
+      badge: 'Petty Cash',
+      badgeStyle: 'bg-[#162032] text-blue-400 border border-[#1E293B]'
+    },
+    {
+      id: 'final-report',
+      label: 'Final Report',
+      icon: FileSpreadsheet,
+      badge: 'Summary',
+      badgeStyle: 'bg-indigo-950/60 text-indigo-300 border border-indigo-700/50'
     }
-  };
+  ];
 
-  return (
-    <header className="h-14 bg-[#080C14] border-b border-[#1E293B] flex items-center justify-between px-3 sm:px-4 text-xs select-none font-sans z-40 relative">
-      <div className="flex items-center gap-2 sm:gap-3">
-        {/* MOBILE HAMBURGER TOGGLE BUTTON */}
-        <button
-          type="button"
-          onClick={() => {
-            if (onToggleSidebar) onToggleSidebar();
-          }}
-          className="p-2 lg:hidden rounded-xl bg-[#121927] hover:bg-[#162032] border border-[#1E293B] text-slate-300 hover:text-white transition-colors cursor-pointer"
-          title="Toggle Navigation Menu"
-        >
-          <Menu className="w-5 h-5" />
-        </button>
+  const roadEngineeringItems: NavItem[] = [
+    {
+      id: 'yield_calculator',
+      label: 'Road Trip Calculator',
+      icon: Calculator,
+      badge: 'MoRTH',
+      badgeStyle: 'bg-blue-900/60 text-blue-300 border border-blue-500/40 font-mono'
+    },
+    {
+      id: 'machinery_fleet',
+      label: 'Machinery',
+      icon: HardHat
+    }
+  ];
 
-        {/* Site Selector Dropdown */}
-        <div className="relative">
-          <button
-            onClick={() => setIsSiteOpen(!isSiteOpen)}
-            className="flex items-center gap-1.5 sm:gap-2 px-2.5 py-1.5 bg-[#121927] hover:bg-[#162032] border border-[#1E293B] rounded-xl text-white font-bold text-xs transition-colors cursor-pointer"
-          >
-            <Building2 className="w-4 h-4 text-blue-400 shrink-0" />
-            <span className="font-mono text-blue-400 truncate max-w-[120px] sm:max-w-[200px]">
-              {currentSiteSheet ? currentSiteSheet.siteName : 'Select Site'}
-            </span>
-            <ChevronDown className="w-3.5 h-3.5 text-[#94A3B8] shrink-0" />
-          </button>
+  const roadConfigItems: NavItem[] = [
+    {
+      id: 'categories',
+      label: 'Categories',
+      icon: Tag,
+      badge: 'Rates',
+      badgeStyle: 'bg-emerald-950/60 text-emerald-300 border border-emerald-800'
+    },
+    {
+      id: 'users',
+      label: 'User Management',
+      icon: Users,
+      badge: 'RBAC',
+      badgeStyle: 'bg-indigo-900/40 text-indigo-300 border border-indigo-500/40'
+    }
+  ];
 
-          {isSiteOpen && (
-            <div className="absolute left-0 mt-2 w-[280px] sm:w-80 bg-[#121927] border border-[#1E293B] rounded-2xl shadow-2xl py-1.5 z-50">
-              <div className="px-3.5 py-2 text-[10px] font-extrabold uppercase tracking-wider text-[#94A3B8] border-b border-[#1E293B] flex items-center justify-between">
-                <span>Active Sites</span>
-                <span className="text-blue-400 font-mono">{siteSheets.length} Sites</span>
-              </div>
+  // ==========================================
+  // BUILDING CONSTRUCTION NAVIGATION ITEMS
+  // ==========================================
+  const buildingCoreItems: NavItem[] = [
+    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    {
+      id: 'road-sites',
+      label: 'Ongoing Site',
+      icon: Milestone,
+      badge: 'Sites',
+      badgeStyle: 'bg-emerald-950 text-emerald-400 border border-emerald-800'
+    },
+    { id: 'products', label: 'Products', icon: Package },
+    { id: 'transactions', label: 'Transactions', icon: ArrowLeftRight }
+  ];
 
-              <div className="max-h-60 overflow-y-auto">
-                {siteSheets.map((s) => (
-                  <div
-                    key={s.siteId}
-                    className={`w-full px-3.5 py-2.5 text-xs flex items-center justify-between hover:bg-[#162032] transition-colors ${
-                      selectedSiteId === s.siteId ? 'bg-[#162032]/60' : ''
+  const buildingAnalysisItems: NavItem[] = [
+    { id: 'reports', label: 'Reports', icon: FileText },
+    {
+      id: 'building_calculator',
+      label: 'Building Calculator',
+      icon: Calculator,
+      badgeStyle: 'bg-cyan-950/60 text-cyan-300 border border-cyan-800 font-mono'
+    },
+    {
+      id: 'alerts',
+      label: 'Alerts',
+      icon: Bell,
+      badge: liveAlertsCount > 0 ? liveAlertsCount : undefined,
+      badgeStyle: 'bg-rose-600 text-white rounded-full w-4 h-4 flex items-center justify-center text-[10px] font-black'
+    },
+    { id: 'attendance-salary', label: 'Attendance & Salary', icon: CalendarCheck }
+  ];
+
+  const buildingConfigItems: NavItem[] = [
+    { id: 'categories', label: 'Categories', icon: Tag },
+    { id: 'users', label: 'User Management', icon: Users },
+    { id: 'yearly-archive', label: 'Yearly Archive', icon: Archive }
+  ];
+
+  const renderNavGroup = (title: string | null, items: NavItem[]) => (
+    <div className="space-y-1">
+      {title && (
+        <div className="px-3 text-[10px] font-extrabold uppercase tracking-widest text-[#94A3B8] mb-1">
+          {title}
+        </div>
+      )}
+      <nav className="space-y-1">
+        {items.map((item) => {
+          const Icon = item.icon;
+          const isActive = activeTab === item.id;
+
+          return (
+            <div key={item.id} className="relative group">
+              <button
+                onClick={() => {
+                  setActiveTab(item.id);
+                  if (onClose) onClose();
+                }}
+                className={`sidebar-nav-item w-full flex items-center justify-between px-3 py-2.5 sm:py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer active:scale-[0.98] ${
+                  isActive
+                    ? 'is-active bg-[#2563EB] text-white shadow-lg shadow-blue-600/30'
+                    : 'text-[#94A3B8] hover:bg-[#162032] hover:text-white'
+                }`}
+              >
+                <div className="flex items-center gap-2.5 truncate">
+                  <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-white' : 'text-[#94A3B8]'}`} />
+                  <span className="truncate">{item.label}</span>
+                </div>
+                {item.badge !== undefined && (
+                  <span
+                    className={`sidebar-nav-badge ${
+                      item.badgeStyle ||
+                      `text-[9px] px-1.5 py-0.5 rounded font-black ${
+                        isActive ? 'bg-white/20 text-white' : 'bg-blue-900/40 text-blue-300 border border-blue-500/40'
+                      }`
                     }`}
                   >
-                    <button
-                      onClick={() => {
-                        setSelectedSiteId(s.siteId);
-                        setIsSiteOpen(false);
-                      }}
-                      className="flex-1 text-left cursor-pointer truncate"
-                    >
-                      <div className={`font-semibold truncate ${selectedSiteId === s.siteId ? 'text-blue-400 font-bold' : 'text-white'}`}>
-                        {s.siteName}
-                      </div>
-                    </button>
-                    {selectedSiteId === s.siteId && <Check className="w-3.5 h-3.5 text-blue-400 shrink-0" />}
-                  </div>
-                ))}
-              </div>
+                    {item.badge}
+                  </span>
+                )}
+              </button>
 
-              {isSuperAdmin && (
-                <div className="p-2 border-t border-[#1E293B] bg-[#0D111D]">
-                  <button
-                    onClick={() => {
-                      setIsSiteOpen(false);
-                      setIsAddRoadSiteOpen(true);
-                    }}
-                    className="w-full py-2 px-3 rounded-xl bg-blue-600/20 hover:bg-blue-600 border border-blue-500/30 text-blue-300 hover:text-white font-black text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                    <span>+ Add New Site</span>
-                  </button>
-                </div>
+              {item.isCustom && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDeleteCustomTab(item.id);
+                  }}
+                  className="absolute right-2 top-2.5 p-1 text-slate-500 hover:text-rose-400 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                  title="Remove Custom Tab"
+                >
+                  <X className="w-3 h-3" />
+                </button>
               )}
             </div>
+          );
+        })}
+      </nav>
+    </div>
+  );
+
+  return (
+    <aside className="w-full h-full bg-[#0D111D] border-r border-[#1E293B] flex flex-col justify-between shrink-0 overflow-y-auto select-none font-sans z-30 scrollbar-thin scrollbar-thumb-[#1E293B]">
+      <div className="p-3.5 space-y-5">
+        <div className="p-3 bg-[#121927] border border-[#1E293B] rounded-2xl flex items-center justify-between shadow-sm relative">
+          <div className="flex items-center gap-2.5 overflow-hidden pr-8">
+            <div
+              className={`w-8 h-8 rounded-xl flex items-center justify-center text-white font-black shrink-0 shadow-md ${
+                isBuilding ? 'bg-gradient-to-br from-emerald-600 to-teal-700' : 'bg-gradient-to-br from-blue-600 to-indigo-700'
+              }`}
+            >
+              {isBuilding ? <Building2 className="w-4 h-4" /> : <HardHat className="w-4 h-4" />}
+            </div>
+            <div className="truncate">
+              <div className="text-xs font-black text-white uppercase tracking-wider truncate">CONSTRUCTION PRO</div>
+              <div className="text-[10px] text-blue-400 font-mono truncate">
+                {isBuilding ? 'Building Construction ERP' : 'Road Construction ERP'}
+              </div>
+            </div>
+          </div>
+
+          {onClose && (
+            <button
+              onClick={onClose}
+              className="absolute right-3 lg:hidden p-1.5 rounded-xl bg-slate-800 text-slate-300 hover:text-white cursor-pointer"
+              title="Close Menu"
+            >
+              <X className="w-4 h-4" />
+            </button>
           )}
         </div>
+
+        {isBuilding ? (
+          <div className="space-y-4">
+            {renderNavGroup(null, buildingCoreItems)}
+            {renderNavGroup('ANALYSIS', buildingAnalysisItems)}
+            {customTabs.length > 0 && renderNavGroup('CUSTOM MODULES', customTabs)}
+            {renderNavGroup('CONFIGURATION', buildingConfigItems)}
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {renderNavGroup('SITE OPERATIONS', roadOperationsItems)}
+            {renderNavGroup('ENGINEERING', roadEngineeringItems)}
+            {customTabs.length > 0 && renderNavGroup('CUSTOM MODULES', customTabs)}
+            {renderNavGroup('CONFIGURATION', roadConfigItems)}
+          </div>
+        )}
       </div>
 
-      <div className="flex items-center gap-2">
-        <ThemeToggle />
-        <button
-          type="button"
-          onClick={handleLogout}
-          title="Sign out"
-          className="px-2.5 py-1.5 rounded-xl bg-[#121927] hover:bg-rose-950/40 border border-[#1E293B] text-slate-400 hover:text-rose-400 transition-colors cursor-pointer flex items-center gap-1.5"
-        >
-          <LogOut className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
-          <span className="hidden sm:inline text-[11px] font-semibold">Logout</span>
-        </button>
-      </div>
+      <div className="p-3 border-t border-[#1E293B] bg-[#080C14] space-y-2 sticky bottom-0 z-10 shadow-lg">
+        {onSwitchDomain && (
+          <button
+            onClick={() => {
+              onSwitchDomain();
+              if (onClose) onClose();
+            }}
+            className="w-full py-2.5 px-2 bg-[#121927] hover:bg-[#1b263b] border border-[#1E293B] rounded-xl text-xs font-bold text-slate-300 flex items-center justify-center gap-1.5 transition-colors cursor-pointer active:scale-[0.98]"
+          >
+            <span>Switch to {isBuilding ? 'Roads' : 'Buildings'}</span>
+          </button>
+        )}
 
-      <CreateRoadSiteModal isOpen={isAddRoadSiteOpen} onClose={() => setIsAddRoadSiteOpen(false)} />
-    </header>
+        <div className="p-2 rounded-xl bg-[#121927] border border-[#1E293B] flex items-center justify-between">
+          <div className="flex items-center gap-2.5 overflow-hidden">
+            <div className="w-8 h-8 rounded-full bg-blue-600/20 border border-blue-500/30 flex items-center justify-center font-bold text-xs text-blue-400 shrink-0">
+              {currentUser?.name ? currentUser.name.charAt(0).toUpperCase() : 'H'}
+            </div>
+            <div className="truncate">
+              <div className="text-xs font-bold text-white truncate">{currentUser?.name || 'Habibulla Bilgi'}</div>
+              <div className="text-[10px] text-[#94A3B8] truncate">{currentUser?.role || 'Site Engineer & Admin'}</div>
+            </div>
+          </div>
+          <button onClick={logout} title="Logout" className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-[#162032] transition-colors cursor-pointer shrink-0">
+            <LogOut className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+    </aside>
   );
 };
 
-export default Header;
+export default Sidebar;
