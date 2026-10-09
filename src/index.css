@@ -201,7 +201,7 @@ body,
   background-color: var(--app-primary) !important;
 }
 
-:root[data-theme='light'] button:not(.sidebar-nav-item)[class*="text-white"][class*="bg-"],
+:root[data-theme='light'] button:not(.sidebar-nav-item):not([class*="bg-[#"])[class*="text-white"][class*="bg-"],
 :root[data-theme='light'] button:not(.sidebar-nav-item)[class*="bg-gradient-to-"] {
   background-image: none !important;
   background-color: var(--app-primary) !important;
@@ -226,6 +226,16 @@ body,
   background-color: var(--app-primary) !important;
   border-color: var(--app-primary) !important;
   color: #ffffff !important;
+}
+
+:root[data-theme='light'] header button[class*="bg-[#"] {
+  background-color: #f1f4f8 !important;
+  border-color: var(--app-border) !important;
+  color: #475569 !important;
+}
+
+:root[data-theme='light'] header button[class*="bg-[#"]:hover {
+  background-color: #eaf0f8 !important;
 }
 
 :root[data-theme='light'] .sidebar-nav-item:not(.is-active) {
