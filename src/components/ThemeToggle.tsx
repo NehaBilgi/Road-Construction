@@ -13,7 +13,12 @@ const getInitialTheme = (): AppTheme => {
 
 export const applyStoredTheme = () => {
   if (typeof document === 'undefined') return;
-  document.documentElement.dataset.theme = getInitialTheme();
+  const theme = getInitialTheme();
+  document.documentElement.dataset.theme = theme;
+  document.querySelector('meta[name="theme-color"]')?.setAttribute(
+    'content',
+    theme === 'light' ? '#f5f7fa' : '#080c14'
+  );
 };
 
 export const ThemeToggle: React.FC<{ floating?: boolean }> = ({ floating = false }) => {
@@ -22,6 +27,10 @@ export const ThemeToggle: React.FC<{ floating?: boolean }> = ({ floating = false
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
     window.localStorage.setItem(THEME_STORAGE_KEY, theme);
+    document.querySelector('meta[name="theme-color"]')?.setAttribute(
+      'content',
+      theme === 'light' ? '#f5f7fa' : '#080c14'
+    );
   }, [theme]);
 
   const nextTheme: AppTheme = theme === 'dark' ? 'light' : 'dark';
