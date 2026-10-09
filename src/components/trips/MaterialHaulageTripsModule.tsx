@@ -826,6 +826,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
                 <th className="py-2.5 px-3 text-left">DATE</th>
                 <th className="py-2.5 px-3 text-left">PURCHASED FROM</th>
                 <th className="py-2.5 px-3 text-center">VEHICLE</th>
+                <th className="py-2.5 px-3 text-center">OWNER</th>
                 <th className="py-2.5 px-3 text-left">MATERIAL / TRIP TYPE</th>
                 <th className="py-2.5 px-2 text-center">TRIPS</th>
                 <th className="py-2.5 px-2 text-right">QTY/TRIP</th>
@@ -839,7 +840,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
             <tbody className="divide-y divide-[#1E293B]/60 text-slate-200">
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={11} className="py-8 text-center text-slate-500">
+                  <td colSpan={12} className="py-8 text-center text-slate-500">
                     No records found for {activeSiteName} in selected date range.
                   </td>
                 </tr>
@@ -871,11 +872,11 @@ export const MaterialHaulageTripsModule: React.FC = () => {
 
                       <td className="py-2 px-3 font-mono text-center print:text-black">
                         <span className="font-bold">{t.vehicleNumber}</span>
-                        <span className="block text-[8px] text-slate-500 print:text-slate-700 font-sans font-semibold">
-                          {isRented
-                            ? (vObj?.ownerName?.trim() ? `${vObj.ownerName.trim()} (Rented)` : '(Rented)')
-                            : '(Company)'}
-                        </span>
+                      </td>
+                      <td className="py-2 px-3 text-center font-semibold text-slate-300 print:text-black whitespace-nowrap">
+                        {isRented
+                          ? (vObj?.ownerName?.trim() ? `${vObj.ownerName.trim()} (Rented)` : 'Owner not set (Rented)')
+                          : 'Company'}
                       </td>
 
                       <td className="py-2 px-3 font-bold text-amber-300 print:text-black">{t.materialName}</td>
@@ -936,7 +937,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
               <tfoot className="border-t-2 border-[#1E293B] print:border-t-2 print:border-black bg-[#070c18] font-mono print:bg-white text-xs">
                 {/* 1. Trip Gross & Diesel Subtotal */}
                 <tr className="border-b border-[#1E293B]/60 print-total-row">
-                  <td colSpan={4} className="py-2 px-3 font-black uppercase text-right text-slate-200 print:text-black">
+                  <td colSpan={5} className="py-2 px-3 font-black uppercase text-right text-slate-200 print:text-black">
                     TOTAL TRIPS & CHARGES:
                   </td>
                   <td className="py-2 px-2 text-center font-black text-cyan-400 print:text-black">{overallTotals.trips} Trips</td>
@@ -956,7 +957,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
                 {matchingAdvances.length > 0 ? (
                   matchingAdvances.map((adv) => (
                     <tr key={adv.id} className="border-b border-[#1E293B]/40 text-rose-400 print:text-black print-sub-row bg-rose-950/10 print:bg-transparent">
-                      <td colSpan={7} className="py-2 px-3 text-right">
+                      <td colSpan={8} className="py-2 px-3 text-right">
                         <span className="font-bold text-rose-400 print:text-black uppercase">
                           (-) LESS: ADVANCE PAYMENT RECEIVED
                         </span>
@@ -978,7 +979,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
                   ))
                 ) : (
                   <tr className="border-b border-[#1E293B]/40 text-slate-500 print:text-black print-sub-row">
-                    <td colSpan={7} className="py-1.5 px-3 text-right font-bold uppercase text-[11px]">
+                    <td colSpan={8} className="py-1.5 px-3 text-right font-bold uppercase text-[11px]">
                       (-) LESS: ADVANCE PAYMENT RECEIVED:
                     </td>
                     <td colSpan={3} className="py-1.5 px-3 text-right font-mono text-[11px]">
@@ -990,7 +991,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
 
                 {/* 3. Diesel Deduction Subtotal */}
                 <tr className="border-b border-[#1E293B]/60 text-amber-400 print:text-black print-sub-row">
-                  <td colSpan={7} className="py-2 px-3 font-black uppercase text-right">
+                  <td colSpan={8} className="py-2 px-3 font-black uppercase text-right">
                     (-) LESS: DIESEL ISSUED TO RENTED VEHICLES ({overallTotals.dieselLitres.toFixed(1)} L):
                   </td>
                   <td colSpan={3} className="py-2 px-3 text-right font-black">
@@ -1007,7 +1008,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
                       : 'bg-[#1e1906] text-amber-400'
                   } print:bg-transparent print:text-black`}
                 >
-                  <td colSpan={7} className="py-2.5 px-3 text-right uppercase tracking-wider text-xs">
+                  <td colSpan={8} className="py-2.5 px-3 text-right uppercase tracking-wider text-xs">
                     {isAdvanceExcess ? (
                       <span className="flex items-center justify-end gap-2 text-rose-400 print:text-black">
                         <span className="px-2 py-0.5 rounded bg-rose-900/40 border border-rose-700/50 print:border-black text-[10px] font-sans uppercase tracking-normal">
