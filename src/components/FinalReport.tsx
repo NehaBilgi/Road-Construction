@@ -58,7 +58,7 @@ export interface ExpenseRecord {
 
 export const FinalReport: React.FC = () => {
   const { siteSheets = [], selectedSiteId } = (useERP?.() || {}) as any;
-  const roadERP = useRoadERP?.() || {};
+  const roadERP = (useRoadERP?.() || {}) as any;
 
   // Filter States
   const [selectedSite, setSelectedSite] = useState<string>('ALL');
@@ -257,28 +257,28 @@ export const FinalReport: React.FC = () => {
     const csvRows: string[] = [];
     csvRows.push(['CONSTRUCTION PRO ERP - CONSOLIDATED SITE REPORT'].join(','));
     csvRows.push([`Site Filter: ${selectedSite}`, `Date Scope: ${dateFilter}`, `Generated On: ${new Date().toLocaleString()}`].join(','));
-    csvRows.push(['']);
+    csvRows.push('');
 
     csvRows.push(['--- 1. HAULAGE & MATERIAL TRIPS ---'].join(','));
     csvRows.push(['Trip ID', 'Date', 'Site', 'Vehicle No', 'Driver', 'Material', 'Quantity (Brass)', 'Source', 'Destination', 'Status'].join(','));
     filteredTrips.forEach((t) => {
       csvRows.push([t.id, t.date, `"${t.siteName}"`, t.vehicleNumber, `"${t.driverName}"`, `"${t.materialType}"`, t.quantityBrass.toFixed(2), `"${t.sourceLocation}"`, `"${t.destinationCh}"`, t.status].join(','));
     });
-    csvRows.push(['']);
+    csvRows.push('');
 
     csvRows.push(['--- 2. DIESEL CONSUMPTION ---'].join(','));
     csvRows.push(['Voucher No', 'Date', 'Site', 'Equipment / Vehicle', 'Meter Reading', 'Litres', 'Rate (₹)', 'Total Amount (₹)', 'Dispensed By'].join(','));
     filteredDiesel.forEach((d) => {
       csvRows.push([d.voucherNumber, d.date, `"${d.siteName}"`, `"${d.equipmentOrVehicle}"`, d.meterReading, d.litres, d.ratePerLitre.toFixed(2), d.totalCost.toFixed(2), `"${d.dispensedBy}"`].join(','));
     });
-    csvRows.push(['']);
+    csvRows.push('');
 
     csvRows.push(['--- 3. PETTY CASH & EXPENSES ---'].join(','));
     csvRows.push(['Voucher No', 'Date', 'Site', 'Category', 'Description', 'Amount (₹)', 'Paid To', 'Payment Mode'].join(','));
     filteredExpenses.forEach((e) => {
       csvRows.push([e.voucherNumber, e.date, `"${e.siteName}"`, e.category, `"${e.description.replace(/"/g, '""')}"`, e.amount.toFixed(2), `"${e.paidTo}"`, e.paymentMode].join(','));
     });
-    csvRows.push(['']);
+    csvRows.push('');
 
     csvRows.push(['--- EXECUTIVE TOTALS ---'].join(','));
     csvRows.push(['Total Trips Completed', totalTripsCount].join(','));
@@ -299,13 +299,16 @@ export const FinalReport: React.FC = () => {
   };
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 space-y-6 max-w-[1600px] mx-auto text-slate-100 font-sans print:p-0 print:text-black">
+    <div className="final-report-print-root p-4 sm:p-6 lg:p-8 space-y-6 max-w-[1600px] mx-auto text-slate-100 font-sans print:p-0 print:text-black">
       {/* Printable Letterhead (Shown Only When Printing) */}
-      <div className="hidden print:block border-b-2 border-black pb-4 mb-6">
-        <h1 className="text-2xl font-black uppercase tracking-tight">CONSTRUCTION PRO ERP</h1>
-        <p className="text-xs">Consolidated Road Site Operations & Financial Audit Report</p>
-        <div className="text-[10px] mt-2 flex justify-between">
-          <span>Site: <strong>{selectedSite}</strong></span>
+      <div className="hidden print:block border-b-2 border-black pb-3 mb-4">
+        <h1 className="text-xl font-black uppercase tracking-tight text-center">M B BILGI CONSTRUCTIONS</h1>
+        <p className="text-[10px] text-center font-bold uppercase tracking-wide">
+          Consolidated Road Site Operations &amp; Financial Audit Report
+        </p>
+        <div className="text-[9px] mt-2 flex justify-between">
+          <span>Site: <strong>{selectedSite === 'ALL' ? 'All Sites' : selectedSite}</strong></span>
+          <span>Date Scope: <strong>{dateFilter}</strong></span>
           <span>Date Generated: <strong>{new Date().toLocaleString()}</strong></span>
         </div>
       </div>
@@ -397,7 +400,7 @@ export const FinalReport: React.FC = () => {
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="report-kpi-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Trips & Material */}
         <div className="bg-[#121927] border border-[#1E293B] rounded-2xl p-5 relative overflow-hidden group hover:border-emerald-500/40 transition-colors">
           <div className="flex items-center justify-between mb-3">
@@ -492,7 +495,7 @@ export const FinalReport: React.FC = () => {
 
       {/* 1. TRIPS HAULAGE TABLE */}
       {(activeSubTab === 'ALL' || activeSubTab === 'TRIPS') && (
-        <div className="bg-[#121927] border border-[#1E293B] rounded-2xl overflow-hidden shadow-sm">
+        <div className="report-print-section bg-[#121927] border border-[#1E293B] rounded-2xl overflow-hidden shadow-sm">
           <div className="px-5 py-4 border-b border-[#1E293B] flex items-center justify-between bg-[#162032]/40">
             <div className="flex items-center gap-2.5">
               <Truck className="w-4 h-4 text-emerald-400" />
@@ -505,7 +508,7 @@ export const FinalReport: React.FC = () => {
             </span>
           </div>
           <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse text-xs">
+            <table className="report-print-table w-full text-left border-collapse text-xs">
               <thead>
                 <tr className="border-b border-[#1E293B] bg-[#0D111D]/80 text-[11px] uppercase font-bold text-slate-400 tracking-wider">
                   <th className="py-3 px-4">Trip ID / Date</th>
@@ -559,7 +562,7 @@ export const FinalReport: React.FC = () => {
 
       {/* 2. DIESEL LOGS TABLE */}
       {(activeSubTab === 'ALL' || activeSubTab === 'DIESEL') && (
-        <div className="bg-[#121927] border border-[#1E293B] rounded-2xl overflow-hidden shadow-sm">
+        <div className="report-print-section bg-[#121927] border border-[#1E293B] rounded-2xl overflow-hidden shadow-sm">
           <div className="px-5 py-4 border-b border-[#1E293B] flex items-center justify-between bg-[#162032]/40">
             <div className="flex items-center gap-2.5">
               <Fuel className="w-4 h-4 text-amber-400" />
@@ -572,7 +575,7 @@ export const FinalReport: React.FC = () => {
             </span>
           </div>
           <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse text-xs">
+            <table className="report-print-table w-full text-left border-collapse text-xs">
               <thead>
                 <tr className="border-b border-[#1E293B] bg-[#0D111D]/80 text-[11px] uppercase font-bold text-slate-400 tracking-wider">
                   <th className="py-3 px-4">Voucher / Date</th>
@@ -616,7 +619,7 @@ export const FinalReport: React.FC = () => {
 
       {/* 3. SITE EXPENSES & PETTY CASH TABLE */}
       {(activeSubTab === 'ALL' || activeSubTab === 'EXPENSES') && (
-        <div className="bg-[#121927] border border-[#1E293B] rounded-2xl overflow-hidden shadow-sm">
+        <div className="report-print-section bg-[#121927] border border-[#1E293B] rounded-2xl overflow-hidden shadow-sm">
           <div className="px-5 py-4 border-b border-[#1E293B] flex items-center justify-between bg-[#162032]/40">
             <div className="flex items-center gap-2.5">
               <DollarSign className="w-4 h-4 text-rose-400" />
@@ -629,7 +632,7 @@ export const FinalReport: React.FC = () => {
             </span>
           </div>
           <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse text-xs">
+            <table className="report-print-table w-full text-left border-collapse text-xs">
               <thead>
                 <tr className="border-b border-[#1E293B] bg-[#0D111D]/80 text-[11px] uppercase font-bold text-slate-400 tracking-wider">
                   <th className="py-3 px-4">Voucher / Date</th>
