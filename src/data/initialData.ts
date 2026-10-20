@@ -248,18 +248,8 @@ export const INITIAL_DIESEL_LOGS_SAMPLE = [
   }
 ];
 
-export const INITIAL_SITE_EXPENSES_SAMPLE = [
-  {
-    id: 'EXP-101',
-    date: '2026-08-19',
-    siteName: 'Ongoing Highway Site (Active Stretch)',
-    title: 'Weekly Labor Payout',
-    vendor: 'Local Contractor',
-    category: 'Labor/Wages',
-    amount: 45000,
-    status: 'Paid'
-  }
-];
+export const INITIAL_SITE_EXPENSES_SAMPLE: SiteExpenseRecord[] = [];
+export const INITIAL_SITE_EXPENSES: SiteExpenseRecord[] = [];
 
 // ==========================================
 // 6. Zero-Quantity Matrix Rows Helper
