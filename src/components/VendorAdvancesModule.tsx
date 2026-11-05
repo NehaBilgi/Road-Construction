@@ -8,23 +8,36 @@ import {
   CreditCard,
   X,
   Store,
+  Truck,
   Calendar,
   RotateCcw
 } from 'lucide-react';
+
+export type PayeeType = 'MATERIAL_VENDOR' | 'RENTAL_OWNER';
 
 export interface VendorAdvanceRecord {
   id: string;
   date: string;
   siteName: string;
-  vendorName: string;
+  payeeType?: PayeeType;
+  vendorName: string; // Used for Vendor name or Vehicle Owner name
+  vehicleNumber?: string;
   amount: number;
   paymentMode: 'BANK_TRANSFER' | 'CASH' | 'CHEQUE' | 'UPI';
   referenceNo?: string;
   remarks?: string;
 }
 
+interface RentalOwnerSummary {
+  ownerName: string;
+  vehicleNumbers: string[];
+  totalRentAmount: number;
+  tripCount: number;
+}
+
 export const STORAGE_VENDOR_ADVANCES_KEY = 'CONSTRUCTION_PRO_VENDOR_ADVANCES_V1';
 const STORAGE_VENDORS_KEY = 'CONSTRUCTION_PRO_VENDOR_NAMES_V1';
+const STORAGE_TRIPS_KEY = 'CONSTRUCTION_PRO_TRIPS_V1';
 
 // Helper: Format Date string to DD-MM-YYYY
 const formatDateDMY = (dateStr: string) => {
@@ -96,7 +109,7 @@ const toComparableDate = (dateStr: string) => {
 };
 
 export const VendorAdvancesModule: React.FC = () => {
-  const { siteSheets = [], selectedSiteId, currentUser, userRole } = useERP() as any;
+  const { siteSheets = [], selectedSiteId, currentUser, userRole, trips: contextTrips } = useERP() as any;
 
   // Determine if active session has Admin privileges
   const currentRole = String(userRole || currentUser?.role || '').toUpperCase();
@@ -132,13 +145,63 @@ export const VendorAdvancesModule: React.FC = () => {
   const [toDate, setToDate] = useState<string>(getEndOfMonthDMY);
 
   // Form state
+  const [payeeType, setPayeeType] = useState<PayeeType>('RENTAL_OWNER');
   const [date, setDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [siteName, setSiteName] = useState(activeSiteName);
   const [vendorName, setVendorName] = useState('');
+  const [vehicleNumber, setVehicleNumber] = useState('');
   const [amount, setAmount] = useState<number | ''>('');
   const [paymentMode, setPaymentMode] = useState<VendorAdvanceRecord['paymentMode']>('UPI');
   const [referenceNo, setReferenceNo] = useState('');
   const [remarks, setRemarks] = useState('');
+
+  // Extract rental vehicle owners and pending balances from trip entries
+  const rentalOwners = useMemo<RentalOwnerSummary[]>(() => {
+    let rawTrips: any[] = [];
+    if (Array.isArray(contextTrips) && contextTrips.length > 0) {
+      rawTrips = contextTrips;
+    } else {
+      try {
+        const savedTrips = localStorage.getItem(STORAGE_TRIPS_KEY);
+        if (savedTrips) rawTrips = JSON.parse(savedTrips);
+      } catch {
+        rawTrips = [];
+      }
+    }
+
+    const summaryMap: Record<string, RentalOwnerSummary> = {};
+
+    rawTrips.forEach((trip) => {
+      // Check if trip belongs to this site and is a hired/rental vehicle
+      const tripSite = trip.siteName || trip.site || '';
+      const isCurrentSite = !tripSite || tripSite.toLowerCase() === activeSiteName.toLowerCase();
+      const isRental = trip.isRental || trip.is_rental || trip.vehicleType === 'RENTAL' || trip.ownershipType === 'RENTAL' || trip.ownerName;
+
+      if (isCurrentSite && isRental) {
+        const owner = (trip.ownerName || trip.vehicleOwner || trip.transporterName || trip.partyName || 'Unknown Owner').trim();
+        const veh = (trip.vehicleNumber || trip.vehicleNo || trip.truckNo || '').trim().toUpperCase();
+        const tripRent = Number(trip.rentAmount || trip.hireAmount || trip.amount || trip.totalAmount || 0);
+
+        if (!summaryMap[owner]) {
+          summaryMap[owner] = {
+            ownerName: owner,
+            vehicleNumbers: [],
+            totalRentAmount: 0,
+            tripCount: 0
+          };
+        }
+
+        if (veh && !summaryMap[owner].vehicleNumbers.includes(veh)) {
+          summaryMap[owner].vehicleNumbers.push(veh);
+        }
+
+        summaryMap[owner].totalRentAmount += tripRent;
+        summaryMap[owner].tripCount += 1;
+      }
+    });
+
+    return Object.values(summaryMap);
+  }, [contextTrips, activeSiteName]);
 
   useEffect(() => {
     try {
@@ -164,6 +227,7 @@ export const VendorAdvancesModule: React.FC = () => {
       const matchQuery =
         !q ||
         a.vendorName.toLowerCase().includes(q) ||
+        (a.vehicleNumber || '').toLowerCase().includes(q) ||
         (a.referenceNo || '').toLowerCase().includes(q) ||
         a.date.includes(q) ||
         formatDateDMY(a.date).includes(q);
@@ -178,9 +242,11 @@ export const VendorAdvancesModule: React.FC = () => {
 
   const handleOpenAdd = () => {
     setEditingId(null);
+    setPayeeType('RENTAL_OWNER');
     setDate(new Date().toISOString().split('T')[0]);
     setSiteName(activeSiteName);
     setVendorName('');
+    setVehicleNumber('');
     setAmount('');
     setPaymentMode('UPI');
     setReferenceNo('');
@@ -190,13 +256,15 @@ export const VendorAdvancesModule: React.FC = () => {
 
   const handleEdit = (rec: VendorAdvanceRecord) => {
     if (!isAdmin) {
-      alert('Access Denied: Only administrators have permission to edit vendor advances.');
+      alert('Access Denied: Only administrators have permission to edit records.');
       return;
     }
     setEditingId(rec.id);
+    setPayeeType(rec.payeeType || 'MATERIAL_VENDOR');
     setDate(dmyToYmd(rec.date));
     setSiteName(rec.siteName);
     setVendorName(rec.vendorName);
+    setVehicleNumber(rec.vehicleNumber || '');
     setAmount(rec.amount);
     setPaymentMode(rec.paymentMode);
     setReferenceNo(rec.referenceNo || '');
@@ -206,11 +274,22 @@ export const VendorAdvancesModule: React.FC = () => {
 
   const handleDelete = (id: string) => {
     if (!isAdmin) {
-      alert('Access Denied: Only administrators have permission to delete vendor advances.');
+      alert('Access Denied: Only administrators have permission to delete records.');
       return;
     }
-    if (window.confirm('Delete this vendor advance payment record?')) {
+    if (window.confirm('Delete this payment advance record?')) {
       setAdvances((prev) => prev.filter((a) => a.id !== id));
+    }
+  };
+
+  const handleSelectRentalOwner = (ownerName: string) => {
+    setVendorName(ownerName);
+    const selected = rentalOwners.find((o) => o.ownerName === ownerName);
+    if (selected) {
+      setAmount(selected.totalRentAmount > 0 ? selected.totalRentAmount : '');
+      const vehs = selected.vehicleNumbers.join(', ');
+      setVehicleNumber(vehs);
+      setRemarks(`Rental payout for ${selected.tripCount} trip(s) [${vehs}]`);
     }
   };
 
@@ -223,7 +302,7 @@ export const VendorAdvancesModule: React.FC = () => {
     if (amount === '' || !vendorName.trim()) return;
 
     const trimmedVendor = vendorName.trim();
-    if (trimmedVendor && !savedVendors.includes(trimmedVendor)) {
+    if (payeeType === 'MATERIAL_VENDOR' && trimmedVendor && !savedVendors.includes(trimmedVendor)) {
       const updated = [trimmedVendor, ...savedVendors];
       setSavedVendors(updated);
       localStorage.setItem(STORAGE_VENDORS_KEY, JSON.stringify(updated));
@@ -233,7 +312,9 @@ export const VendorAdvancesModule: React.FC = () => {
       id: editingId || `ADV-${Date.now().toString().slice(-4)}`,
       date: ymdToDmy(date),
       siteName: siteName.trim() || activeSiteName,
+      payeeType,
       vendorName: trimmedVendor,
+      vehicleNumber: vehicleNumber.trim() || undefined,
       amount: Number(amount),
       paymentMode,
       referenceNo: referenceNo.trim(),
@@ -259,9 +340,9 @@ export const VendorAdvancesModule: React.FC = () => {
             <CreditCard className="w-5 h-5" />
           </div>
           <div>
-            <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight">Vendor Advances</h1>
+            <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight">Vendor & Vehicle Advances</h1>
             <p className="text-[11px] sm:text-xs text-slate-400 mt-0.5">
-              Record advance payments to material vendors for {activeSiteName} (auto-deducted from purchase statements).
+              Record advance payments to material vendors and rental vehicle owners for {activeSiteName}.
             </p>
           </div>
         </div>
@@ -271,7 +352,7 @@ export const VendorAdvancesModule: React.FC = () => {
           className="px-4 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-black flex items-center gap-1.5 transition-all shadow-lg shadow-amber-600/30 cursor-pointer"
         >
           <Plus className="w-4 h-4 shrink-0" />
-          <span>+ Record Vendor Advance</span>
+          <span>+ Record Payment / Advance</span>
         </button>
       </div>
 
@@ -297,7 +378,7 @@ export const VendorAdvancesModule: React.FC = () => {
               <Search className="absolute left-3.5 top-2.5 w-4 h-4 text-slate-500" />
               <input
                 type="text"
-                placeholder="Search by vendor name, ref no..."
+                placeholder="Search by payee name, vehicle no, ref no..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 bg-[#080d19] border border-[#1E293B] rounded-xl text-white outline-none focus:border-amber-500 placeholder-slate-500 text-xs"
@@ -381,7 +462,7 @@ export const VendorAdvancesModule: React.FC = () => {
           <thead>
             <tr className="border-b border-[#1E293B] text-[10px] font-extrabold uppercase text-slate-400 bg-[#080d19]/80">
               <th className="py-3 px-4">DATE</th>
-              <th className="py-3 px-4">VENDOR NAME</th>
+              <th className="py-3 px-4">PAYEE / OWNER</th>
               <th className="py-3 px-4">PAYMENT MODE</th>
               <th className="py-3 px-4">REF / REMARKS</th>
               <th className="py-3 px-4 text-right">ADVANCE AMOUNT (₹)</th>
@@ -396,43 +477,65 @@ export const VendorAdvancesModule: React.FC = () => {
                 </td>
               </tr>
             ) : (
-              filtered.map((a) => (
-                <tr key={a.id} className="hover:bg-[#121c33]/50">
-                  <td className="py-3 px-4 font-mono text-slate-300">{formatDateDMY(a.date)}</td>
-                  <td className="py-3 px-4 font-bold text-emerald-400 flex items-center gap-1.5">
-                    <Store className="w-3.5 h-3.5 text-emerald-400/70" />
-                    <span>{a.vendorName}</span>
-                  </td>
-                  <td className="py-3 px-4 font-mono text-cyan-400">{a.paymentMode}</td>
-                  <td className="py-3 px-4 text-slate-400">
-                    {a.referenceNo && <span className="font-mono text-white mr-2">Ref: {a.referenceNo}</span>}
-                    <span>{a.remarks || '—'}</span>
-                  </td>
-                  <td className="py-3 px-4 text-right font-mono font-black text-amber-400">₹{a.amount.toLocaleString('en-IN')}</td>
-                  <td className="py-3 px-4 text-center">
-                    {isAdmin ? (
-                      <div className="flex items-center justify-center gap-1.5">
-                        <button
-                          onClick={() => handleEdit(a)}
-                          className="p-1 rounded text-slate-400 hover:text-blue-400 cursor-pointer"
-                          title="Edit Record"
-                        >
-                          <Edit2 className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(a.id)}
-                          className="p-1 rounded text-slate-400 hover:text-rose-400 cursor-pointer"
-                          title="Delete Record"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
+              filtered.map((a) => {
+                const isRental = a.payeeType === 'RENTAL_OWNER' || !!a.vehicleNumber;
+                return (
+                  <tr key={a.id} className="hover:bg-[#121c33]/50">
+                    <td className="py-3 px-4 font-mono text-slate-300">{formatDateDMY(a.date)}</td>
+                    <td className="py-3 px-4">
+                      <div className="flex items-center gap-2">
+                        {isRental ? (
+                          <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-500/20 text-blue-400 border border-blue-500/30 flex items-center gap-1">
+                            <Truck className="w-3 h-3" /> Rental
+                          </span>
+                        ) : (
+                          <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
+                            <Store className="w-3 h-3" /> Vendor
+                          </span>
+                        )}
+                        <span className={`font-bold ${isRental ? 'text-blue-300' : 'text-emerald-300'}`}>
+                          {a.vendorName}
+                        </span>
                       </div>
-                    ) : (
-                      <span className="text-slate-600 font-mono text-xs">—</span>
-                    )}
-                  </td>
-                </tr>
-              ))
+                      {a.vehicleNumber && (
+                        <div className="text-[10px] font-mono text-slate-400 mt-0.5 ml-1">
+                          Veh: {a.vehicleNumber}
+                        </div>
+                      )}
+                    </td>
+                    <td className="py-3 px-4 font-mono text-cyan-400">{a.paymentMode}</td>
+                    <td className="py-3 px-4 text-slate-400">
+                      {a.referenceNo && <span className="font-mono text-white mr-2">Ref: {a.referenceNo}</span>}
+                      <span>{a.remarks || '—'}</span>
+                    </td>
+                    <td className="py-3 px-4 text-right font-mono font-black text-amber-400">
+                      ₹{a.amount.toLocaleString('en-IN')}
+                    </td>
+                    <td className="py-3 px-4 text-center">
+                      {isAdmin ? (
+                        <div className="flex items-center justify-center gap-1.5">
+                          <button
+                            onClick={() => handleEdit(a)}
+                            className="p-1 rounded text-slate-400 hover:text-blue-400 cursor-pointer"
+                            title="Edit Record"
+                          >
+                            <Edit2 className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(a.id)}
+                            className="p-1 rounded text-slate-400 hover:text-rose-400 cursor-pointer"
+                            title="Delete Record"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      ) : (
+                        <span className="text-slate-600 font-mono text-xs">—</span>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })
             )}
           </tbody>
         </table>
@@ -445,10 +548,46 @@ export const VendorAdvancesModule: React.FC = () => {
             <div className="flex justify-between items-center border-b border-[#1E293B] pb-3">
               <h3 className="text-sm font-bold text-white flex items-center gap-2">
                 <CreditCard className="w-4 h-4 text-amber-400" />
-                <span>{editingId ? 'Edit Vendor Advance' : 'Record Advance to Vendor'}</span>
+                <span>{editingId ? 'Edit Payment Record' : 'Record Advance / Rental Payment'}</span>
               </h3>
               <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-white cursor-pointer">
                 <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Payee Type Selection Tabs */}
+            <div className="flex bg-[#080d19] p-1 rounded-xl border border-[#1E293B]">
+              <button
+                type="button"
+                onClick={() => {
+                  setPayeeType('RENTAL_OWNER');
+                  setVendorName('');
+                  setVehicleNumber('');
+                }}
+                className={`flex-1 py-1.5 text-xs font-bold rounded-lg flex items-center justify-center gap-1.5 transition-all ${
+                  payeeType === 'RENTAL_OWNER'
+                    ? 'bg-blue-600 text-white shadow-md'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                <Truck className="w-3.5 h-3.5" />
+                <span>Rental Vehicle Owner</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setPayeeType('MATERIAL_VENDOR');
+                  setVendorName('');
+                  setVehicleNumber('');
+                }}
+                className={`flex-1 py-1.5 text-xs font-bold rounded-lg flex items-center justify-center gap-1.5 transition-all ${
+                  payeeType === 'MATERIAL_VENDOR'
+                    ? 'bg-amber-600 text-white shadow-md'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                <Store className="w-3.5 h-3.5" />
+                <span>Material Vendor</span>
               </button>
             </div>
 
@@ -464,26 +603,69 @@ export const VendorAdvancesModule: React.FC = () => {
                 />
               </div>
 
-              <div>
-                <label className="block text-slate-300 font-bold mb-1">Vendor / Supplier Name *</label>
-                <input
-                  type="text"
-                  list="vendor-adv-list"
-                  required
-                  placeholder="e.g. Supplier Name "
-                  value={vendorName}
-                  onChange={(e) => setVendorName(e.target.value)}
-                  className="w-full px-3 py-2 bg-[#162032] border border-[#1E293B] rounded-xl text-white outline-none"
-                />
-                <datalist id="vendor-adv-list">
-                  {savedVendors.map((v, i) => (
-                    <option key={i} value={v} />
-                  ))}
-                </datalist>
-              </div>
+              {payeeType === 'RENTAL_OWNER' ? (
+                <>
+                  <div>
+                    <label className="block text-slate-300 font-bold mb-1">Select Rental Owner (from Trips) *</label>
+                    {rentalOwners.length > 0 ? (
+                      <select
+                        required
+                        value={vendorName}
+                        onChange={(e) => handleSelectRentalOwner(e.target.value)}
+                        className="w-full px-3 py-2 bg-[#162032] border border-[#1E293B] rounded-xl text-white outline-none cursor-pointer"
+                      >
+                        <option value="">-- Choose Owner --</option>
+                        {rentalOwners.map((owner) => (
+                          <option key={owner.ownerName} value={owner.ownerName}>
+                            {owner.ownerName} ({owner.vehicleNumbers.join('/') || 'No Reg'}) — {owner.tripCount} trip(s) - ₹{owner.totalRentAmount.toLocaleString('en-IN')}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <input
+                        type="text"
+                        required
+                        placeholder="Owner name (No trips found, enter manually)"
+                        value={vendorName}
+                        onChange={(e) => setVendorName(e.target.value)}
+                        className="w-full px-3 py-2 bg-[#162032] border border-[#1E293B] rounded-xl text-white outline-none"
+                      />
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-slate-300 font-bold mb-1">Vehicle Number(s)</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. KA-28-AA-1234"
+                      value={vehicleNumber}
+                      onChange={(e) => setVehicleNumber(e.target.value)}
+                      className="w-full px-3 py-2 bg-[#162032] border border-[#1E293B] rounded-xl text-white outline-none font-mono"
+                    />
+                  </div>
+                </>
+              ) : (
+                <div>
+                  <label className="block text-slate-300 font-bold mb-1">Vendor / Quarry Supplier Name *</label>
+                  <input
+                    type="text"
+                    list="vendor-adv-list"
+                    required
+                    placeholder="e.g. Mahalaxmi Stone Crusher"
+                    value={vendorName}
+                    onChange={(e) => setVendorName(e.target.value)}
+                    className="w-full px-3 py-2 bg-[#162032] border border-[#1E293B] rounded-xl text-white outline-none"
+                  />
+                  <datalist id="vendor-adv-list">
+                    {savedVendors.map((v, i) => (
+                      <option key={i} value={v} />
+                    ))}
+                  </datalist>
+                </div>
+              )}
 
               <div>
-                <label className="block text-slate-300 font-bold mb-1">Advance Amount (₹) *</label>
+                <label className="block text-slate-300 font-bold mb-1">Amount to Pay (₹) *</label>
                 <input
                   type="number"
                   min="1"
@@ -505,7 +687,7 @@ export const VendorAdvancesModule: React.FC = () => {
                   >
                     <option value="UPI">UPI / GPay</option>
                     <option value="BANK_TRANSFER">Bank Transfer (NEFT/RTGS)</option>
-                    <option value="CASH">Cash</option>
+                    <option value="CASH">Cash (Petty Cash)</option>
                     <option value="CHEQUE">Cheque</option>
                   </select>
                 </div>
@@ -513,7 +695,7 @@ export const VendorAdvancesModule: React.FC = () => {
                   <label className="block text-slate-300 font-bold mb-1">Ref / UTR No.</label>
                   <input
                     type="text"
-                    placeholder="e.g. UPI-12345"
+                    placeholder="e.g. UPI-9876543210"
                     value={referenceNo}
                     onChange={(e) => setReferenceNo(e.target.value)}
                     className="w-full px-3 py-2 bg-[#162032] border border-[#1E293B] rounded-xl text-white outline-none font-mono"
@@ -525,7 +707,7 @@ export const VendorAdvancesModule: React.FC = () => {
                 <label className="block text-slate-300 font-bold mb-1">Remarks</label>
                 <input
                   type="text"
-                  placeholder="e.g. GSB supply advance payment"
+                  placeholder={payeeType === 'RENTAL_OWNER' ? 'e.g. Rent payment for tipper trips' : 'e.g. GSB supply advance payment'}
                   value={remarks}
                   onChange={(e) => setRemarks(e.target.value)}
                   className="w-full px-3 py-2 bg-[#162032] border border-[#1E293B] rounded-xl text-white outline-none"
@@ -536,8 +718,13 @@ export const VendorAdvancesModule: React.FC = () => {
                 <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 text-slate-400 hover:text-white cursor-pointer">
                   Cancel
                 </button>
-                <button type="submit" className="px-5 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 font-bold text-white cursor-pointer">
-                  {editingId ? 'Update Advance' : 'Save Advance'}
+                <button
+                  type="submit"
+                  className={`px-5 py-2 rounded-xl font-bold text-white cursor-pointer ${
+                    payeeType === 'RENTAL_OWNER' ? 'bg-blue-600 hover:bg-blue-500' : 'bg-amber-600 hover:bg-amber-500'
+                  }`}
+                >
+                  {editingId ? 'Update Record' : 'Save Payment'}
                 </button>
               </div>
             </form>
