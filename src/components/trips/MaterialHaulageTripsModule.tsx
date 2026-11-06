@@ -27,7 +27,7 @@ export interface HaulageTripRecord {
   tripDate: string;
   siteName: string;
   vehicleNumber: string;
-  ownerName?: string; // Stored owner name from trip
+  ownerName?: string;
   materialName: string;
   purchasedFrom: string;
   dayTrips: number;
@@ -71,11 +71,15 @@ export interface VendorAdvanceRecord {
   id: string;
   date: string;
   siteName?: string;
+  payeeType?: 'MATERIAL_VENDOR' | 'RENTAL_OWNER';
   vendorName?: string;
   supplierName?: string;
+  vehicleNumber?: string;
   amount: number;
   notes?: string;
+  remarks?: string;
   paymentMode?: string;
+  referenceNo?: string;
 }
 
 const STORAGE_HAULAGE_KEY = 'CONSTRUCTION_PRO_HAULAGE_TRIPS_V2';
@@ -229,6 +233,20 @@ export const MaterialHaulageTripsModule: React.FC = () => {
     }
   });
 
+  // Sync advances whenever storage changes
+  useEffect(() => {
+    const handleStorageChange = () => {
+      try {
+        const savedAdv = localStorage.getItem(STORAGE_VENDOR_ADVANCES_KEY);
+        if (savedAdv) setAdvances(JSON.parse(savedAdv));
+      } catch (e) {
+        console.error('Failed refreshing advances', e);
+      }
+    };
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
+
   const allSuppliers = useMemo(() => {
     const list = new Set<string>(savedVendors);
     advances.forEach((adv) => {
@@ -303,7 +321,6 @@ export const MaterialHaulageTripsModule: React.FC = () => {
     }
   };
 
-  // Sync trips to storage (both haulage and general trips compatibility for VendorAdvancesModule)
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_HAULAGE_KEY, JSON.stringify(trips));
@@ -333,7 +350,6 @@ export const MaterialHaulageTripsModule: React.FC = () => {
     return map;
   }, [fleetVehicles]);
 
-  // Search supports vehicle number, owner name, supplier, material, or date
   const filtered = useMemo(() => {
     const trimmed = searchQuery.trim().toLowerCase();
     const tokens = trimmed ? trimmed.split(/[\s,/]+/).filter(Boolean) : [];
@@ -463,22 +479,45 @@ export const MaterialHaulageTripsModule: React.FC = () => {
     return { trips: totalTodayTrips, brass: totalTodayBrass, count: todayRecords.length };
   }, [trips, activeSiteName]);
 
+  // Dynamically match ALL owners, vehicles, and suppliers across filtered trips
   const matchingAdvances = useMemo(() => {
-    const currentVendorNames = Array.from(new Set(filtered.map((t) => t.purchasedFrom?.trim().toLowerCase()).filter(Boolean)));
-    return advances.filter((a) => {
-      const matchSite = !activeSiteName || a.siteName === activeSiteName;
-      const matchVendor = currentVendorNames.length === 0 || currentVendorNames.includes((a.vendorName || a.supplierName || '').trim().toLowerCase());
+    const tripOwners = new Set<string>();
+    const tripVehicles = new Set<string>();
+    const tripSuppliers = new Set<string>();
 
-      const advComp = toComparableDate(a.date);
+    filtered.forEach((t) => {
+      const vehNo = (t.vehicleNumber || '').trim().toUpperCase();
+      if (vehNo) tripVehicles.add(vehNo);
+
+      const vObj = rentedVehiclesMap.get(vehNo);
+      const owner = (t.ownerName || vObj?.ownerName || '').trim().toUpperCase();
+      if (owner) tripOwners.add(owner);
+
+      const supp = (t.purchasedFrom || '').trim().toUpperCase();
+      if (supp) tripSuppliers.add(supp);
+    });
+
+    return advances.filter((adv) => {
+      const advSite = (adv.siteName || '').trim().toLowerCase();
+      const matchSite = !activeSiteName || !advSite || advSite === activeSiteName.toLowerCase();
+      if (!matchSite) return false;
+
+      const advComp = toComparableDate(adv.date);
       const fromComp = toComparableDate(fromDate);
       const toComp = toComparableDate(toDate);
-
       if (fromComp && advComp < fromComp) return false;
       if (toComp && advComp > toComp) return false;
 
-      return matchSite && matchVendor;
+      const payeeName = (adv.vendorName || adv.supplierName || '').trim().toUpperCase();
+      const advVeh = (adv.vehicleNumber || '').trim().toUpperCase();
+
+      const isOwnerMatch = tripOwners.has(payeeName);
+      const isVehicleMatch = advVeh && tripVehicles.has(advVeh);
+      const isSupplierMatch = tripSuppliers.has(payeeName);
+
+      return isOwnerMatch || isVehicleMatch || isSupplierMatch;
     });
-  }, [advances, filtered, activeSiteName, fromDate, toDate]);
+  }, [advances, filtered, rentedVehiclesMap, activeSiteName, fromDate, toDate]);
 
   const totalVendorAdvancePaid = useMemo(() => {
     return matchingAdvances.reduce((sum, a) => sum + (Number(a.amount) || 0), 0);
@@ -957,19 +996,23 @@ export const MaterialHaulageTripsModule: React.FC = () => {
                   <td className="no-print"></td>
                 </tr>
 
+                {/* Individual advance payments for all matched owners / suppliers */}
                 {matchingAdvances.length > 0 ? (
                   matchingAdvances.map((adv) => (
-                    <tr key={adv.id} className="border-b border-[#1E293B]/40 text-rose-400 print:text-black print-sub-row bg-rose-950/10 print:bg-transparent">
+                    <tr
+                      key={adv.id}
+                      className="border-b border-[#1E293B]/40 text-rose-400 print:text-black print-sub-row bg-rose-950/10 print:bg-transparent"
+                    >
                       <td colSpan={8} className="py-2 px-3 text-right">
-                        <span className="font-bold text-rose-400 print:text-black uppercase">
-                          (-) LESS: ADVANCE PAYMENT RECEIVED
+                        <span className="font-bold uppercase text-rose-400 print:text-black">
+                          (-) LESS: ADVANCE / RENT PAID ({adv.vendorName || adv.supplierName})
                         </span>
                         <span className="ml-2 inline-block px-2 py-0.5 rounded bg-rose-950/60 border border-rose-800/60 print:border-black text-[11px] font-mono text-rose-300 print:text-black">
                           {formatDateDMY(adv.date)}
                         </span>
-                        {(adv.notes || adv.paymentMode) && (
+                        {(adv.paymentMode || adv.notes || adv.remarks) && (
                           <span className="ml-2 text-[10px] text-slate-400 font-sans print:text-slate-700">
-                            ({[adv.paymentMode, adv.notes].filter(Boolean).join(' - ')})
+                            ({[adv.paymentMode, adv.notes, adv.remarks].filter(Boolean).join(' - ')})
                           </span>
                         )}
                         :
@@ -1015,10 +1058,10 @@ export const MaterialHaulageTripsModule: React.FC = () => {
                         <span className="px-2 py-0.5 rounded bg-rose-900/40 border border-rose-700/50 print:border-black text-[10px] font-sans uppercase tracking-normal">
                           Excess Advance
                         </span>
-                        (+) ADVANCE BALANCE REMAINING WITH VENDOR:
+                        (+) ADVANCE BALANCE REMAINING WITH VENDOR / OWNER:
                       </span>
                     ) : (
-                      '(=) NET PAYABLE AMOUNT TO VENDOR:'
+                      '(=) NET PAYABLE AMOUNT TO VENDOR / OWNER:'
                     )}
                   </td>
                   <td colSpan={3} className="py-2.5 px-3 text-right text-sm font-black">
@@ -1387,7 +1430,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
                                     className="p-1 rounded text-slate-400 hover:text-blue-400 hover:bg-blue-950/40 cursor-pointer"
                                     title="Edit Name"
                                   >
-                                    <Edit2 className="w-3 h-3" />
+                                    <Edit2 className="w-3.5 h-3.5" />
                                   </button>
                                   <button
                                     type="button"
@@ -1398,7 +1441,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
                                     className="p-1 rounded text-slate-400 hover:text-rose-400 hover:bg-rose-950/40 cursor-pointer"
                                     title="Delete Supplier"
                                   >
-                                    <Trash2 className="w-3 h-3" />
+                                    <Trash2 className="w-3.5 h-3.5" />
                                   </button>
                                 </div>
                               </>
