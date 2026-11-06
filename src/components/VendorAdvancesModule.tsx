@@ -20,8 +20,7 @@ export interface VendorAdvanceRecord {
   date: string;
   siteName: string;
   payeeType?: PayeeType;
-  vendorName: string; // Used for Vendor name or Vehicle Owner name
-  vehicleNumber?: string;
+  vendorName: string; // Material Vendor or Rental Vehicle Owner
   amount: number;
   paymentMode: 'BANK_TRANSFER' | 'CASH' | 'CHEQUE' | 'UPI';
   referenceNo?: string;
@@ -30,14 +29,12 @@ export interface VendorAdvanceRecord {
 
 interface RentalOwnerSummary {
   ownerName: string;
-  vehicleNumbers: string[];
   totalRentAmount: number;
   tripCount: number;
 }
 
 export const STORAGE_VENDOR_ADVANCES_KEY = 'CONSTRUCTION_PRO_VENDOR_ADVANCES_V1';
 const STORAGE_VENDORS_KEY = 'CONSTRUCTION_PRO_VENDOR_NAMES_V1';
-const STORAGE_TRIPS_KEY = 'CONSTRUCTION_PRO_TRIPS_V1';
 
 // Helper: Format Date string to DD-MM-YYYY
 const formatDateDMY = (dateStr: string) => {
@@ -111,7 +108,6 @@ const toComparableDate = (dateStr: string) => {
 export const VendorAdvancesModule: React.FC = () => {
   const { siteSheets = [], selectedSiteId, currentUser, userRole, trips: contextTrips } = useERP() as any;
 
-  // Determine if active session has Admin privileges
   const currentRole = String(userRole || currentUser?.role || '').toUpperCase();
   const isAdmin = currentRole === 'SUPER_ADMIN' || currentRole === 'ADMIN';
 
@@ -149,59 +145,94 @@ export const VendorAdvancesModule: React.FC = () => {
   const [date, setDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [siteName, setSiteName] = useState(activeSiteName);
   const [vendorName, setVendorName] = useState('');
-  const [vehicleNumber, setVehicleNumber] = useState('');
   const [amount, setAmount] = useState<number | ''>('');
   const [paymentMode, setPaymentMode] = useState<VendorAdvanceRecord['paymentMode']>('UPI');
   const [referenceNo, setReferenceNo] = useState('');
   const [remarks, setRemarks] = useState('');
 
-  // Extract rental vehicle owners and pending balances from trip entries
+  // Auto-collect rental owners and amounts across context trips, site sheet trips, and local storage
   const rentalOwners = useMemo<RentalOwnerSummary[]>(() => {
     let rawTrips: any[] = [];
+
+    // 1. Check ERPContext trips
     if (Array.isArray(contextTrips) && contextTrips.length > 0) {
-      rawTrips = contextTrips;
-    } else {
+      rawTrips = [...contextTrips];
+    }
+
+    // 2. Check site-specific trips embedded in siteSheets
+    if (currentActiveSite?.trips && Array.isArray(currentActiveSite.trips)) {
+      rawTrips = [...rawTrips, ...currentActiveSite.trips];
+    } else if (Array.isArray(siteSheets)) {
+      siteSheets.forEach((s: any) => {
+        if (Array.isArray(s.trips)) rawTrips.push(...s.trips);
+      });
+    }
+
+    // 3. Fallback: inspect trips stored under known local storage keys
+    const tripStorageKeys = [
+      'CONSTRUCTION_PRO_TRIPS_V1',
+      'CONSTRUCTION_PRO_TRIPS',
+      'PAVETRACK_TRIPS_V1',
+      'ROAD_CONSTRUCTION_TRIPS_V1',
+      'TRIPS_DATA',
+      'trips'
+    ];
+    for (const key of tripStorageKeys) {
       try {
-        const savedTrips = localStorage.getItem(STORAGE_TRIPS_KEY);
-        if (savedTrips) rawTrips = JSON.parse(savedTrips);
+        const stored = localStorage.getItem(key);
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (Array.isArray(parsed)) rawTrips.push(...parsed);
+        }
       } catch {
-        rawTrips = [];
+        // ignore JSON parse errors
       }
     }
 
     const summaryMap: Record<string, RentalOwnerSummary> = {};
 
     rawTrips.forEach((trip) => {
-      // Check if trip belongs to this site and is a hired/rental vehicle
-      const tripSite = trip.siteName || trip.site || '';
-      const isCurrentSite = !tripSite || tripSite.toLowerCase() === activeSiteName.toLowerCase();
-      const isRental = trip.isRental || trip.is_rental || trip.vehicleType === 'RENTAL' || trip.ownershipType === 'RENTAL' || trip.ownerName;
+      // Resolve owner name using any common field name
+      const owner = (
+        trip.ownerName ||
+        trip.vehicleOwner ||
+        trip.owner ||
+        trip.transporter ||
+        trip.transporterName ||
+        trip.party ||
+        trip.partyName ||
+        trip.hiredFrom ||
+        trip.agency ||
+        ''
+      ).trim();
 
-      if (isCurrentSite && isRental) {
-        const owner = (trip.ownerName || trip.vehicleOwner || trip.transporterName || trip.partyName || 'Unknown Owner').trim();
-        const veh = (trip.vehicleNumber || trip.vehicleNo || trip.truckNo || '').trim().toUpperCase();
-        const tripRent = Number(trip.rentAmount || trip.hireAmount || trip.amount || trip.totalAmount || 0);
+      if (!owner) return;
 
-        if (!summaryMap[owner]) {
-          summaryMap[owner] = {
-            ownerName: owner,
-            vehicleNumbers: [],
-            totalRentAmount: 0,
-            tripCount: 0
-          };
-        }
+      // Resolve trip rent amount
+      const tripRent = Number(
+        trip.rentAmount ??
+        trip.hireAmount ??
+        trip.tripAmount ??
+        trip.amount ??
+        trip.rent ??
+        trip.totalAmount ??
+        0
+      );
 
-        if (veh && !summaryMap[owner].vehicleNumbers.includes(veh)) {
-          summaryMap[owner].vehicleNumbers.push(veh);
-        }
-
-        summaryMap[owner].totalRentAmount += tripRent;
-        summaryMap[owner].tripCount += 1;
+      if (!summaryMap[owner]) {
+        summaryMap[owner] = {
+          ownerName: owner,
+          totalRentAmount: 0,
+          tripCount: 0
+        };
       }
+
+      summaryMap[owner].totalRentAmount += tripRent;
+      summaryMap[owner].tripCount += 1;
     });
 
     return Object.values(summaryMap);
-  }, [contextTrips, activeSiteName]);
+  }, [contextTrips, currentActiveSite, siteSheets]);
 
   useEffect(() => {
     try {
@@ -227,7 +258,6 @@ export const VendorAdvancesModule: React.FC = () => {
       const matchQuery =
         !q ||
         a.vendorName.toLowerCase().includes(q) ||
-        (a.vehicleNumber || '').toLowerCase().includes(q) ||
         (a.referenceNo || '').toLowerCase().includes(q) ||
         a.date.includes(q) ||
         formatDateDMY(a.date).includes(q);
@@ -246,7 +276,6 @@ export const VendorAdvancesModule: React.FC = () => {
     setDate(new Date().toISOString().split('T')[0]);
     setSiteName(activeSiteName);
     setVendorName('');
-    setVehicleNumber('');
     setAmount('');
     setPaymentMode('UPI');
     setReferenceNo('');
@@ -264,7 +293,6 @@ export const VendorAdvancesModule: React.FC = () => {
     setDate(dmyToYmd(rec.date));
     setSiteName(rec.siteName);
     setVendorName(rec.vendorName);
-    setVehicleNumber(rec.vehicleNumber || '');
     setAmount(rec.amount);
     setPaymentMode(rec.paymentMode);
     setReferenceNo(rec.referenceNo || '');
@@ -286,10 +314,9 @@ export const VendorAdvancesModule: React.FC = () => {
     setVendorName(ownerName);
     const selected = rentalOwners.find((o) => o.ownerName === ownerName);
     if (selected) {
+      // Auto-populate the total calculated rent from trips
       setAmount(selected.totalRentAmount > 0 ? selected.totalRentAmount : '');
-      const vehs = selected.vehicleNumbers.join(', ');
-      setVehicleNumber(vehs);
-      setRemarks(`Rental payout for ${selected.tripCount} trip(s) [${vehs}]`);
+      setRemarks(`Trip rental payment for ${selected.tripCount} trip(s)`);
     }
   };
 
@@ -314,7 +341,6 @@ export const VendorAdvancesModule: React.FC = () => {
       siteName: siteName.trim() || activeSiteName,
       payeeType,
       vendorName: trimmedVendor,
-      vehicleNumber: vehicleNumber.trim() || undefined,
       amount: Number(amount),
       paymentMode,
       referenceNo: referenceNo.trim(),
@@ -340,9 +366,9 @@ export const VendorAdvancesModule: React.FC = () => {
             <CreditCard className="w-5 h-5" />
           </div>
           <div>
-            <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight">Vendor & Vehicle Advances</h1>
+            <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight">Vendor & Rental Advances</h1>
             <p className="text-[11px] sm:text-xs text-slate-400 mt-0.5">
-              Record advance payments to material vendors and rental vehicle owners for {activeSiteName}.
+              Record payments and advances to material vendors and rental vehicle owners for {activeSiteName}.
             </p>
           </div>
         </div>
@@ -368,7 +394,7 @@ export const VendorAdvancesModule: React.FC = () => {
         </div>
       </div>
 
-      {/* Search & DD-MM-YYYY Date Range Filter Bar */}
+      {/* Search & Date Filter Bar */}
       <div className="p-4 rounded-2xl bg-[#0c1427] border border-[#182643]">
         <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
           {/* Search Box */}
@@ -378,7 +404,7 @@ export const VendorAdvancesModule: React.FC = () => {
               <Search className="absolute left-3.5 top-2.5 w-4 h-4 text-slate-500" />
               <input
                 type="text"
-                placeholder="Search by payee name, vehicle no, ref no..."
+                placeholder="Search by payee name, ref no..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 bg-[#080d19] border border-[#1E293B] rounded-xl text-white outline-none focus:border-amber-500 placeholder-slate-500 text-xs"
@@ -386,7 +412,7 @@ export const VendorAdvancesModule: React.FC = () => {
             </div>
           </div>
 
-          {/* From Date (DD-MM-YYYY) */}
+          {/* From Date */}
           <div className="md:col-span-3">
             <div className="flex items-center justify-between mb-1.5">
               <label className="text-[11px] font-semibold text-slate-400">
@@ -411,7 +437,7 @@ export const VendorAdvancesModule: React.FC = () => {
             </div>
           </div>
 
-          {/* To Date (DD-MM-YYYY) */}
+          {/* To Date */}
           <div className="md:col-span-3">
             <div className="flex items-center justify-between mb-1.5">
               <label className="text-[11px] font-semibold text-slate-400">
@@ -462,7 +488,7 @@ export const VendorAdvancesModule: React.FC = () => {
           <thead>
             <tr className="border-b border-[#1E293B] text-[10px] font-extrabold uppercase text-slate-400 bg-[#080d19]/80">
               <th className="py-3 px-4">DATE</th>
-              <th className="py-3 px-4">PAYEE / OWNER</th>
+              <th className="py-3 px-4">PAYEE NAME</th>
               <th className="py-3 px-4">PAYMENT MODE</th>
               <th className="py-3 px-4">REF / REMARKS</th>
               <th className="py-3 px-4 text-right">ADVANCE AMOUNT (₹)</th>
@@ -478,7 +504,7 @@ export const VendorAdvancesModule: React.FC = () => {
               </tr>
             ) : (
               filtered.map((a) => {
-                const isRental = a.payeeType === 'RENTAL_OWNER' || !!a.vehicleNumber;
+                const isRental = a.payeeType === 'RENTAL_OWNER';
                 return (
                   <tr key={a.id} className="hover:bg-[#121c33]/50">
                     <td className="py-3 px-4 font-mono text-slate-300">{formatDateDMY(a.date)}</td>
@@ -486,7 +512,7 @@ export const VendorAdvancesModule: React.FC = () => {
                       <div className="flex items-center gap-2">
                         {isRental ? (
                           <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-500/20 text-blue-400 border border-blue-500/30 flex items-center gap-1">
-                            <Truck className="w-3 h-3" /> Rental
+                            <Truck className="w-3 h-3" /> Vehicle Owner
                           </span>
                         ) : (
                           <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
@@ -497,11 +523,6 @@ export const VendorAdvancesModule: React.FC = () => {
                           {a.vendorName}
                         </span>
                       </div>
-                      {a.vehicleNumber && (
-                        <div className="text-[10px] font-mono text-slate-400 mt-0.5 ml-1">
-                          Veh: {a.vehicleNumber}
-                        </div>
-                      )}
                     </td>
                     <td className="py-3 px-4 font-mono text-cyan-400">{a.paymentMode}</td>
                     <td className="py-3 px-4 text-slate-400">
@@ -562,7 +583,7 @@ export const VendorAdvancesModule: React.FC = () => {
                 onClick={() => {
                   setPayeeType('RENTAL_OWNER');
                   setVendorName('');
-                  setVehicleNumber('');
+                  setAmount('');
                 }}
                 className={`flex-1 py-1.5 text-xs font-bold rounded-lg flex items-center justify-center gap-1.5 transition-all ${
                   payeeType === 'RENTAL_OWNER'
@@ -578,7 +599,7 @@ export const VendorAdvancesModule: React.FC = () => {
                 onClick={() => {
                   setPayeeType('MATERIAL_VENDOR');
                   setVendorName('');
-                  setVehicleNumber('');
+                  setAmount('');
                 }}
                 className={`flex-1 py-1.5 text-xs font-bold rounded-lg flex items-center justify-center gap-1.5 transition-all ${
                   payeeType === 'MATERIAL_VENDOR'
@@ -604,46 +625,33 @@ export const VendorAdvancesModule: React.FC = () => {
               </div>
 
               {payeeType === 'RENTAL_OWNER' ? (
-                <>
-                  <div>
-                    <label className="block text-slate-300 font-bold mb-1">Select Rental Owner (from Trips) *</label>
-                    {rentalOwners.length > 0 ? (
-                      <select
-                        required
-                        value={vendorName}
-                        onChange={(e) => handleSelectRentalOwner(e.target.value)}
-                        className="w-full px-3 py-2 bg-[#162032] border border-[#1E293B] rounded-xl text-white outline-none cursor-pointer"
-                      >
-                        <option value="">-- Choose Owner --</option>
-                        {rentalOwners.map((owner) => (
-                          <option key={owner.ownerName} value={owner.ownerName}>
-                            {owner.ownerName} ({owner.vehicleNumbers.join('/') || 'No Reg'}) — {owner.tripCount} trip(s) - ₹{owner.totalRentAmount.toLocaleString('en-IN')}
-                          </option>
-                        ))}
-                      </select>
-                    ) : (
-                      <input
-                        type="text"
-                        required
-                        placeholder="Owner name (No trips found, enter manually)"
-                        value={vendorName}
-                        onChange={(e) => setVendorName(e.target.value)}
-                        className="w-full px-3 py-2 bg-[#162032] border border-[#1E293B] rounded-xl text-white outline-none"
-                      />
-                    )}
-                  </div>
-
-                  <div>
-                    <label className="block text-slate-300 font-bold mb-1">Vehicle Number(s)</label>
+                <div>
+                  <label className="block text-slate-300 font-bold mb-1">Select Rental Owner (from Trips) *</label>
+                  {rentalOwners.length > 0 ? (
+                    <select
+                      required
+                      value={vendorName}
+                      onChange={(e) => handleSelectRentalOwner(e.target.value)}
+                      className="w-full px-3 py-2 bg-[#162032] border border-[#1E293B] rounded-xl text-white outline-none cursor-pointer"
+                    >
+                      <option value="">-- Choose Owner --</option>
+                      {rentalOwners.map((owner) => (
+                        <option key={owner.ownerName} value={owner.ownerName}>
+                          {owner.ownerName} ({owner.tripCount} trip{owner.tripCount > 1 ? 's' : ''}) — Total Rent: ₹{owner.totalRentAmount.toLocaleString('en-IN')}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
                     <input
                       type="text"
-                      placeholder="e.g. KA-28-AA-1234"
-                      value={vehicleNumber}
-                      onChange={(e) => setVehicleNumber(e.target.value)}
-                      className="w-full px-3 py-2 bg-[#162032] border border-[#1E293B] rounded-xl text-white outline-none font-mono"
+                      required
+                      placeholder="Enter vehicle owner name"
+                      value={vendorName}
+                      onChange={(e) => setVendorName(e.target.value)}
+                      className="w-full px-3 py-2 bg-[#162032] border border-[#1E293B] rounded-xl text-white outline-none"
                     />
-                  </div>
-                </>
+                  )}
+                </div>
               ) : (
                 <div>
                   <label className="block text-slate-300 font-bold mb-1">Vendor / Quarry Supplier Name *</label>
