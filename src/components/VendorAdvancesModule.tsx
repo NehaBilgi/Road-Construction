@@ -20,7 +20,7 @@ export interface VendorAdvanceRecord {
   date: string;
   siteName: string;
   payeeType?: PayeeType;
-  vendorName: string; // Material Vendor Name or Rental Vehicle Owner Name
+  vendorName: string;
   amount: number;
   paymentMode: 'BANK_TRANSFER' | 'CASH' | 'CHEQUE' | 'UPI';
   referenceNo?: string;
@@ -30,23 +30,19 @@ export interface VendorAdvanceRecord {
 interface RentalOwnerSummary {
   ownerName: string;
   vehicleNumbers: string[];
-  totalRentAmount: number;
+  grossRentAmount: number;
+  dieselCost: number;
+  dieselLitres: number;
+  netRentPayable: number;
   tripCount: number;
 }
 
-// Exact storage keys matching MaterialHaulageTripsModule.tsx
+// Storage keys matching MaterialHaulageTripsModule.tsx
 export const STORAGE_VENDOR_ADVANCES_KEY = 'CONSTRUCTION_PRO_VENDOR_ADVANCES_V1';
 const STORAGE_HAULAGE_KEY = 'CONSTRUCTION_PRO_HAULAGE_TRIPS_V2';
 const STORAGE_FLEET_KEY = 'CONSTRUCTION_PRO_FLEET_VEHICLES_V1';
+const STORAGE_DIESEL_KEY = 'CONSTRUCTION_PRO_DIESEL_LOGS_V1';
 const STORAGE_VENDORS_KEY = 'CONSTRUCTION_PRO_VENDOR_NAMES_V1';
-
-// Default fleet fallback if not yet initialized in localStorage
-const DEFAULT_FLEET = [
-  { id: 'v-2', vehicleNumber: '3146', ownershipType: 'rented', rentalAmount: 1500, ownerName: 'Basavaraj' },
-  { id: 'v-3', vehicleNumber: '7243', ownershipType: 'rented', rentalAmount: 1500, ownerName: 'Ramesh Patil' },
-  { id: 'v-4', vehicleNumber: '9260', ownershipType: 'rented', rentalAmount: 1500, ownerName: 'Mallikarjun' },
-  { id: 'v-5', vehicleNumber: '5321', ownershipType: 'rented', rentalAmount: 1500, ownerName: 'Sangamesh' },
-];
 
 const formatDateDMY = (dateStr: string) => {
   if (!dateStr) return '';
@@ -155,10 +151,11 @@ export const VendorAdvancesModule: React.FC = () => {
   const [referenceNo, setReferenceNo] = useState('');
   const [remarks, setRemarks] = useState('');
 
-  // Read Trips directly from MaterialHaulageTripsModule storage & map vehicle owners
+  // Read Trips, Fleet, and Diesel logs to compute Gross Rent, Diesel Deductions, and Net Payable
   const rentalOwners = useMemo<RentalOwnerSummary[]>(() => {
     let haulageTrips: any[] = [];
-    let fleetVehicles: any[] = DEFAULT_FLEET;
+    let fleetVehicles: any[] = [];
+    let dieselLogs: any[] = [];
 
     try {
       const savedTrips = localStorage.getItem(STORAGE_HAULAGE_KEY);
@@ -171,7 +168,14 @@ export const VendorAdvancesModule: React.FC = () => {
       const savedFleet = localStorage.getItem(STORAGE_FLEET_KEY);
       if (savedFleet) fleetVehicles = JSON.parse(savedFleet);
     } catch {
-      fleetVehicles = DEFAULT_FLEET;
+      fleetVehicles = [];
+    }
+
+    try {
+      const savedDiesel = localStorage.getItem(STORAGE_DIESEL_KEY);
+      if (savedDiesel) dieselLogs = JSON.parse(savedDiesel);
+    } catch {
+      dieselLogs = [];
     }
 
     const fleetMap = new Map<string, any>();
@@ -182,7 +186,6 @@ export const VendorAdvancesModule: React.FC = () => {
     const summaryMap: Record<string, RentalOwnerSummary> = {};
 
     haulageTrips.forEach((trip) => {
-      // Filter by active site
       const tripSite = (trip.siteName || '').trim();
       if (tripSite && activeSiteName && tripSite.toLowerCase() !== activeSiteName.toLowerCase()) {
         return;
@@ -191,7 +194,6 @@ export const VendorAdvancesModule: React.FC = () => {
       const vehNumber = (trip.vehicleNumber || '').trim().toUpperCase();
       const matchedFleet = fleetMap.get(vehNumber);
 
-      // Determine owner name: prefer trip.ownerName, then fleet.ownerName
       const owner = (trip.ownerName || matchedFleet?.ownerName || '').trim();
       const isRental = trip.isRental || matchedFleet?.ownershipType === 'rented' || Boolean(owner);
 
@@ -204,7 +206,10 @@ export const VendorAdvancesModule: React.FC = () => {
           summaryMap[owner] = {
             ownerName: owner,
             vehicleNumbers: [],
-            totalRentAmount: 0,
+            grossRentAmount: 0,
+            dieselCost: 0,
+            dieselLitres: 0,
+            netRentPayable: 0,
             tripCount: 0
           };
         }
@@ -213,21 +218,35 @@ export const VendorAdvancesModule: React.FC = () => {
           summaryMap[owner].vehicleNumbers.push(vehNumber);
         }
 
-        summaryMap[owner].totalRentAmount += tripCost;
+        summaryMap[owner].grossRentAmount += tripCost;
         summaryMap[owner].tripCount += tripCount;
       }
     });
 
-    // Also include registered rented owners from fleet who may have upcoming trips
-    fleetVehicles.forEach((f) => {
-      if (f.ownershipType === 'rented' && f.ownerName && !summaryMap[f.ownerName.trim()]) {
-        summaryMap[f.ownerName.trim()] = {
-          ownerName: f.ownerName.trim(),
-          vehicleNumbers: [f.vehicleNumber],
-          totalRentAmount: 0,
-          tripCount: 0
-        };
-      }
+    // Minus Diesel: Aggregate diesel logs for all vehicles owned by each owner
+    Object.values(summaryMap).forEach((summary) => {
+      const upperVehicles = summary.vehicleNumbers.map((v) => v.toUpperCase());
+
+      const matchingDieselLogs = dieselLogs.filter((d) => {
+        const logVeh = (d.vehicleNumber || '').trim().toUpperCase();
+        const logSite = (d.siteName || '').trim().toLowerCase();
+        const matchSite = !activeSiteName || !logSite || logSite === activeSiteName.toLowerCase();
+        return matchSite && upperVehicles.includes(logVeh);
+      });
+
+      const totalDieselCost = matchingDieselLogs.reduce(
+        (sum, log) => sum + (Number(log.totalCost) || 0),
+        0
+      );
+      const totalDieselLitres = matchingDieselLogs.reduce(
+        (sum, log) => sum + (Number(log.litres) || 0),
+        0
+      );
+
+      summary.dieselCost = totalDieselCost;
+      summary.dieselLitres = totalDieselLitres;
+      // Net Amount after deducting Diesel
+      summary.netRentPayable = Math.max(0, summary.grossRentAmount - totalDieselCost);
     });
 
     return Object.values(summaryMap);
@@ -313,16 +332,19 @@ export const VendorAdvancesModule: React.FC = () => {
     setVendorName(owner);
     const summary = rentalOwners.find((o) => o.ownerName === owner);
     if (summary) {
-      // Auto-set the amount calculated from Haulage Trips
-      if (summary.totalRentAmount > 0) {
-        setAmount(summary.totalRentAmount);
+      // Auto-set the NET Amount (Gross Rent MINUS Diesel)
+      setAmount(summary.netRentPayable > 0 ? summary.netRentPayable : '');
+
+      const vehList = summary.vehicleNumbers.join('/');
+      if (summary.dieselCost > 0) {
+        setRemarks(
+          `Net rent: Gross ₹${summary.grossRentAmount.toLocaleString('en-IN')} - Diesel ₹${summary.dieselCost.toLocaleString('en-IN')} (${summary.tripCount} trips, ${vehList})`
+        );
+      } else {
+        setRemarks(
+          `Rent payout for ${summary.tripCount} trip(s) [${vehList}]`
+        );
       }
-      const vehList = summary.vehicleNumbers.join(', ');
-      setRemarks(
-        summary.tripCount > 0
-          ? `Rent payout for ${summary.tripCount} trip(s) [${vehList}]`
-          : `Rental payment for owner ${owner}`
-      );
     }
   };
 
@@ -374,7 +396,7 @@ export const VendorAdvancesModule: React.FC = () => {
           <div>
             <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight">Vendor & Rental Advances</h1>
             <p className="text-[11px] sm:text-xs text-slate-400 mt-0.5">
-              Record payments and advances to material vendors and rental vehicle owners for {activeSiteName}.
+              Record payments to material vendors and rental vehicle owners for {activeSiteName}.
             </p>
           </div>
         </div>
@@ -648,7 +670,7 @@ export const VendorAdvancesModule: React.FC = () => {
                       <option value="">-- Choose Owner from Haulage Trips --</option>
                       {rentalOwners.map((owner) => (
                         <option key={owner.ownerName} value={owner.ownerName}>
-                          {owner.ownerName} {owner.vehicleNumbers.length > 0 ? `(${owner.vehicleNumbers.join('/')})` : ''} — {owner.tripCount} trip{owner.tripCount !== 1 ? 's' : ''} (₹{owner.totalRentAmount.toLocaleString('en-IN')})
+                          {owner.ownerName} ({owner.vehicleNumbers.join('/') || 'Vehicles'}) — {owner.tripCount} trips {owner.dieselCost > 0 ? `(Net: ₹${owner.netRentPayable.toLocaleString('en-IN')} | Diesel: -₹${owner.dieselCost.toLocaleString('en-IN')})` : `(₹${owner.netRentPayable.toLocaleString('en-IN')})`}
                         </option>
                       ))}
                     </select>
@@ -684,12 +706,21 @@ export const VendorAdvancesModule: React.FC = () => {
               )}
 
               <div>
-                <label className="block text-slate-300 font-bold mb-1">Amount to Pay (₹) *</label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-slate-300 font-bold">
+                    {payeeType === 'RENTAL_OWNER' ? 'Net Amount to Pay (₹) *' : 'Amount to Pay (₹) *'}
+                  </label>
+                  {payeeType === 'RENTAL_OWNER' && (
+                    <span className="text-[10px] text-amber-400 font-mono">
+                      (Trip Rent - Diesel deducted)
+                    </span>
+                  )}
+                </div>
                 <input
                   type="number"
-                  min="1"
+                  min="0"
                   required
-                  placeholder="e.g. 25000"
+                  placeholder="0.00"
                   value={amount}
                   onChange={(e) => setAmount(e.target.value === '' ? '' : Number(e.target.value))}
                   className="w-full px-3 py-2 bg-[#162032] border border-[#1E293B] rounded-xl text-amber-400 font-mono font-bold outline-none"
