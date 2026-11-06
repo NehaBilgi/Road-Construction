@@ -233,7 +233,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
     }
   });
 
-  // Sync advances whenever storage changes
+  // Cross-tab & Cross-module real-time sync
   useEffect(() => {
     const handleStorageChange = () => {
       try {
@@ -479,24 +479,94 @@ export const MaterialHaulageTripsModule: React.FC = () => {
     return { trips: totalTodayTrips, brass: totalTodayBrass, count: todayRecords.length };
   }, [trips, activeSiteName]);
 
-  // Dynamically match ALL owners, vehicles, and suppliers across filtered trips
+  // STRICT FILTERING: Show ONLY advances matching the searched/viewed owner or vendor
   const matchingAdvances = useMemo(() => {
-    const tripOwners = new Set<string>();
-    const tripVehicles = new Set<string>();
-    const tripSuppliers = new Set<string>();
+    const trimmedQuery = searchQuery.trim().toLowerCase();
+
+    // 1. If searching by Owner, Vendor, or Vehicle Number:
+    if (trimmedQuery) {
+      // Find if the query matches a vehicle number that belongs to a specific owner
+      const matchedVehicles = fleetVehicles.filter(
+        (v) => v.vehicleNumber.toLowerCase().includes(trimmedQuery)
+      );
+      const associatedOwners = matchedVehicles
+        .map((v) => (v.ownerName || '').trim().toLowerCase())
+        .filter(Boolean);
+
+      return advances.filter((adv) => {
+        const advSite = (adv.siteName || '').trim().toLowerCase();
+        const matchSite = !activeSiteName || !advSite || advSite === activeSiteName.toLowerCase();
+        if (!matchSite) return false;
+
+        const advComp = toComparableDate(adv.date);
+        const fromComp = toComparableDate(fromDate);
+        const toComp = toComparableDate(toDate);
+        if (fromComp && advComp < fromComp) return false;
+        if (toComp && advComp > toComp) return false;
+
+        const payee = (adv.vendorName || adv.supplierName || '').trim().toLowerCase();
+        const veh = (adv.vehicleNumber || '').trim().toLowerCase();
+
+        const directPayeeMatch = payee.includes(trimmedQuery);
+        const directVehMatch = veh && veh.includes(trimmedQuery);
+        const ownerViaVehicleMatch = associatedOwners.some((o) => payee.includes(o));
+
+        return directPayeeMatch || directVehMatch || ownerViaVehicleMatch;
+      });
+    }
+
+    // 2. When NO search query is typed, restrict advances ONLY to the active owners present
+    const uniqueOwnersInTrips = new Set<string>();
+    const uniqueSuppliersInTrips = new Set<string>();
 
     filtered.forEach((t) => {
-      const vehNo = (t.vehicleNumber || '').trim().toUpperCase();
-      if (vehNo) tripVehicles.add(vehNo);
-
-      const vObj = rentedVehiclesMap.get(vehNo);
+      const vObj = rentedVehiclesMap.get(t.vehicleNumber.trim().toUpperCase());
       const owner = (t.ownerName || vObj?.ownerName || '').trim().toUpperCase();
-      if (owner) tripOwners.add(owner);
+      if (owner) uniqueOwnersInTrips.add(owner);
 
       const supp = (t.purchasedFrom || '').trim().toUpperCase();
-      if (supp) tripSuppliers.add(supp);
+      if (supp) uniqueSuppliersInTrips.add(supp);
     });
 
+    // If viewing exclusively rented trips of a single owner, show only that owner's advances
+    if (uniqueOwnersInTrips.size === 1) {
+      const soleOwner = Array.from(uniqueOwnersInTrips)[0];
+      return advances.filter((adv) => {
+        const advSite = (adv.siteName || '').trim().toLowerCase();
+        const matchSite = !activeSiteName || !advSite || advSite === activeSiteName.toLowerCase();
+        if (!matchSite) return false;
+
+        const advComp = toComparableDate(adv.date);
+        const fromComp = toComparableDate(fromDate);
+        const toComp = toComparableDate(toDate);
+        if (fromComp && advComp < fromComp) return false;
+        if (toComp && advComp > toComp) return false;
+
+        const payee = (adv.vendorName || adv.supplierName || '').trim().toUpperCase();
+        return payee === soleOwner;
+      });
+    }
+
+    // If viewing a single supplier's records, show only that supplier's advances
+    if (uniqueSuppliersInTrips.size === 1 && uniqueOwnersInTrips.size === 0) {
+      const soleSupplier = Array.from(uniqueSuppliersInTrips)[0];
+      return advances.filter((adv) => {
+        const advSite = (adv.siteName || '').trim().toLowerCase();
+        const matchSite = !activeSiteName || !advSite || advSite === activeSiteName.toLowerCase();
+        if (!matchSite) return false;
+
+        const advComp = toComparableDate(adv.date);
+        const fromComp = toComparableDate(fromDate);
+        const toComp = toComparableDate(toDate);
+        if (fromComp && advComp < fromComp) return false;
+        if (toComp && advComp > toComp) return false;
+
+        const payee = (adv.vendorName || adv.supplierName || '').trim().toUpperCase();
+        return payee === soleSupplier;
+      });
+    }
+
+    // Otherwise, match only the payees strictly present in the current view
     return advances.filter((adv) => {
       const advSite = (adv.siteName || '').trim().toLowerCase();
       const matchSite = !activeSiteName || !advSite || advSite === activeSiteName.toLowerCase();
@@ -508,16 +578,10 @@ export const MaterialHaulageTripsModule: React.FC = () => {
       if (fromComp && advComp < fromComp) return false;
       if (toComp && advComp > toComp) return false;
 
-      const payeeName = (adv.vendorName || adv.supplierName || '').trim().toUpperCase();
-      const advVeh = (adv.vehicleNumber || '').trim().toUpperCase();
-
-      const isOwnerMatch = tripOwners.has(payeeName);
-      const isVehicleMatch = advVeh && tripVehicles.has(advVeh);
-      const isSupplierMatch = tripSuppliers.has(payeeName);
-
-      return isOwnerMatch || isVehicleMatch || isSupplierMatch;
+      const payee = (adv.vendorName || adv.supplierName || '').trim().toUpperCase();
+      return uniqueOwnersInTrips.has(payee) || uniqueSuppliersInTrips.has(payee);
     });
-  }, [advances, filtered, rentedVehiclesMap, activeSiteName, fromDate, toDate]);
+  }, [advances, filtered, rentedVehiclesMap, fleetVehicles, activeSiteName, fromDate, toDate, searchQuery]);
 
   const totalVendorAdvancePaid = useMemo(() => {
     return matchingAdvances.reduce((sum, a) => sum + (Number(a.amount) || 0), 0);
@@ -996,7 +1060,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
                   <td className="no-print"></td>
                 </tr>
 
-                {/* Individual advance payments for all matched owners / suppliers */}
+                {/* Individual advance payments strictly for the matched owner / vendor */}
                 {matchingAdvances.length > 0 ? (
                   matchingAdvances.map((adv) => (
                     <tr
@@ -1430,7 +1494,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
                                     className="p-1 rounded text-slate-400 hover:text-blue-400 hover:bg-blue-950/40 cursor-pointer"
                                     title="Edit Name"
                                   >
-                                    <Edit2 className="w-3.5 h-3.5" />
+                                    <Edit2 className="w-3 h-3" />
                                   </button>
                                   <button
                                     type="button"
@@ -1441,7 +1505,7 @@ export const MaterialHaulageTripsModule: React.FC = () => {
                                     className="p-1 rounded text-slate-400 hover:text-rose-400 hover:bg-rose-950/40 cursor-pointer"
                                     title="Delete Supplier"
                                   >
-                                    <Trash2 className="w-3.5 h-3.5" />
+                                    <Trash2 className="w-3 h-3" />
                                   </button>
                                 </div>
                               </>
